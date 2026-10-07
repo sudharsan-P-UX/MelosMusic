@@ -14,7 +14,7 @@
         <div class="h-16 flex items-center justify-center font-bold text-2xl border-b border-indigo-800">
             Melo's Music
         </div>
-        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             <a href="{% url 'index' %}" class="block px-4 py-2 rounded-md {% if request.resolver_match.url_name == 'index' %}bg-indigo-800 text-white{% else %}hover:bg-indigo-700{% endif %}">Dashboard</a>
             <div x-data="{ open: {% if 'Student' in page_title or 'Enrollment' in page_title %}true{% else %}false{% endif %} }">
                 <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none {% if 'Student' in page_title or 'Enrollment' in page_title %}bg-indigo-800 text-white{% endif %}">
@@ -95,6 +95,42 @@
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col relative overflow-y-auto">
+    <!-- Toast Notifications -->
+    <div class="fixed top-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none">
+        {% if messages %}
+            {% for message in messages %}
+                <div x-data="{ show: true }" 
+                     x-show="show" 
+                     x-init="setTimeout(() => show = false, 4000)"
+                     x-transition:enter="transition ease-out duration-300 transform"
+                     x-transition:enter-start="translate-x-full opacity-0"
+                     x-transition:enter-end="translate-x-0 opacity-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0 translate-x-full"
+                     class="pointer-events-auto flex items-center p-4 rounded shadow-lg max-w-sm w-full 
+                     {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500 text-green-800
+                     {% elif message.tags == 'error' %}bg-red-50 border-l-4 border-red-500 text-red-800
+                     {% else %}bg-blue-50 border-l-4 border-blue-500 text-blue-800{% endif %}"
+                     role="alert">
+                    <div class="mr-3">
+                        {% if message.tags == 'success' %}
+                            <i class="fa-solid fa-circle-check text-green-500 text-xl"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="fa-solid fa-circle-exclamation text-red-500 text-xl"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-info text-blue-500 text-xl"></i>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 text-sm font-medium">{{ message }}</div>
+                    <button @click="show = false" class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
         <header class="h-16 bg-white shadow flex items-center justify-between px-6">
             <h1 class="text-xl font-semibold text-gray-800">{% block header %}Dashboard{% endblock %}</h1>
             <div class="flex items-center space-x-4">
@@ -110,55 +146,22 @@
         </div>
     </main>
 
-    <!-- Toast Messages -->
-    <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="toast-message transform transition-all duration-300 translate-x-full opacity-0 w-80 bg-white shadow-lg rounded-lg pointer-events-auto overflow-hidden ring-1 ring-black ring-opacity-5">
-                    <div class="p-4 flex items-start">
-                        <div class="flex-shrink-0">
-                            {% if message.tags == 'success' %}
-                                <i class="fa-solid fa-circle-check text-green-500 text-xl"></i>
-                            {% elif message.tags == 'error' %}
-                                <i class="fa-solid fa-circle-xmark text-red-500 text-xl"></i>
-                            {% elif message.tags == 'warning' %}
-                                <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-xl"></i>
-                            {% else %}
-                                <i class="fa-solid fa-circle-info text-blue-500 text-xl"></i>
-                            {% endif %}
-                        </div>
-                        <div class="ml-3 flex-1 pt-0.5">
-                            <p class="text-sm font-medium text-gray-900">{{ message }}</p>
-                        </div>
-                        <div class="ml-4 flex-shrink-0 flex">
-                            <button type="button" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none" onclick="this.closest('.toast-message').remove()">
-                                <span class="sr-only">Close</span>
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
+    <!-- Restore Sidebar Scroll Position -->
     <script>
-        // Animate toasts in
-        document.addEventListener('DOMContentLoaded', () => {
-            const toasts = document.querySelectorAll('.toast-message');
-            toasts.forEach((toast, index) => {
-                setTimeout(() => {
-                    toast.classList.remove('translate-x-full', 'opacity-0');
-                }, 100 * index);
+        document.addEventListener("DOMContentLoaded", function() { 
+            const sidebar = document.getElementById('sidebar-nav');
+            if (sidebar) {
+                const scrollpos = sessionStorage.getItem('sidebar-scrollpos');
+                if (scrollpos) {
+                    sidebar.scrollTop = parseInt(scrollpos, 10);
+                }
                 
-                // Auto remove after 4 seconds
-                setTimeout(() => {
-                    toast.classList.add('opacity-0');
-                    setTimeout(() => toast.remove(), 300);
-                }, 4000 + (100 * index));
-            });
+                // Save scroll position before leaving the page
+                window.addEventListener('beforeunload', function() {
+                    sessionStorage.setItem('sidebar-scrollpos', sidebar.scrollTop);
+                });
+            }
         });
     </script>
-
 </body>
 </html>

@@ -945,9 +945,127 @@ def admin_dashboard_view(request):
     users = User.objects.all().select_related('role')
     menus = MasterMenu.objects.filter(is_active=True).order_by('menu_id')
     
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'create_user':
+            first_name = request.POST.get('first_name', '')
+            last_name = request.POST.get('last_name', '')
+            email = request.POST.get('email', '')
+            phone = request.POST.get('phone', '')
+            password = request.POST.get('password', '')
+            role_id = request.POST.get('role_id')
+            
+            try:
+                role = Role.objects.get(role_id=role_id)
+                User.objects.create(
+                    first_name=first_name,
+                    last_name=last_name,
+                    display_name=f"{first_name} {last_name}".strip(),
+                    email=email,
+                    phone=phone,
+                    password=password,
+                    role=role
+                )
+                messages.success(request, f'User {first_name} {last_name} created successfully!')
+            except Exception as e:
+                messages.error(request, 'Failed to create user.')
+                print(e)
+            return redirect('/admin-dashboard/?tab=users')
+            
+        elif action == 'save_permissions':
+            role_id = request.POST.get('role_id')
+            role = Role.objects.get(role_id=role_id)
+            try:
+                # Optimized Bulk Operation to eliminate N+1 network latency
+                role_access_instances = []
+                for menu in menus:
+                    m_id = str(menu.menu_id)
+                    view = request.POST.get(f'view_{m_id}') == 'on'
+                    add = request.POST.get(f'add_{m_id}') == 'on'
+                    edit = request.POST.get(f'edit_{m_id}') == 'on'
+                    delete = request.POST.get(f'delete_{m_id}') == 'on'
+                    export = request.POST.get(f'export_{m_id}') == 'on'
+                    
+                    role_access_instances.append(
+                        RoleAccess(
+                            role=role, 
+                            menu=menu,
+                            view_access=view,
+                            add_access=add,
+                            edit_access=edit,
+                            delete_access=delete,
+                            export_access=export,
+                            approve_access=False,
+                            created_by=user.user_id
+                        )
+                    )
+                
+                # Optimized Bulk Operation to eliminate N+1 network latency
+                # Delete existing permissions for this role (1 query)
+                RoleAccess.objects.filter(role=role).delete()
+                # Bulk insert all new permissions (1 query)
+                RoleAccess.objects.bulk_create(role_access_instances)
+                messages.success(request, f'Role permissions for {role.role_name} updated successfully!')
+            except Exception as e:
+                messages.error(request, 'Failed to update role permissions.')
+                print(e)
+            return redirect(f'/admin-dashboard/?tab=roles&role_id={role_id}')
+
+    
+        elif action == 'save_menu':
+            menu_id = request.POST.get('menu_id')
+            menu_name = request.POST.get('menu_name')
+            url_page = request.POST.get('url_page')
+            is_active = request.POST.get('is_active') == 'on'
+            
+            try:
+                if menu_id:
+                    menu = MasterMenu.objects.get(menu_id=menu_id)
+                    menu.menu_name = menu_name
+                    menu.url_page = url_page
+                    menu.is_active = is_active
+                    menu.save()
+                    messages.success(request, f'Menu {menu_name} updated successfully!')
+                else:
+                    MasterMenu.objects.create(
+                        menu_name=menu_name,
+                        url_page=url_page,
+                        is_active=is_active
+                    )
+                    messages.success(request, f'Menu {menu_name} created successfully!')
+            except Exception as e:
+                messages.error(request, 'Failed to save menu.')
+                print(e)
+            return redirect('/admin-dashboard/?tab=menu')
+            
+        elif action == 'delete_menu':
+            menu_id = request.POST.get('menu_id')
+            try:
+                menu = MasterMenu.objects.get(menu_id=menu_id)
+                menu_name = menu.menu_name
+                menu.delete()
+                messages.success(request, f'Menu {menu_name} deleted successfully!')
+            except Exception as e:
+                messages.error(request, 'Failed to delete menu.')
+            return redirect('/admin-dashboard/?tab=menu')
+
     tab = request.GET.get('tab', 'dashboard')
     
-    # Example logic for editing permissions could go here...
+    # Selected role for permissions matrix
+    selected_role_id = request.GET.get('role_id')
+    selected_role = None
+    role_access_map = {}
+    if roles.exists():
+        if not selected_role_id:
+            selected_role_id = roles.first().role_id
+        
+        try:
+            selected_role = Role.objects.get(role_id=selected_role_id)
+            access_records = RoleAccess.objects.filter(role=selected_role)
+            for access in access_records:
+                role_access_map[access.menu_id] = access
+        except Role.DoesNotExist:
+            selected_role = roles.first()
     
     from users.models import UserLoginDetails
     audit_logs = UserLoginDetails.objects.select_related('user').order_by('-login_date')[:50]
@@ -960,5 +1078,7 @@ def admin_dashboard_view(request):
         'users': users,
         'menus': menus,
         'audit_logs': audit_logs,
+        'selected_role': selected_role,
+        'role_access_map': role_access_map,
     }
     return render(request, 'website/admin_dashboard.html', context)

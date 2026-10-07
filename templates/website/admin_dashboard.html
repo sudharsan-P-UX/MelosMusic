@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div x-data="{ tab: '{{ active_tab|default:'roles' }}', showCreateRoleModal: false }">
-    <div class="mb-6 flex justify-between items-center">
+<div x-data="{ tab: '{{ active_tab|default:'roles' }}', showCreateRoleModal: false, showAddUserModal: false, showMenuModal: false, editMenuData: {id: '', name: '', url: '', active: true} }">
+    <div class="mb-4 flex justify-between items-center">
         <h2 class="text-xl font-bold text-gray-800" x-text="{
             'dashboard': 'Admin Dashboard',
             'users': 'User Management',
@@ -23,157 +23,144 @@
     </div>
     
     <!-- Roles Tab -->
-    <div x-show="tab === 'roles'" x-transition class="space-y-6">
+    <div x-show="tab === 'roles'" x-transition class="space-y-4">
         <!-- Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded border border-gray-200 shadow-sm flex items-center">
-                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-xl mr-4"><i class="fa-solid fa-shield-halved"></i></div>
-                <div>
-                    <div class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total Roles</div>
-                    <div class="text-2xl font-bold text-gray-800">{{ roles|length }}</div>
+        <div class="flex flex-wrap gap-6">
+            <div class="bg-white p-4 rounded border border-gray-200 shadow-sm flex items-center justify-between w-72">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-xl mr-4"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div class="text-xs text-gray-500 font-medium uppercase tracking-wider">Total Roles</div>
                 </div>
+                <div class="text-3xl font-bold text-gray-800">{{ roles|length }}</div>
             </div>
-            <div class="bg-white p-6 rounded border border-gray-200 shadow-sm flex items-center">
-                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xl mr-4"><i class="fa-solid fa-users"></i></div>
-                <div>
-                    <div class="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Assigned Users</div>
-                    <div class="text-2xl font-bold text-gray-800">{{ users|length }}</div>
+            <div class="bg-white p-4 rounded border border-gray-200 shadow-sm flex items-center justify-between w-72">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xl mr-4"><i class="fa-solid fa-users"></i></div>
+                    <div class="text-xs text-gray-500 font-medium uppercase tracking-wider">Assigned Users</div>
                 </div>
+                <div class="text-3xl font-bold text-gray-800">{{ users|length }}</div>
             </div>
         </div>
         
         <!-- Role Matrix Editor -->
-        <div class="bg-white rounded border border-gray-200 shadow-sm">
-            <div class="p-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+        <div class="bg-white rounded border border-gray-200 shadow-sm relative">
+            <div class="py-3 px-4 border-b border-gray-200 bg-gray-50/90 backdrop-blur-md flex justify-between items-center sticky top-0 z-30 rounded-t shadow-sm">
                 <div>
                     <h3 class="font-medium text-gray-800">Role Permissions Matrix</h3>
-                    <p class="text-xs text-gray-500 mt-1">Select a role to configure access</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Select a role to configure access</p>
                 </div>
                 <div class="w-64">
-                    <select class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500 bg-white shadow-sm">
+                    <select onchange="window.location.href='?tab=roles&role_id=' + this.value" class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500 bg-white shadow-sm">
                         {% for role in roles %}
-                        <option value="{{ role.role_id }}">{{ role.role_name }} ({{ role.role_group.role_group_name }})</option>
+                        <option value="{{ role.role_id }}" {% if selected_role and selected_role.role_id == role.role_id %}selected{% endif %}>{{ role.role_name }} ({{ role.role_group.role_group_name }})</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
             
-            <div class="p-6">
-                <div class="mb-6">
-                    <h4 class="text-sm font-semibold text-gray-700">Role Name : <span class="font-normal text-indigo-600">Teacher</span></h4>
-                    <p class="text-sm text-gray-600 mt-1">Description : <span class="font-normal">Music Teacher</span></p>
+            <div class="py-2 px-4">
+                <div class="mb-3">
+                    <h4 class="text-sm font-semibold text-gray-700">Role Name : <span class="font-normal text-indigo-600">{% if selected_role %}{{ selected_role.role_name }}{% else %}Select a role{% endif %}</span></h4>
+                    <p class="text-sm text-gray-600 mt-1">Description : <span class="font-normal">{% if selected_role %}{{ selected_role.description|default:"No description" }}{% endif %}</span></p>
                 </div>
-                <table class="w-full text-left border-collapse text-sm">
-                    <thead>
-                        <tr class="border-b-2 border-gray-200 text-gray-600 bg-gray-50/50">
-                            <th class="py-3 px-4 font-semibold w-1/3">Menu</th>
-                            <th class="py-3 px-2 font-semibold text-center">View</th>
-                            <th class="py-3 px-2 font-semibold text-center">Add</th>
-                            <th class="py-3 px-2 font-semibold text-center">Edit</th>
-                            <th class="py-3 px-2 font-semibold text-center">Delete</th>
-                            <th class="py-3 px-2 font-semibold text-center">Export</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-gray-700">
-                        {% for menu in menus %}
-                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td class="py-3 px-4 font-medium text-gray-800"><i class="fa-solid fa-bars text-gray-300 mr-2 text-xs"></i> {{ menu.menu_name }}</td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                        </tr>
-                        {% empty %}
-                        <tr class="border-b border-gray-100">
-                            <td class="py-3 px-4 font-medium text-gray-800"><i class="fa-solid fa-bars text-gray-300 mr-2 text-xs"></i> Student Profile</td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                        </tr>
-                        <tr class="border-b border-gray-100">
-                            <td class="py-3 px-4 font-medium text-gray-800"><i class="fa-solid fa-bars text-gray-300 mr-2 text-xs"></i> Event Scheduling</td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                            <td class="py-3 px-2 text-center"><input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <div class="mt-6 pt-6 border-t border-gray-100 flex justify-end">
-                    <button class="bg-[#4f46e5] text-white px-6 py-2 rounded text-sm font-medium hover:bg-indigo-700 shadow-sm transition flex items-center">
-                        <i class="fa-solid fa-check mr-2"></i> Save Role
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Dashboard Tab -->
-    <div x-show="tab === 'dashboard'" x-transition class="space-y-6" style="display: none;">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div class="bg-white p-6 rounded border border-gray-200 shadow-sm flex flex-col">
-                <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Total Users</div>
-                <div class="text-3xl font-bold text-gray-800">{{ users|length }}</div>
-            </div>
-            <div class="bg-white p-6 rounded border border-gray-200 shadow-sm flex flex-col">
-                <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Active Roles</div>
-                <div class="text-3xl font-bold text-gray-800">{{ roles|length }}</div>
-            </div>
-            <div class="bg-white p-6 rounded border border-gray-200 shadow-sm flex flex-col">
-                <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">Menus Configured</div>
-                <div class="text-3xl font-bold text-gray-800">{{ menus|length }}</div>
-            </div>
-            <div class="bg-white p-6 rounded border border-gray-200 shadow-sm flex flex-col">
-                <div class="text-gray-500 text-xs font-semibold uppercase tracking-wider mb-2">System Status</div>
-                <div class="text-3xl font-bold text-emerald-500 flex items-center"><i class="fa-solid fa-circle-check text-xl mr-2"></i> Online</div>
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_permissions">
+                    <input type="hidden" name="role_id" value="{{ selected_role.role_id|default:'' }}">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b-2 border-gray-200 text-gray-600 bg-gray-50/95 backdrop-blur-md sticky top-[56px] z-20 shadow-sm">
+                                <th class="py-1.5 px-4 font-semibold w-1/3">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" onchange="document.querySelectorAll('.perm-chk').forEach(c => c.checked = this.checked)" class="mr-2 rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
+                                        Select All
+                                    </label>
+                                </th>
+                                <th class="py-1.5 px-2 font-semibold text-center">View</th>
+                                <th class="py-1.5 px-2 font-semibold text-center">Add</th>
+                                <th class="py-1.5 px-2 font-semibold text-center">Edit</th>
+                                <th class="py-1.5 px-2 font-semibold text-center">Delete</th>
+                                <th class="py-1.5 px-2 font-semibold text-center">Export</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700">
+                            {% for menu in menus %}
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td class="py-1.5 px-4 font-medium text-gray-800"><i class="fa-solid fa-bars text-gray-300 mr-2 text-xs"></i> {{ menu.menu_name }}</td>
+                                <td class="py-1.5 px-2 text-center">
+                                    <input type="checkbox" name="view_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.view_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
+                                </td>
+                                <td class="py-1.5 px-2 text-center">
+                                    <input type="checkbox" name="add_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.add_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
+                                </td>
+                                <td class="py-1.5 px-2 text-center">
+                                    <input type="checkbox" name="edit_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.edit_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
+                                </td>
+                                <td class="py-1.5 px-2 text-center">
+                                    <input type="checkbox" name="delete_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.delete_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
+                                </td>
+                                <td class="py-1.5 px-2 text-center">
+                                    <input type="checkbox" name="export_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.export_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <div class="sticky bottom-0 -mx-6 -mb-6 p-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex justify-end shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] rounded-b-lg z-20 mt-6">
+                        <button type="submit" class="bg-[#4f46e5] text-white px-8 py-2.5 rounded shadow text-sm font-medium hover:bg-indigo-700 transition-all transform hover:scale-[1.02]">
+                            <i class="fa-solid fa-check mr-2"></i> Save Role
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
     
     <!-- User Management Tab -->
-    <div x-show="tab === 'users'" x-transition class="space-y-6" style="display: none;">
+    <div x-show="tab === 'users'" x-transition class="space-y-4" style="display: none;">
         <div class="bg-white rounded border border-gray-200 shadow-sm">
             <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 class="font-medium text-gray-800">System Users</h3>
-                <button class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
+                <button @click="showAddUserModal = true" class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
                     <i class="fa-solid fa-user-plus mr-1"></i> Add User
                 </button>
             </div>
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
-                        <th class="py-3 px-4 font-medium">Name</th>
-                        <th class="py-3 px-4 font-medium">Username</th>
-                        <th class="py-3 px-4 font-medium">Email</th>
-                        <th class="py-3 px-4 font-medium">Role</th>
-                        <th class="py-3 px-4 font-medium text-center">Status</th>
-                        <th class="py-3 px-4 font-medium text-center">Actions</th>
+                        <th class="py-1.5 px-4 font-medium">Name</th>
+                        <th class="py-1.5 px-4 font-medium">Username</th>
+                        <th class="py-1.5 px-4 font-medium">Email</th>
+                        <th class="py-1.5 px-4 font-medium">Role</th>
+                        <th class="py-1.5 px-4 font-medium text-center">Status</th>
+                        <th class="py-1.5 px-4 font-medium text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="text-gray-700">
                     {% for u in users %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="py-3 px-4 font-medium text-gray-800">{{ u.display_name|default:u.first_name }}</td>
-                        <td class="py-3 px-4 text-gray-600">{{ u.first_name }}</td>
-                        <td class="py-3 px-4 text-gray-600">{{ u.email|default:"-" }}</td>
-                        <td class="py-3 px-4">
+                        <td class="py-1.5 px-4 font-medium text-gray-800">{{ u.display_name|default:u.first_name }}</td>
+                        <td class="py-1.5 px-4 text-gray-600">{{ u.first_name }}</td>
+                        <td class="py-1.5 px-4 text-gray-600">{{ u.email|default:"-" }}</td>
+                        <td class="py-1.5 px-4">
                             <span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">{{ u.role.role_name|default:"Unassigned" }}</span>
                         </td>
-                        <td class="py-3 px-4 text-center">
+                        <td class="py-1.5 px-4 text-center">
                             {% if u.is_active %}
                             <span class="text-emerald-500 font-medium text-xs"><i class="fa-solid fa-circle text-[8px] mr-1 inline-block align-middle"></i>Active</span>
                             {% else %}
                             <span class="text-red-500 font-medium text-xs">Inactive</span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-4 text-center space-x-2">
-                            <button class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
-                            <button class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
+                        <td class="py-1.5 px-4 text-center space-x-2">
+                            <button @click="editMenuData = {id: '{{ m.menu_id }}', name: '{{ m.menu_name }}', url: '{{ m.url_page }}', active: {% if m.is_active %}true{% else %}false{% endif %}}; showMenuModal = true" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
+                            <form method="POST" action="" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this menu? This might break role permissions.');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_menu">
+                                <input type="hidden" name="menu_id" value="{{ m.menu_id }}">
+                                <button type="submit" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -183,40 +170,45 @@
     </div>
     
     <!-- Menu Permissions Tab -->
-    <div x-show="tab === 'menu'" x-transition class="space-y-6" style="display: none;">
+    <div x-show="tab === 'menu'" x-transition class="space-y-4" style="display: none;">
         <div class="bg-white rounded border border-gray-200 shadow-sm">
             <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 class="font-medium text-gray-800">Menu Master List</h3>
-                <button class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
+                <button @click="editMenuData = {id: '', name: '', url: '#', active: true}; showMenuModal = true" class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
                     <i class="fa-solid fa-plus mr-1"></i> Add Menu
                 </button>
             </div>
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
-                        <th class="py-3 px-4 font-medium w-16 text-center">ID</th>
-                        <th class="py-3 px-4 font-medium">Menu Name</th>
-                        <th class="py-3 px-4 font-medium">URL Route</th>
-                        <th class="py-3 px-4 font-medium text-center">Status</th>
-                        <th class="py-3 px-4 font-medium text-center">Actions</th>
+                        <th class="py-1.5 px-4 font-medium w-16 text-center">ID</th>
+                        <th class="py-1.5 px-4 font-medium">Menu Name</th>
+                        <th class="py-1.5 px-4 font-medium">URL Route</th>
+                        <th class="py-1.5 px-4 font-medium text-center">Status</th>
+                        <th class="py-1.5 px-4 font-medium text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="text-gray-700">
                     {% for m in menus %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="py-3 px-4 text-center text-gray-500">{{ m.menu_id }}</td>
-                        <td class="py-3 px-4 font-medium text-gray-800"><i class="fa-solid fa-folder text-gray-300 mr-2"></i> {{ m.menu_name }}</td>
-                        <td class="py-3 px-4 text-gray-500 font-mono text-xs">{{ m.url_page }}</td>
-                        <td class="py-3 px-4 text-center">
+                        <td class="py-1.5 px-4 text-center text-gray-500">{{ m.menu_id }}</td>
+                        <td class="py-1.5 px-4 font-medium text-gray-800"><i class="fa-solid fa-folder text-gray-300 mr-2"></i> {{ m.menu_name }}</td>
+                        <td class="py-1.5 px-4 text-gray-500 font-mono text-xs">{{ m.url_page }}</td>
+                        <td class="py-1.5 px-4 text-center">
                             {% if m.is_active %}
                             <span class="text-emerald-500"><i class="fa-solid fa-toggle-on text-lg"></i></span>
                             {% else %}
                             <span class="text-gray-400"><i class="fa-solid fa-toggle-off text-lg"></i></span>
                             {% endif %}
                         </td>
-                        <td class="py-3 px-4 text-center space-x-2">
-                            <button class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
-                            <button class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
+                        <td class="py-1.5 px-4 text-center space-x-2">
+                            <button @click="editMenuData = {id: '{{ m.menu_id }}', name: '{{ m.menu_name }}', url: '{{ m.url_page }}', active: {% if m.is_active %}true{% else %}false{% endif %}}; showMenuModal = true" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
+                            <form method="POST" action="" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this menu? This might break role permissions.');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete_menu">
+                                <input type="hidden" name="menu_id" value="{{ m.menu_id }}">
+                                <button type="submit" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -255,6 +247,20 @@
                     </select>
                 </div>
             </div>
+            
+            <h3 class="font-medium text-gray-800 mt-8 mb-6 pb-2 border-b border-gray-100"><i class="fa-solid fa-shield-halved text-indigo-500 mr-2"></i> Security Configuration</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">User password expire date in days</label>
+                    <div class="relative">
+                        <input type="number" value="90" min="0" max="365" class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">days</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Force users to reset their password after this period. Set to 0 to disable.</p>
+                </div>
+            </div>
             <div class="mt-8 flex justify-end">
                 <button class="bg-[#4f46e5] text-white px-6 py-2 rounded text-sm font-medium hover:bg-indigo-700 shadow-sm transition">
                     Save Settings
@@ -264,7 +270,7 @@
     </div>
     
     <!-- Audit Logs Tab -->
-    <div x-show="tab === 'audit'" x-transition class="space-y-6" style="display: none;">
+    <div x-show="tab === 'audit'" x-transition class="space-y-4" style="display: none;">
         <div class="bg-white rounded border border-gray-200 shadow-sm">
             <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 class="font-medium text-gray-800">Recent Activity Logs</h3>
@@ -272,17 +278,17 @@
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
-                        <th class="py-3 px-4 font-medium w-48">Timestamp</th>
-                        <th class="py-3 px-4 font-medium">User</th>
-                        <th class="py-3 px-4 font-medium">Action / Remarks</th>
+                        <th class="py-1.5 px-4 font-medium w-48">Timestamp</th>
+                        <th class="py-1.5 px-4 font-medium">User</th>
+                        <th class="py-1.5 px-4 font-medium">Action / Remarks</th>
                     </tr>
                 </thead>
                 <tbody class="text-gray-700">
                     {% for log in audit_logs %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="py-3 px-4 text-gray-500 text-xs">{{ log.login_date|date:"Y-m-d H:i:s" }}</td>
-                        <td class="py-3 px-4 font-medium text-gray-800">{{ log.user.display_name|default:log.user.first_name }}</td>
-                        <td class="py-3 px-4 text-gray-600">
+                        <td class="py-1.5 px-4 text-gray-500 text-xs">{{ log.login_date|date:"Y-m-d H:i:s" }}</td>
+                        <td class="py-1.5 px-4 font-medium text-gray-800">{{ log.user.display_name|default:log.user.first_name }}</td>
+                        <td class="py-1.5 px-4 text-gray-600">
                             {% if "Success" in log.remarks %}
                                 <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs mr-2">Login</span>
                             {% else %}
@@ -300,5 +306,108 @@
             </table>
         </div>
     </div>
+
+    <!-- Add User Modal -->
+    <div x-show="showAddUserModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div x-show="showAddUserModal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showAddUserModal = false"></div>
+            
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <!-- Modal panel -->
+            <div x-show="showAddUserModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form method="POST" action="" autocomplete="off">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_user">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Create New User</h3>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name (Username)</label>
+                                    <input type="text" name="first_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                    <input type="text" name="last_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input type="email" name="email" autocomplete="off" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="text" name="phone" pattern="[0-9]{10}" maxlength="10" minlength="10" title="Phone number must be exactly 10 digits" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input type="password" name="password" autocomplete="new-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                <select name="role_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                    <option value="">Select a role...</option>
+                                    {% for role in roles %}
+                                        <option value="{{ role.role_id }}">{{ role.role_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition">
+                            Create User
+                        </button>
+                        <button type="button" @click="showAddUserModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Menu Modal -->
+    <div x-show="showMenuModal" style="display: none;" class="fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="showMenuModal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showMenuModal = false" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div x-show="showMenuModal" x-transition.scale class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_menu">
+                    <input type="hidden" name="menu_id" x-model="editMenuData.id">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title" x-text="editMenuData.id ? 'Edit Menu' : 'Add New Menu'"></h3>
+                                <div class="mt-4 space-y-4 w-full">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Menu Name</label>
+                                        <input type="text" name="menu_name" x-model="editMenuData.name" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">URL Route</label>
+                                        <input type="text" name="url_page" x-model="editMenuData.url" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono text-gray-500">
+                                    </div>
+                                    <div class="flex items-center mt-4">
+                                        <input type="checkbox" name="is_active" x-model="editMenuData.active" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                        <label class="ml-2 block text-sm text-gray-900">Active Status</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition" x-text="editMenuData.id ? 'Save Changes' : 'Create Menu'"></button>
+                        <button type="button" @click="showMenuModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
+

@@ -2,12 +2,8 @@
 # Build script for Vercel
 set -e
 
-echo "Setting up virtual environment..."
-python3 -m venv venv
-source venv/bin/activate
-
 echo "Installing requirements..."
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements.txt --break-system-packages
 
 echo "Make Migrations..."
 python3 manage.py makemigrations --noinput

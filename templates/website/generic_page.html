@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block header %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-medium text-gray-800">{{ page_title }} Details</h2>
+    </div>
+    <div class="p-6">
+        <p class="text-gray-500 text-sm">This is the placeholder page for {{ page_title }}. Data will be populated here soon.</p>
+        
+        <div class="mt-8 flex justify-center">
+            <div class="w-full max-w-4xl h-64 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
+                <i class="fa-solid fa-person-digging text-4xl mr-3"></i> 
+                <span>Under Construction</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

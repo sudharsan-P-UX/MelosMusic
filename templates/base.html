@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melo's Music - School Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+    <!-- Sidebar Menu -->
+    <aside class="w-64 bg-indigo-900 text-white flex flex-col">
+        <div class="h-16 flex items-center justify-center font-bold text-2xl border-b border-indigo-800">
+            Melo's Music
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            <a href="{% url 'index' %}" class="block px-4 py-2 rounded-md {% if request.resolver_match.url_name == 'index' %}bg-indigo-800 text-white{% else %}hover:bg-indigo-700{% endif %}">Dashboard</a>
+            <div x-data="{ open: {% if 'Student' in page_title or 'Enrollment' in page_title %}true{% else %}false{% endif %} }">
+                <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none {% if 'Student' in page_title or 'Enrollment' in page_title %}bg-indigo-800 text-white{% endif %}">
+                    <span>Student Profile</span>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="{'rotate-180': open}"></i>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    <a href="{% url 'students' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Student Master' or page_title == 'Student Profile' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Student Master</a>
+                    <a href="{% url 'enrollment_management' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Enrollment Management' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Enrollment Management</a>
+                    </div>
+            </div>
+            <div x-data="{ open: {% if 'Attendance' in page_title %}true{% else %}false{% endif %} }">
+                <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none {% if 'Attendance' in page_title %}bg-indigo-800 text-white{% endif %}">
+                    <span>Attendance</span>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="{'rotate-180': open}"></i>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    <a href="{% url 'student_attendance' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Student Attendance' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Student Attendance</a>
+                    <a href="{% url 'teacher_attendance' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Teacher Attendance' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Teacher Attendance</a>
+                </div>
+            </div>
+            <div x-data="{ open: {% if 'Fee' in page_title or 'Receipt' in page_title or 'Refund' in page_title %}true{% else %}false{% endif %} }">
+                <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none {% if 'Fee' in page_title or 'Receipt' in page_title or 'Refund' in page_title %}bg-indigo-800 text-white{% endif %}">
+                    <span>Fees</span>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="{'rotate-180': open}"></i>
+                </button>
+                <div x-show="open" class="pl-4 mt-1 space-y-1">
+                    <a href="{% url 'fee_dashboard' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Fee Dashboard' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Dashboard</a>
+                    <a href="{% url 'assign_fees' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Assign Fees' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Assign Fees</a>
+                    <a href="{% url 'fee_collection' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Fee Collection' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Fee Collection</a>
+                    <a href="{% url 'pending_fees' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Pending Fees' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Pending Fees</a>
+                    <a href="{% url 'receipts' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Receipts' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Receipts</a>
+                    <a href="{% url 'refunds' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Refunds' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Refunds</a>
+                    <a href="{% url 'reports' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Reports' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Reports</a>
+                </div>
+            </div>
+            <div x-data="{ expanded: '{{ page_title }}' === 'Event Scheduling' }">
+                <button @click="expanded = !expanded" class="w-full flex justify-between items-center px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors focus:outline-none {% if page_title == 'Event Scheduling' %}bg-indigo-800 text-white{% endif %}">
+                    <span>Event Scheduling</span>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="expanded ? 'rotate-180' : ''"></i>
+                </button>
+                <div x-show="expanded" x-collapse class="pl-4 py-1 space-y-1">
+                    <a href="{% url 'events_dashboard' %}?tab=upcoming" class="block px-4 py-2 text-sm rounded-md {% if active_tab == 'upcoming' or active_tab == 'list' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Event List</a>
+                    <a href="{% url 'events_dashboard' %}?tab=registration" class="block px-4 py-2 text-sm rounded-md {% if active_tab == 'registration' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Event Registration</a>
+                    <a href="{% url 'events_dashboard' %}?tab=assignments" class="block px-4 py-2 text-sm rounded-md {% if active_tab == 'assignments' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Teacher Assignments</a>
+                    <a href="{% url 'events_dashboard' %}?tab=venue" class="block px-4 py-2 text-sm rounded-md {% if active_tab == 'venue' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Venue Management</a>
+                    <a href="{% url 'events_dashboard' %}?tab=attendance" class="block px-4 py-2 text-sm rounded-md {% if active_tab == 'attendance' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Event Attendance</a>
+                    <a href="{% url 'events_dashboard' %}?tab=reports" class="block px-4 py-2 text-sm rounded-md {% if active_tab == 'reports' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Event Reports</a>
+                </div>
+            </div>
+            <a href="{% url 'courses' %}" class="block px-4 py-2 rounded-md {% if page_title == 'Courses & Batches' %}bg-indigo-800 text-white{% else %}hover:bg-indigo-700{% endif %}">Courses & Batches</a>
+            <a href="{% url 'teachers' %}" class="block px-4 py-2 rounded-md {% if request.resolver_match.url_name == 'teachers' %}bg-indigo-800 text-white{% else %}hover:bg-indigo-700{% endif %}">Teacher Management</a>
+            <a href="{% url 'timetable' %}" class="block px-4 py-2 rounded-md {% if request.resolver_match.url_name == 'timetable' %}bg-indigo-800 text-white{% else %}hover:bg-indigo-700{% endif %}">Timetable</a>
+            <a href="{% url 'generic_page' 'notifications' %}" class="block px-4 py-2 rounded-md {% if page_title == 'Notifications / Reminders' %}bg-indigo-800 text-white{% else %}hover:bg-indigo-700{% endif %}">Notifications</a>
+            <a href="{% url 'reports' %}" class="block px-4 py-2 rounded-md {% if page_title == 'Reports' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Reports</a>
+            
+            <!-- Admin Menu -->
+            <div x-data="{ open: {% if page_title == 'Admin' %}true{% else %}false{% endif %} }" class="mb-1">
+                <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-2 rounded-md {% if page_title == 'Admin' %}bg-indigo-800 text-white{% else %}hover:bg-indigo-700{% endif %} transition-colors">
+                    <span>Admin</span>
+                    <i :class="open ? 'fa-solid fa-chevron-up text-xs' : 'fa-solid fa-chevron-down text-xs'"></i>
+                </button>
+                <div x-show="open" x-collapse class="pl-4 pr-2 py-1 space-y-1">
+                    <a href="{% url 'admin_dashboard' %}?tab=dashboard" class="block px-4 py-1.5 rounded-md text-sm {% if request.GET.tab == 'dashboard' or not request.GET.tab and request.resolver_match.url_name == 'admin_dashboard' %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">Dashboard</a>
+                    <a href="{% url 'admin_dashboard' %}?tab=users" class="block px-4 py-1.5 rounded-md text-sm {% if request.GET.tab == 'users' %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">User Management</a>
+                    <a href="{% url 'admin_dashboard' %}?tab=roles" class="block px-4 py-1.5 rounded-md text-sm {% if request.GET.tab == 'roles' %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">Role Management</a>
+                    <a href="{% url 'admin_dashboard' %}?tab=menu" class="block px-4 py-1.5 rounded-md text-sm {% if request.GET.tab == 'menu' %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">Menu Permissions</a>
+                    <a href="{% url 'admin_dashboard' %}?tab=settings" class="block px-4 py-1.5 rounded-md text-sm {% if request.GET.tab == 'settings' %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">System Settings</a>
+                    <a href="{% url 'admin_dashboard' %}?tab=audit" class="block px-4 py-1.5 rounded-md text-sm {% if request.GET.tab == 'audit' %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">Audit Logs</a>
+                </div>
+            </div>
+            
+        </nav>
+        <div class="p-4 border-t border-indigo-800 text-xs text-center text-indigo-300">
+            Melo's Music Admin
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col relative overflow-y-auto">
+        <header class="h-16 bg-white shadow flex items-center justify-between px-6">
+            <h1 class="text-xl font-semibold text-gray-800">{% block header %}Dashboard{% endblock %}</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm font-medium text-gray-500">Welcome, {{ user.first_name }}</span>
+                <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">{{ user.first_name|first|upper }}</div>
+                <a href="{% url 'logout' %}" class="text-xs text-red-500 hover:text-red-700 ml-4 font-bold border border-red-200 px-2 py-1 rounded bg-red-50">Logout</a>
+            </div>
+        </header>
+
+        <div class="p-6">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Toast Messages -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-3 pointer-events-none">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast-message transform transition-all duration-300 translate-x-full opacity-0 w-80 bg-white shadow-lg rounded-lg pointer-events-auto overflow-hidden ring-1 ring-black ring-opacity-5">
+                    <div class="p-4 flex items-start">
+                        <div class="flex-shrink-0">
+                            {% if message.tags == 'success' %}
+                                <i class="fa-solid fa-circle-check text-green-500 text-xl"></i>
+                            {% elif message.tags == 'error' %}
+                                <i class="fa-solid fa-circle-xmark text-red-500 text-xl"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-xl"></i>
+                            {% else %}
+                                <i class="fa-solid fa-circle-info text-blue-500 text-xl"></i>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3 flex-1 pt-0.5">
+                            <p class="text-sm font-medium text-gray-900">{{ message }}</p>
+                        </div>
+                        <div class="ml-4 flex-shrink-0 flex">
+                            <button type="button" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none" onclick="this.closest('.toast-message').remove()">
+                                <span class="sr-only">Close</span>
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <script>
+        // Animate toasts in
+        document.addEventListener('DOMContentLoaded', () => {
+            const toasts = document.querySelectorAll('.toast-message');
+            toasts.forEach((toast, index) => {
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full', 'opacity-0');
+                }, 100 * index);
+                
+                // Auto remove after 4 seconds
+                setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }, 4000 + (100 * index));
+            });
+        });
+    </script>
+
+</body>
+</html>

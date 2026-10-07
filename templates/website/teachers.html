@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+
+{% block header %}Teacher Management{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow min-h-screen">
+    <!-- Header with Add Button -->
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-lg font-medium text-gray-800">Teachers Directory</h2>
+        <!-- Add Button Right Side -->
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded shadow flex items-center transition">
+            <i class="fa-solid fa-plus mr-2"></i> Add Teacher
+        </button>
+    </div>
+
+    <!-- Main Content Area (Table of Students) -->
+    <div class="overflow-x-auto p-0">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-gray-100 text-gray-600 text-sm border-b">
+                    <th class="py-3 px-6 font-medium">Name</th>
+                    <th class="py-3 px-6 font-medium">Email</th>
+                    <th class="py-3 px-6 font-medium">Phone</th>
+                    <th class="py-3 px-6 font-medium">Created Date</th>
+                    <th class="py-3 px-6 font-medium">Status</th>
+                    <th class="py-3 px-6 font-medium text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700 text-sm">
+                {% for teacher in teachers %}
+                <tr class="border-b hover:bg-gray-50 transition">
+                    <td class="py-4 px-6 font-medium">{{ teacher.display_name }}</td>
+                    <td class="py-4 px-6">{{ teacher.email }}</td>
+                    <td class="py-4 px-6">{{ teacher.phone }}</td>
+                    <td class="py-4 px-6 text-gray-500">{{ teacher.created_date|date:"d M Y" }}</td>
+                    <td class="py-4 px-6">
+                        {% if teacher.is_active %}
+                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Active</span>
+                        {% else %}
+                        <span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-6 text-right space-x-3">
+                        
+                        <!-- View Button -->
+                        <button onclick="document.getElementById('viewModal_{{ teacher.user_id }}').classList.remove('hidden'); document.getElementById('viewModal_{{ teacher.user_id }}').classList.add('flex');" class="text-green-600 hover:text-green-900 transition" title="View">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                        <!-- Update Button -->
+
+                        <button onclick="openEditModal('{{ teacher.user_id }}', '{{ teacher.display_name|escapejs }}', '{{ teacher.email|escapejs }}', '{{ teacher.phone|escapejs }}', '{{ teacher.is_active|yesno:"1,0" }}', '{{ teacher.preferred_days|escapejs }}')" class="text-indigo-600 hover:text-indigo-900 transition" title="Edit">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <!-- Delete Button -->
+                        <a href="{% url 'delete_teacher' teacher.user_id %}" onclick="return confirm('Are you sure you want to delete {{ teacher.display_name }}?')" class="text-red-500 hover:text-red-700 transition" title="Delete">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </a>
+                    </td>
+                </tr>
+{% empty %}
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-gray-500">
+                        No teachers found. Click "Add Teacher" to create one.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Background -->
+<div id="addTeacherModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+    <!-- Modal Content -->
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl md:max-w-3xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-800">Add New Teacher</h3>
+            <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="teacherForm" method="POST" action="{% url 'teachers' %}" enctype="multipart/form-data" class="flex flex-col flex-1 overflow-hidden" autocomplete="off">
+            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                {% csrf_token %}
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher Name</label>
+                    <input type="text" id="modalName" name="teacher_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="modalEmail" name="email" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                        <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="10" minlength="10" pattern="\d{10}" title="Phone number must be exactly 10 digits" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Educational Qualification Section -->
+                <div class="border border-gray-200 rounded-md p-4 bg-gray-50">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-sm font-bold text-gray-800">Educational Qualification</h4>
+                        <button type="button" onclick="addEducationRow()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 font-bold transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Add More
+                        </button>
+                    </div>
+                    <div id="educationContainer" class="space-y-3">
+                        <div class="education-row grid grid-cols-4 gap-2 items-end">
+                            <div class="col-span-1">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Institution</label>
+                                <input type="text" name="edu_institution[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Qualification</label>
+                                <input type="text" name="edu_qualification[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Passed Year</label>
+                                <input type="number" name="edu_year[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-1 relative flex items-center">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">GPA/CGPA</label>
+                                    <input type="text" name="edu_gpa[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <button type="button" onclick="this.parentElement.parentElement.remove()" class="ml-2 text-red-500 hover:text-red-700 pb-1 mt-5">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <!-- Certification Section -->
+                <div class="border border-gray-200 rounded-md p-4 bg-gray-50">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-sm font-bold text-gray-800">Certification</h4>
+                        <button type="button" onclick="addCertificationRow()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 font-bold transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Add More
+                        </button>
+                    </div>
+                    <div id="certificationContainer" class="space-y-3">
+                        <div class="certification-row grid grid-cols-12 gap-2 items-end">
+                            <div class="col-span-5">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Certificate Name</label>
+                                <input type="text" name="cert_name[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Year</label>
+                                <input type="number" name="cert_year[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-5 relative flex items-center">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Document</label>
+                                    <input type="file" name="cert_document[]" class="w-full border border-gray-300 rounded px-2 py-1 text-sm outline-none bg-white">
+                                </div>
+                                <button type="button" onclick="this.parentElement.parentElement.remove()" class="ml-2 text-red-500 hover:text-red-700 pb-1 mt-5">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience Section -->
+                <div class="border border-gray-200 rounded-md p-4 bg-gray-50">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-sm font-bold text-gray-800">Experience</h4>
+                        <button type="button" onclick="addExperienceRow()" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 font-bold transition">
+                            <i class="fa-solid fa-plus mr-1"></i> Add More
+                        </button>
+                    </div>
+                    <div id="experienceContainer" class="space-y-3">
+                        <div class="experience-row grid grid-cols-12 gap-2 items-end">
+                            <div class="col-span-3">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Company</label>
+                                <input type="text" name="exp_company[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-3">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">Role</label>
+                                <input type="text" name="exp_role[]" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">From</label>
+                                <input type="date" name="exp_from[]" onchange="calculateExp(this)" class="exp-from w-full border border-gray-300 rounded px-1 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs font-medium text-gray-600 mb-1">To</label>
+                                <input type="date" name="exp_to[]" onchange="calculateExp(this)" class="exp-to w-full border border-gray-300 rounded px-1 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-indigo-500">
+                            </div>
+                            <div class="col-span-2 relative flex items-center">
+                                <div class="flex-1">
+                                    <label class="block text-[10px] font-medium text-gray-600 mb-1 truncate">Years</label>
+                                    <input type="text" name="exp_years[]" readonly class="exp-years bg-gray-200 w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none">
+                                </div>
+                                <button type="button" onclick="this.parentElement.parentElement.remove()" class="ml-1 text-red-500 hover:text-red-700 pb-1 mt-5">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-xs text-gray-400 font-normal">(leave blank to keep current)</span></label>
+                        <input type="password" id="modalPassword" name="password" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="new-password">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                        <input type="password" id="modalConfirmPassword" name="confirm_password" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="new-password">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="modalStatus" name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="1">Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
+                </div>
+
+            </div>
+            <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" id="modalSubmitBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow transition">Save Teacher</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% for teacher in teachers %}
+                <!-- View Modal for this teacher -->
+                <div id="viewModal_{{ teacher.user_id }}" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+                    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+                        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+                            <h3 class="text-lg font-bold text-gray-800">Teacher Details: {{ teacher.display_name }}</h3>
+                            <button type="button" onclick="document.getElementById('viewModal_{{ teacher.user_id }}').classList.add('hidden'); document.getElementById('viewModal_{{ teacher.user_id }}').classList.remove('flex');" class="text-gray-400 hover:text-gray-600">
+                                <i class="fa-solid fa-xmark text-xl"></i>
+                            </button>
+                        </div>
+                        <div class="p-6 overflow-y-auto space-y-6">
+                            <!-- Personal Info -->
+                            <div>
+                                <h4 class="text-md font-bold text-gray-800 border-b pb-2 mb-3">Personal Information</h4>
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div><span class="font-medium text-gray-500">Name:</span> {{ teacher.display_name }}</div>
+                                    <div><span class="font-medium text-gray-500">Email:</span> {{ teacher.email }}</div>
+                                    <div><span class="font-medium text-gray-500">Phone:</span> {{ teacher.phone }}</div>
+                                    <div><span class="font-medium text-gray-500">Status:</span> {% if teacher.is_active %}Active{% else %}Inactive{% endif %}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Qualifications -->
+                            <div>
+                                <h4 class="text-md font-bold text-gray-800 border-b pb-2 mb-3">Educational Qualifications</h4>
+                                {% if teacher.qualifications.all %}
+                                <table class="min-w-full bg-white border border-gray-200">
+                                    <thead class="bg-gray-50 text-gray-600 text-xs text-left">
+                                        <tr>
+                                            <th class="py-2 px-3">Institution</th>
+                                            <th class="py-2 px-3">Qualification</th>
+                                            <th class="py-2 px-3">Passed Year</th>
+                                            <th class="py-2 px-3">GPA/CGPA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm divide-y divide-gray-200">
+                                        {% for q in teacher.qualifications.all %}
+                                        <tr>
+                                            <td class="py-2 px-3">{{ q.institution }}</td>
+                                            <td class="py-2 px-3">{{ q.qualification }}</td>
+                                            <td class="py-2 px-3">{{ q.passed_year }}</td>
+                                            <td class="py-2 px-3">{{ q.gpa }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <p class="text-sm text-gray-500">No qualifications recorded.</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Experience -->
+                            <div>
+                                <h4 class="text-md font-bold text-gray-800 border-b pb-2 mb-3">Experience</h4>
+                                {% if teacher.experiences.all %}
+                                <table class="min-w-full bg-white border border-gray-200">
+                                    <thead class="bg-gray-50 text-gray-600 text-xs text-left">
+                                        <tr>
+                                            <th class="py-2 px-3">Company</th>
+                                            <th class="py-2 px-3">Role</th>
+                                            <th class="py-2 px-3">From</th>
+                                            <th class="py-2 px-3">To</th>
+                                            <th class="py-2 px-3">Years</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm divide-y divide-gray-200">
+                                        {% for e in teacher.experiences.all %}
+                                        <tr>
+                                            <td class="py-2 px-3">{{ e.company_name }}</td>
+                                            <td class="py-2 px-3">{{ e.role }}</td>
+                                            <td class="py-2 px-3">{{ e.from_date|date:"Y-m-d" }}</td>
+                                            <td class="py-2 px-3">{{ e.to_date|date:"Y-m-d" }}</td>
+                                            <td class="py-2 px-3">{{ e.years_of_experience }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <p class="text-sm text-gray-500">No experience recorded.</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Certifications -->
+                            <div>
+                                <h4 class="text-md font-bold text-gray-800 border-b pb-2 mb-3">Certifications</h4>
+                                {% if teacher.certifications.all %}
+                                <table class="min-w-full bg-white border border-gray-200">
+                                    <thead class="bg-gray-50 text-gray-600 text-xs text-left">
+                                        <tr>
+                                            <th class="py-2 px-3">Certificate Name</th>
+                                            <th class="py-2 px-3">Year</th>
+                                            <th class="py-2 px-3">Document</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-sm divide-y divide-gray-200">
+                                        {% for c in teacher.certifications.all %}
+                                        <tr>
+                                            <td class="py-2 px-3">{{ c.certificate_name }}</td>
+                                            <td class="py-2 px-3">{{ c.year }}</td>
+                                            <td class="py-2 px-3">
+                                                {% if c.document %}
+                                                <a href="{{ c.document.url }}" target="_blank" class="text-indigo-600 hover:underline">View Document</a>
+                                                {% else %}
+                                                <span class="text-gray-400">None</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% else %}
+                                <p class="text-sm text-gray-500">No certifications recorded.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% endfor %}
+<script>
+    const modal = document.getElementById('addTeacherModal');
+    const form = document.getElementById('teacherForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const submitBtn = document.getElementById('modalSubmitBtn');
+    
+    // Add mode
+    function openModal() {
+        modalTitle.innerText = "Add New Teacher";
+        form.action = "{% url 'teachers' %}";
+        form.reset();
+        submitBtn.innerText = "Save Teacher";
+        // make passwords required for new teacher
+        document.getElementById('modalPassword').required = true;
+        document.getElementById('modalConfirmPassword').required = true;
+        
+        // Reset dynamic rows
+        document.getElementById('educationContainer').innerHTML = '';
+        document.getElementById('experienceContainer').innerHTML = '';
+        document.getElementById('certificationContainer').innerHTML = '';
+        addEducationRow();
+        addExperienceRow();
+        addCertificationRow();
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    // Edit mode
+    function openEditModal(id, name, email, phone, status, daysStr) {
+        modalTitle.innerText = "Update Teacher";
+        // Dynamically build the update URL
+        let updateUrl = "{% url 'update_teacher' 999999 %}".replace('999999', id);
+        form.action = updateUrl;
+        
+        document.getElementById('modalName').value = name;
+        document.getElementById('modalEmail').value = email;
+        document.getElementById('modalPhone').value = phone;
+        document.getElementById('modalStatus').value = status;
+        
+        // Reset dynamic rows
+        document.getElementById('educationContainer').innerHTML = '';
+        document.getElementById('experienceContainer').innerHTML = '';
+        document.getElementById('certificationContainer').innerHTML = '';
+        // In a real app we would load existing rows here via AJAX or embedded JSON
+        addEducationRow();
+        addExperienceRow();
+        addCertificationRow();
+        
+        // Passwords are not required when updating
+        document.getElementById('modalPassword').required = false;
+        document.getElementById('modalConfirmPassword').required = false;
+        document.getElementById('modalPassword').value = '';
+        document.getElementById('modalConfirmPassword').value = '';
+
+        submitBtn.innerText = "Update Teacher";
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    
+    // Educational Qualification Dynamic Rows
+    function addEducationRow() {
+        const container = document.getElementById('educationContainer');
+        const rowHTML = `
+            <div class="education-row grid grid-cols-4 gap-2 items-end mt-2">
+                <div class="col-span-1">
+                    <input type="text" name="edu_institution[]" placeholder="Institution" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-1">
+                    <input type="text" name="edu_qualification[]" placeholder="Qualification" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-1">
+                    <input type="number" name="edu_year[]" placeholder="Year" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-1 relative flex items-center">
+                    <div class="flex-1">
+                        <input type="text" name="edu_gpa[]" placeholder="GPA" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" class="ml-2 text-red-500 hover:text-red-700 pb-1">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', rowHTML);
+    }
+
+    
+    // Certification Dynamic Rows
+    function addCertificationRow() {
+        const container = document.getElementById('certificationContainer');
+        const rowHTML = `
+            <div class="certification-row grid grid-cols-12 gap-2 items-end mt-2">
+                <div class="col-span-5">
+                    <input type="text" name="cert_name[]" placeholder="Certificate Name" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-2">
+                    <input type="number" name="cert_year[]" placeholder="Year" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-5 relative flex items-center">
+                    <div class="flex-1">
+                        <input type="file" name="cert_document[]" class="w-full border border-gray-300 rounded px-2 py-1 text-sm outline-none bg-white">
+                    </div>
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" class="ml-2 text-red-500 hover:text-red-700 pb-1">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', rowHTML);
+    }
+
+    // Experience Dynamic Rows
+    function addExperienceRow() {
+        const container = document.getElementById('experienceContainer');
+        const rowHTML = `
+            <div class="experience-row grid grid-cols-12 gap-2 items-end mt-2">
+                <div class="col-span-3">
+                    <input type="text" name="exp_company[]" placeholder="Company" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-3">
+                    <input type="text" name="exp_role[]" placeholder="Role" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-2">
+                    <input type="date" name="exp_from[]" onchange="calculateExp(this)" class="exp-from w-full border border-gray-300 rounded px-1 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-2">
+                    <input type="date" name="exp_to[]" onchange="calculateExp(this)" class="exp-to w-full border border-gray-300 rounded px-1 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-2 relative flex items-center">
+                    <div class="flex-1">
+                        <input type="text" name="exp_years[]" readonly placeholder="Years" class="exp-years bg-gray-200 w-full border border-gray-300 rounded px-2 py-1.5 text-sm outline-none">
+                    </div>
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" class="ml-1 text-red-500 hover:text-red-700 pb-1">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', rowHTML);
+    }
+
+    function calculateExp(el) {
+        const row = el.closest('.experience-row');
+        const fromDate = row.querySelector('.exp-from').value;
+        const toDate = row.querySelector('.exp-to').value;
+        const yearsInput = row.querySelector('.exp-years');
+        
+        if (fromDate && toDate) {
+            const start = new Date(fromDate);
+            const end = new Date(toDate);
+            let diff = (end - start) / (1000 * 60 * 60 * 24 * 365.25);
+            if (diff < 0) diff = 0;
+            yearsInput.value = diff.toFixed(1);
+        } else {
+            yearsInput.value = '';
+        }
+    }
+    
+    
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    }
+    
+    function closeModal() {
+
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+</script>
+{% endblock %}

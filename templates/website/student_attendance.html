@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-800">Student Attendance</h2>
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center">
+            <i class="fa-solid fa-plus mr-2"></i> Add Attendance
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="p-6 pb-2 border-b border-gray-100 flex items-center space-x-4">
+        <div class="w-64">
+            <select class="w-full border border-gray-300 text-gray-600 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="">Select Batch</option>
+                {% for batch in batches %}
+                <option value="{{ batch.batch_id }}">{{ batch.batch_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="w-64">
+            <select class="w-full border border-gray-300 text-gray-600 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500">
+                <option value="">Select Student</option>
+                {% for student in students %}
+                <option value="{{ student.user_id }}">{{ student.display_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="w-48 relative">
+            <input type="date" class="w-full border border-gray-300 text-gray-600 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500">
+        </div>
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center">
+            <i class="fa-solid fa-filter mr-2"></i> Filter
+        </button>
+        <button class="border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition flex items-center">
+            <i class="fa-solid fa-arrow-rotate-right mr-2"></i> Reset
+        </button>
+    </div>
+
+    <!-- Table Header -->
+    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+        <h3 class="font-bold text-gray-700">Attendance Details</h3>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-white border-b border-gray-200">
+                <tr>
+                    <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">#</th>
+                    <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Date</th>
+                    <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Student Name</th>
+                    <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Batch</th>
+                    <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Status</th>
+                    <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Marked By</th>
+                    <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Remarks</th>
+                    <th class="py-3 px-6 text-center font-bold text-gray-700 text-sm">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-sm divide-y divide-gray-100">
+                {% for detail in details %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="py-3 px-6 text-gray-600">{{ forloop.counter }}</td>
+                    <td class="py-3 px-6 text-gray-600">{{ detail.student_attendance.attendance_date|date:"d M Y" }}</td>
+                    <td class="py-3 px-6 text-gray-800">{{ detail.student.display_name }}</td>
+                    <td class="py-3 px-6 text-gray-600">{{ detail.student_attendance.batch.batch_name|default:"-" }}</td>
+                    <td class="py-3 px-6">
+                        {% if detail.attendance_status == 1 %}
+                            <span class="px-3 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">Present</span>
+                        {% elif detail.attendance_status == 2 %}
+                            <span class="px-3 py-1 rounded bg-red-100 text-red-700 text-xs font-semibold">Absent</span>
+                        {% elif detail.attendance_status == 3 %}
+                            <span class="px-3 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-semibold">Late</span>
+                        {% else %}
+                            <span class="px-3 py-1 rounded bg-gray-100 text-gray-700 text-xs font-semibold">Leave</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-6 text-gray-600">Admin</td>
+                    <td class="py-3 px-6 text-gray-500">{{ detail.remarks|default:"-" }}</td>
+                    <td class="py-3 px-6 text-center space-x-2">
+                        <button class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
+                        <button class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="py-8 text-center text-gray-500">
+                        No attendance records found. Click "Add Attendance" to record today's attendance.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Footer Pagination -->
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-600">
+        <div>
+            Show 
+            <select class="border border-gray-300 rounded px-1 py-0.5 mx-1">
+                <option>10</option>
+            </select> 
+            entries
+        </div>
+        <div class="flex space-x-1">
+            <button class="px-3 py-1 border border-gray-300 bg-white rounded hover:bg-gray-50 text-gray-500">Previous</button>
+            <button class="px-3 py-1 border border-indigo-600 bg-indigo-600 text-white rounded">1</button>
+            <button class="px-3 py-1 border border-gray-300 bg-white rounded hover:bg-gray-50 text-gray-500">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Attendance Modal -->
+<div id="addAttendanceModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+            <h3 class="text-lg font-bold text-gray-800">Mark Student Attendance</h3>
+            <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <form method="POST" action="{% url 'student_attendance' %}" class="flex flex-col flex-1 overflow-hidden" autocomplete="off">
+            {% csrf_token %}
+            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" name="attendance_date" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+                    <select name="batch_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Select Batch --</option>
+                        {% for batch in batches %}
+                        <option value="{{ batch.batch_id }}">{{ batch.batch_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Student</label>
+                    <select name="student_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Select Student --</option>
+                        {% for student in students %}
+                        <option value="{{ student.user_id }}">{{ student.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="1">Present</option>
+                        <option value="2">Absent</option>
+                        <option value="3">Late</option>
+                        <option value="4">Leave</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+                    <input type="text" name="remarks" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Late due to traffic">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow transition">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('addAttendanceModal');
+    
+    function openModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        // Auto-fill today's date
+        document.querySelector('input[name="attendance_date"]').valueAsDate = new Date();
+    }
+    
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+</script>
+
+{% endblock %}

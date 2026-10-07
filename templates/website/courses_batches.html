@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800">Course & Batch Management</h2>
+        <p class="text-gray-500">Manage your academy's curriculum and scheduling units</p>
+    </div>
+</div>
+
+<div x-data="{ tab: 'courses', showCourseModal: false, showBatchModal: false }">
+    <!-- Tabs Header -->
+    <div class="bg-white rounded-t-lg shadow-sm border border-gray-200 border-b-0 px-6 pt-4 flex space-x-6">
+        <button @click="tab = 'courses'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'courses', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'courses'}" class="pb-3 border-b-2 text-sm font-medium transition flex items-center">
+            <i class="fa-solid fa-book-open mr-2"></i> Course Management
+        </button>
+        <button @click="tab = 'batches'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'batches', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'batches'}" class="pb-3 border-b-2 text-sm font-medium transition flex items-center">
+            <i class="fa-solid fa-users-rectangle mr-2"></i> Batch Management
+        </button>
+    </div>
+
+    <!-- Courses Tab -->
+    <div x-show="tab === 'courses'" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-gray-800">Course Master</h3>
+            <button @click="showCourseModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
+                <i class="fa-solid fa-plus mr-2"></i> Add Course
+            </button>
+        </div>
+
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="py-3 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course Code</th>
+                        <th class="py-3 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course Name</th>
+                        <th class="py-3 px-6 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Duration</th>
+                        <th class="py-3 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Fee (₹)</th>
+                        <th class="py-3 px-6 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="py-3 px-6 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    {% for course in courses %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-6 font-medium text-gray-800">{{ course.course_code|default:"-" }}</td>
+                        <td class="py-3 px-6 font-medium text-indigo-700">{{ course.course_name }}</td>
+                        <td class="py-3 px-6 text-center text-gray-600">{% if course.duration_months %}{{ course.duration_months }} Months{% else %}-{% endif %}</td>
+                        <td class="py-3 px-6 text-gray-600">{{ course.days|default:"-" }}</td>
+                        <td class="py-3 px-6 text-right font-bold text-gray-800">{{ course.fee_amount|default:"0.00" }}</td>
+                        <td class="py-3 px-6 text-center">
+                            {% if course.is_active %}
+                            <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Active</span>
+                            {% else %}
+                            <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-6 text-center whitespace-nowrap">
+                            <a href="#" class="text-blue-500 hover:text-blue-700 mx-1" title="View"><i class="fa-solid fa-eye"></i></a>
+                            <a href="#" class="text-indigo-500 hover:text-indigo-700 mx-1" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+                            <a href="#" class="text-red-500 hover:text-red-700 mx-1" title="Delete" onclick="return confirm('Are you sure you want to delete this course?');"><i class="fa-solid fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="py-6 text-center text-gray-500">No courses available.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Batches Tab -->
+    <div x-show="tab === 'batches'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-gray-800">Batch Master</h3>
+            <button @click="showBatchModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
+                <i class="fa-solid fa-plus mr-2"></i> Add Batch
+            </button>
+        </div>
+
+        <div class="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Batch</th>
+                        <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course</th>
+                        <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Teacher</th>
+                        <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Timing</th>
+                        <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Capacity</th>
+                        <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    {% for batch in batches %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4 font-medium text-gray-800">{{ batch.batch_code|default:batch.batch_name }}</td>
+                        <td class="py-3 px-4 font-medium text-indigo-700">{{ batch.course.course_name }}</td>
+                        <td class="py-3 px-4 text-gray-600">{{ batch.teacher.display_name|default:"Unassigned" }}</td>
+                        <td class="py-3 px-4 text-gray-600">{% if batch.start_time and batch.end_time %}{{ batch.start_time|time:"g:i A" }} - {{ batch.end_time|time:"g:i A" }}{% else %}-{% endif %}</td>
+                        <td class="py-3 px-4 text-center text-gray-600">{{ batch.capacity|default:"-" }}</td>
+                        <td class="py-3 px-4 text-center">
+                            {% if batch.is_active %}
+                            <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Active</span>
+                            {% else %}
+                            <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            <a href="#" class="text-blue-500 hover:text-blue-700 mx-1" title="View"><i class="fa-solid fa-eye"></i></a>
+                            <a href="#" class="text-indigo-500 hover:text-indigo-700 mx-1" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+                            <a href="#" class="text-red-500 hover:text-red-700 mx-1" title="Delete" onclick="return confirm('Are you sure you want to delete this batch?');"><i class="fa-solid fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="py-6 text-center text-gray-500">No batches available.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div x-show="showCourseModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="showCourseModal" @click="showCourseModal = false" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div x-show="showCourseModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full flex flex-col max-h-[90vh]">
+                <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_course">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 overflow-y-auto flex-1">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg leading-6 font-bold text-gray-900" id="modal-title"><i class="fa-solid fa-book text-indigo-600 mr-2"></i>Add New Course</h3>
+                            <button type="button" @click="showCourseModal = false" class="text-gray-400 hover:text-gray-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Course Code <span class="text-red-500">*</span></label>
+                                <input type="text" name="course_code" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. GTR-BEG">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Course Name <span class="text-red-500">*</span></label>
+                                <input type="text" name="course_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Basic">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <input type="text" name="category" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Strings">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Months)</label>
+                                <input type="number" name="duration_months" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Total Sessions</label>
+                                <input type="number" name="total_sessions" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Course Fee (₹) <span class="text-red-500">*</span></label>
+                                <input type="number" step="0.01" name="fee_amount" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea name="description" rows="2" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm"></textarea>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                            Save Course
+                        </button>
+                        <button type="button" @click="showCourseModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Batch Modal -->
+    <div x-show="showBatchModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="showBatchModal" @click="showBatchModal = false" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div x-show="showBatchModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full flex flex-col max-h-[90vh]">
+                <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_batch">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 overflow-y-auto flex-1">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg leading-6 font-bold text-gray-900" id="modal-title"><i class="fa-solid fa-users text-indigo-600 mr-2"></i>Add New Batch</h3>
+                            <button type="button" @click="showBatchModal = false" class="text-gray-400 hover:text-gray-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Batch Code <span class="text-red-500">*</span></label>
+                                <input type="text" name="batch_code" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. B001">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name <span class="text-red-500">*</span></label>
+                                <input type="text" name="batch_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Batch A">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
+                                <select name="course_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                    <option value="">-- Select Course --</option>
+                                    {% for course in courses %}
+                                    <option value="{{ course.course_id }}">{{ course.course_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                                <select name="teacher_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                    <option value="">-- Unassigned --</option>
+                                    {% for teacher in teachers %}
+                                    <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                <input type="date" name="start_date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                <input type="date" name="end_date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                <input type="time" name="start_time" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                <input type="time" name="end_time" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                                <input type="number" name="capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                            Save Batch
+                        </button>
+                        <button type="button" @click="showBatchModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

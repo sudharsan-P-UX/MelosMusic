@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">Pending Fees</h2>
+    <p class="text-gray-500">Track and manage overdue student fee collections</p>
+</div>
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <!-- Filters -->
+    <div class="p-6 border-b border-gray-100 flex items-end space-x-4">
+        <div class="w-48">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Course</label>
+            <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="w-48">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Batch</label>
+            <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                <option value="">All</option>
+            </select>
+        </div>
+        <div class="w-48">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+            <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                <option value="pending" selected>Pending</option>
+                <option value="overdue">Overdue</option>
+            </select>
+        </div>
+        <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition">
+            Filter
+        </button>
+        <button class="border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition">
+            Reset
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-700">#</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-700">Student Name</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-700">Course</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-700">Batch</th>
+                    <th class="py-3 px-4 text-right text-xs font-bold text-gray-700">Total Fees</th>
+                    <th class="py-3 px-4 text-right text-xs font-bold text-gray-700">Paid Amount</th>
+                    <th class="py-3 px-4 text-right text-xs font-bold text-gray-700">Pending Amount</th>
+                    <th class="py-3 px-4 text-left text-xs font-bold text-gray-700">Due Date</th>
+                    <th class="py-3 px-4 text-center text-xs font-bold text-gray-700">Days Overdue</th>
+                    <th class="py-3 px-4 text-center text-xs font-bold text-gray-700">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-sm">
+                <!-- Mock Data -->
+                <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4 text-gray-600">1</td>
+                    <td class="py-3 px-4 text-gray-800 font-medium">Arun Kumar</td>
+                    <td class="py-3 px-4 text-gray-600">Guitar - Beginner</td>
+                    <td class="py-3 px-4 text-gray-600">Batch A</td>
+                    <td class="py-3 px-4 text-right text-gray-800">3,700.00</td>
+                    <td class="py-3 px-4 text-right text-green-600">1,000.00</td>
+                    <td class="py-3 px-4 text-right text-red-600 font-bold">2,700.00</td>
+                    <td class="py-3 px-4 text-gray-600">25/05/2025</td>
+                    <td class="py-3 px-4 text-center text-gray-400">-</td>
+                    <td class="py-3 px-4 text-center">
+                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-file-invoice-dollar"></i></a>
+                        <button class="text-red-600 bg-red-50 p-1.5 rounded hover:bg-red-100 ml-2"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4 text-gray-600">2</td>
+                    <td class="py-3 px-4 text-gray-800 font-medium">Priya Sharma</td>
+                    <td class="py-3 px-4 text-gray-600">Keyboard</td>
+                    <td class="py-3 px-4 text-gray-600">Batch B</td>
+                    <td class="py-3 px-4 text-right text-gray-800">4,000.00</td>
+                    <td class="py-3 px-4 text-right text-green-600">1,500.00</td>
+                    <td class="py-3 px-4 text-right text-red-600 font-bold">2,500.00</td>
+                    <td class="py-3 px-4 text-gray-600">20/05/2025</td>
+                    <td class="py-3 px-4 text-center font-bold text-red-500">5</td>
+                    <td class="py-3 px-4 text-center">
+                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-file-invoice-dollar"></i></a>
+                        <button class="text-red-600 bg-red-50 p-1.5 rounded hover:bg-red-100 ml-2"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4 text-gray-600">3</td>
+                    <td class="py-3 px-4 text-gray-800 font-medium">Vikram Singh</td>
+                    <td class="py-3 px-4 text-gray-600">Vocal - Adv</td>
+                    <td class="py-3 px-4 text-gray-600">Batch A</td>
+                    <td class="py-3 px-4 text-right text-gray-800">3,500.00</td>
+                    <td class="py-3 px-4 text-right text-green-600">500.00</td>
+                    <td class="py-3 px-4 text-right text-red-600 font-bold">3,000.00</td>
+                    <td class="py-3 px-4 text-gray-600">15/05/2025</td>
+                    <td class="py-3 px-4 text-center font-bold text-red-500">10</td>
+                    <td class="py-3 px-4 text-center">
+                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-file-invoice-dollar"></i></a>
+                        <button class="text-red-600 bg-red-50 p-1.5 rounded hover:bg-red-100 ml-2"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-600">
+        <div>Show <select class="border border-gray-300 rounded px-1"><option>10</option></select> entries</div>
+        <div class="flex space-x-1">
+            <button class="px-3 py-1 border border-gray-300 rounded text-gray-400 cursor-not-allowed">Previous</button>
+            <button class="px-3 py-1 border border-indigo-600 bg-indigo-600 text-white rounded">1</button>
+            <button class="px-3 py-1 border border-gray-300 rounded text-gray-500 hover:bg-gray-50">Next</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

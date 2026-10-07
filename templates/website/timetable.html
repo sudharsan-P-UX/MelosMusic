@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
+        <h2 class="text-xl font-bold text-gray-800">{{ page_title }}</h2>
+        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center">
+            <i class="fa-solid fa-plus mr-2"></i> Add New Slot
+        </button>
+    </div>
+
+    <!-- Calendar View -->
+    <div class="p-6 overflow-x-auto">
+        <div class="min-w-[800px] grid grid-cols-7 gap-4">
+            {% for day, day_slots in schedule_data %}
+            <div class="flex flex-col">
+                <div class="bg-indigo-100 text-indigo-800 font-bold text-center py-2 rounded-t-md border-b-2 border-indigo-200 uppercase text-xs tracking-wider">
+                    {{ day }}
+                </div>
+                <div class="bg-gray-50 border border-gray-200 border-t-0 rounded-b-md flex-1 p-2 space-y-3 min-h-[400px]">
+                    {% for slot in day_slots %}
+                    <div class="bg-white border border-gray-200 p-3 rounded shadow-sm hover:shadow transition relative group cursor-pointer">
+                        <div class="text-xs font-bold text-gray-500 mb-1">{{ slot.start_time|time:"h:i A" }} - {{ slot.end_time|time:"h:i A" }}</div>
+                        <div class="font-semibold text-indigo-700 text-sm leading-tight mb-1">{{ slot.batch.batch_name }}</div>
+                        <div class="text-xs text-gray-600"><i class="fa-solid fa-user-tie mr-1"></i>{{ slot.teacher.display_name }}</div>
+                        {% if slot.room_number %}
+                        <div class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>{{ slot.room_number }}</div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-gray-400 text-xs py-4">No classes</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Slot Modal -->
+<div id="addSlotModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+            <h3 class="text-lg font-bold text-gray-800">Add New Slot</h3>
+            <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="slotForm" method="POST" action="{% url 'timetable' %}" class="flex flex-col flex-1 overflow-hidden" autocomplete="off">
+            {% csrf_token %}
+            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Batch / Class</label>
+                    <select name="batch_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Select Batch --</option>
+                        {% for batch in batches %}
+                        <option value="{{ batch.batch_id }}">{{ batch.batch_name }} ({{ batch.course.course_name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                    <select name="teacher_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Select Teacher --</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Day of Week</label>
+                    <select name="day_of_week" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Select Day --</option>
+                        {% for day in days %}
+                        <option value="{{ day }}">{{ day }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                        <input type="time" name="start_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                        <input type="time" name="end_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Room Number / Venue</label>
+                    <input type="text" name="room_number" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Studio A">
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow transition">Save Slot</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById('addSlotModal');
+    
+    function openModal() {
+        document.getElementById('slotForm').reset();
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+</script>
+{% endblock %}

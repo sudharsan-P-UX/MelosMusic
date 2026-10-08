@@ -2,13 +2,34 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from users.models import User, UserLoginDetails
 
+from academics.models import Course
+from finance.models import StudentFeeInstallment
+from django.db.models import Sum, F
+
 def index(request):
     if 'user_id' not in request.session:
         return redirect('login')
     
     # Fetch user for dashboard display
     user = User.objects.get(user_id=request.session['user_id'])
-    return render(request, 'website/index.html', {'user': user})
+    
+    # Dashboard metrics
+    total_students = User.objects.filter(role__role_name__iexact='student').count()
+    active_teachers = User.objects.filter(role__role_name__iexact='teacher').count()
+    total_courses = Course.objects.filter(is_active=True).count()
+    
+    pending_fees = StudentFeeInstallment.objects.filter(amount__gt=F('paid_amount')).aggregate(
+        total_pending=Sum(F('amount') - F('paid_amount'))
+    )['total_pending'] or 0
+    
+    context = {
+        'user': user,
+        'total_students': total_students,
+        'active_teachers': active_teachers,
+        'total_courses': total_courses,
+        'pending_fees': pending_fees,
+    }
+    return render(request, 'website/index.html', context)
 
 def login_view(request):
     if request.method == 'POST':
@@ -76,7 +97,15 @@ def students_view(request):
         fname = parts[0]
         lname = parts[1] if len(parts) > 1 else ""
         
+        user_code = "S1000"
+        last_student = User.objects.filter(role=student_role, user_code__startswith='S').order_by('-user_id').first()
+        if last_student and last_student.user_code:
+            try:
+                user_code = f"S{int(last_student.user_code[1:]) + 1}"
+            except: pass
+            
         new_student = User.objects.create(
+            user_code=user_code,
             first_name=fname,
             last_name=lname,
             display_name=name,
@@ -218,7 +247,15 @@ def teachers_view(request):
         fname = parts[0]
         lname = parts[1] if len(parts) > 1 else ""
         
+        user_code = "T2000"
+        last_teacher = User.objects.filter(role=teacher_role, user_code__startswith='T').order_by('-user_id').first()
+        if last_teacher and last_teacher.user_code:
+            try:
+                user_code = f"T{int(last_teacher.user_code[1:]) + 1}"
+            except: pass
+            
         new_teacher = User.objects.create(
+            user_code=user_code,
             first_name=fname,
             last_name=lname,
             display_name=name,
@@ -291,6 +328,31 @@ def teachers_view(request):
         return redirect('teachers')
         
     teachers = User.objects.filter(role=teacher_role).order_by('-user_id')
+    
+    # Filter logic for teachers
+    search = request.GET.get('search', '')
+    status_filter = request.GET.get('status_filter', '')
+    from_date = request.GET.get('from_date', '')
+    to_date = request.GET.get('to_date', '')
+    
+    from django.db.models import Q
+    
+    if search:
+        teachers = teachers.filter(
+            Q(display_name__icontains=search) | 
+            Q(email__icontains=search) | 
+            Q(phone__icontains=search) |
+            Q(user_code__icontains=search)
+        )
+        
+    if status_filter != '':
+        teachers = teachers.filter(is_active=(status_filter == '1'))
+        
+    if from_date:
+        teachers = teachers.filter(created_date__gte=from_date)
+        
+    if to_date:
+        teachers = teachers.filter(created_date__lte=to_date)
         
     return render(request, 'website/teachers.html', {
         'user': user,
@@ -1043,6 +1105,30 @@ def admin_dashboard_view(request):
             
             try:
                 role = Role.objects.get(role_id=role_id)
+                
+                # Auto-generate user_code for Students and Teachers
+                user_code = None
+                if role.role_name.lower() == 'student':
+                    last_student = User.objects.filter(role=role, user_code__startswith='S').order_by('-user_id').first()
+                    if last_student and last_student.user_code:
+                        try:
+                            last_num = int(last_student.user_code[1:])
+                            user_code = f"S{last_num + 1}"
+                        except:
+                            user_code = "S1000"
+                    else:
+                        user_code = "S1000"
+                elif role.role_name.lower() == 'teacher':
+                    last_teacher = User.objects.filter(role=role, user_code__startswith='T').order_by('-user_id').first()
+                    if last_teacher and last_teacher.user_code:
+                        try:
+                            last_num = int(last_teacher.user_code[1:])
+                            user_code = f"T{last_num + 1}"
+                        except:
+                            user_code = "T2000"
+                    else:
+                        user_code = "T2000"
+                        
                 User.objects.create(
                     first_name=first_name,
                     last_name=last_name,
@@ -1050,7 +1136,8 @@ def admin_dashboard_view(request):
                     email=email,
                     phone=phone,
                     password=password,
-                    role=role
+                    role=role,
+                    user_code=user_code
                 )
                 messages.success(request, f'User {first_name} {last_name} created successfully!')
             except Exception as e:

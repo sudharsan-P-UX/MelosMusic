@@ -75,6 +75,7 @@
             <thead>
                 <tr class="bg-gray-50 text-gray-500 border-b border-gray-200 text-xs uppercase tracking-wider">
                     <th class="py-2.5 px-4 font-semibold w-10 text-center"><input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-offset-0 focus:ring-blue-200 focus:ring-opacity-50"></th>
+                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Student ID <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
                     <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100 flex items-center">Student Name <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
                     <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Phone <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
                     <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Email <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
@@ -87,6 +88,7 @@
                 {% for student in students %}
                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition group">
                     <td class="py-2.5 px-4 text-center"><input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-offset-0 focus:ring-blue-200 focus:ring-opacity-50"></td>
+                    <td class="py-2.5 px-4 text-gray-600 font-medium">{{ student.user_code|default:"-" }}</td>
                     <td class="py-2.5 px-4 flex items-center space-x-2">
                         <i class="fa-regular fa-star text-gray-300 hover:text-yellow-400 cursor-pointer transition"></i>
                         <span class="text-blue-600 cursor-pointer hover:underline">{{ student.display_name }}</span>
@@ -114,7 +116,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="py-8 text-center text-gray-500">No students found.</td>
+                    <td colspan="8" class="py-8 text-center text-gray-500">No students found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

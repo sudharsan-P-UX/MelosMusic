@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div x-data="{ tab: '{{ active_tab|default:'roles' }}', showCreateRoleModal: false, showAddUserModal: false, showMenuModal: false, editMenuData: {id: '', name: '', url: '', active: true} }">
+<div x-data="{ tab: '{{ active_tab|default:'roles' }}', showCreateRoleModal: false, showAddUserModal: false, showMenuModal: false, editMenuData: {id: '', name: '', url: '', parent_id: '', active: true} }">
     <div class="mb-4 flex justify-between items-center">
         <h2 class="text-xl font-bold text-gray-800" x-text="{
             'dashboard': 'Admin Dashboard',
@@ -86,7 +86,7 @@
                         <tbody class="text-gray-700">
                             {% for menu in menus %}
                             <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                <td class="py-1.5 px-4 font-medium text-gray-800"><i class="fa-solid fa-bars text-gray-300 mr-2 text-xs"></i> {{ menu.menu_name }}</td>
+                                <td class="py-1.5 px-4 font-medium text-gray-800">{% if menu.parent_menu %}<i class="fa-solid fa-level-up-alt fa-rotate-90 text-gray-300 ml-4 mr-2 text-xs"></i>{% else %}<i class="fa-solid fa-bars text-gray-300 mr-2 text-xs"></i>{% endif %} {{ menu.menu_name }}</td>
                                 <td class="py-1.5 px-2 text-center">
                                     <input type="checkbox" name="view_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.view_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
                                 </td>
@@ -154,7 +154,7 @@
                             {% endif %}
                         </td>
                         <td class="py-1.5 px-4 text-center space-x-2">
-                            <button @click="editMenuData = {id: '{{ m.menu_id }}', name: '{{ m.menu_name }}', url: '{{ m.url_page }}', active: {% if m.is_active %}true{% else %}false{% endif %}}; showMenuModal = true" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
+                            <button @click="editMenuData = {id: '{{ m.menu_id }}', name: '{{ m.menu_name }}', url: '{{ m.url_page }}', parent_id: '{{ m.parent_menu_id|default:'' }}', active: {% if m.is_active %}true{% else %}false{% endif %}}; showMenuModal = true" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
                             <form method="POST" action="" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this menu? This might break role permissions.');">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="delete_menu">
@@ -174,7 +174,7 @@
         <div class="bg-white rounded border border-gray-200 shadow-sm">
             <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 class="font-medium text-gray-800">Menu Master List</h3>
-                <button @click="editMenuData = {id: '', name: '', url: '#', active: true}; showMenuModal = true" class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
+                <button @click="editMenuData = {id: '', name: '', url: '#', parent_id: '', active: true}; showMenuModal = true" class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
                     <i class="fa-solid fa-plus mr-1"></i> Add Menu
                 </button>
             </div>
@@ -192,7 +192,7 @@
                     {% for m in menus %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
                         <td class="py-1.5 px-4 text-center text-gray-500">{{ m.menu_id }}</td>
-                        <td class="py-1.5 px-4 font-medium text-gray-800"><i class="fa-solid fa-folder text-gray-300 mr-2"></i> {{ m.menu_name }}</td>
+                        <td class="py-1.5 px-4 font-medium text-gray-800">{% if m.parent_menu %}<i class="fa-solid fa-level-up-alt fa-rotate-90 text-gray-300 ml-4 mr-2"></i>{% else %}<i class="fa-solid fa-folder text-gray-300 mr-2"></i>{% endif %} {{ m.menu_name }}{% if m.parent_menu %} <span class="text-xs text-gray-400 font-normal ml-2">({{ m.parent_menu.menu_name }})</span>{% endif %}</td>
                         <td class="py-1.5 px-4 text-gray-500 font-mono text-xs">{{ m.url_page }}</td>
                         <td class="py-1.5 px-4 text-center">
                             {% if m.is_active %}
@@ -202,7 +202,7 @@
                             {% endif %}
                         </td>
                         <td class="py-1.5 px-4 text-center space-x-2">
-                            <button @click="editMenuData = {id: '{{ m.menu_id }}', name: '{{ m.menu_name }}', url: '{{ m.url_page }}', active: {% if m.is_active %}true{% else %}false{% endif %}}; showMenuModal = true" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
+                            <button @click="editMenuData = {id: '{{ m.menu_id }}', name: '{{ m.menu_name }}', url: '{{ m.url_page }}', parent_id: '{{ m.parent_menu_id|default:'' }}', active: {% if m.is_active %}true{% else %}false{% endif %}}; showMenuModal = true" class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
                             <form method="POST" action="" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this menu? This might break role permissions.');">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="delete_menu">
@@ -391,6 +391,17 @@
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">URL Route</label>
                                         <input type="text" name="url_page" x-model="editMenuData.url" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono text-gray-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Parent Menu (Optional)</label>
+                                        <select name="parent_menu_id" x-model="editMenuData.parent_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                            <option value="">-- None (Top Level) --</option>
+                                            {% for m in menus %}
+                                            <template x-if="editMenuData.id != '{{ m.menu_id }}'">
+                                                <option value="{{ m.menu_id }}">{{ m.menu_name }}</option>
+                                            </template>
+                                            {% endfor %}
+                                        </select>
                                     </div>
                                     <div class="flex items-center mt-4">
                                         <input type="checkbox" name="is_active" x-model="editMenuData.active" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">

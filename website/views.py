@@ -442,6 +442,28 @@ def events_dashboard_view(request):
     
     if request.method == 'POST':
         action = request.POST.get('action')
+        
+        # RBAC Check for POST actions
+        if action == 'create_user' and not admin_access.add_access:
+            messages.error(request, 'You do not have permission to add records.')
+            return redirect('/admin-dashboard/')
+            
+        if action == 'save_permissions' and not admin_access.edit_access:
+            messages.error(request, 'You do not have permission to edit records.')
+            return redirect('/admin-dashboard/')
+            
+        if action == 'save_menu':
+            if request.POST.get('menu_id') and not admin_access.edit_access:
+                messages.error(request, 'You do not have permission to edit records.')
+                return redirect('/admin-dashboard/?tab=menu')
+            elif not request.POST.get('menu_id') and not admin_access.add_access:
+                messages.error(request, 'You do not have permission to add records.')
+                return redirect('/admin-dashboard/?tab=menu')
+                
+        if action == 'delete_menu' and not admin_access.delete_access:
+            messages.error(request, 'You do not have permission to delete records.')
+            return redirect('/admin-dashboard/?tab=menu')
+
         if action == 'add_venue':
             venue_name = request.POST.get('venue_name')
             capacity = request.POST.get('capacity')
@@ -889,6 +911,28 @@ def courses_batches_view(request):
     
     if request.method == 'POST':
         action = request.POST.get('action')
+        
+        # RBAC Check for POST actions
+        if action == 'create_user' and not admin_access.add_access:
+            messages.error(request, 'You do not have permission to add records.')
+            return redirect('/admin-dashboard/')
+            
+        if action == 'save_permissions' and not admin_access.edit_access:
+            messages.error(request, 'You do not have permission to edit records.')
+            return redirect('/admin-dashboard/')
+            
+        if action == 'save_menu':
+            if request.POST.get('menu_id') and not admin_access.edit_access:
+                messages.error(request, 'You do not have permission to edit records.')
+                return redirect('/admin-dashboard/?tab=menu')
+            elif not request.POST.get('menu_id') and not admin_access.add_access:
+                messages.error(request, 'You do not have permission to add records.')
+                return redirect('/admin-dashboard/?tab=menu')
+                
+        if action == 'delete_menu' and not admin_access.delete_access:
+            messages.error(request, 'You do not have permission to delete records.')
+            return redirect('/admin-dashboard/?tab=menu')
+
         if action == 'add_course':
             Course.objects.create(
                 course_code=request.POST.get('course_code'),
@@ -943,10 +987,52 @@ def admin_dashboard_view(request):
     
     roles = Role.objects.all().select_related('role_group')
     users = User.objects.all().select_related('role')
-    menus = MasterMenu.objects.filter(is_active=True).order_by('menu_id')
+    # Fetch menus and construct a tree (Parents first, then their children)
+    raw_menus = list(MasterMenu.objects.filter(is_active=True).order_by('menu_id'))
+    menus = []
+    for m in raw_menus:
+        if not m.parent_menu_id:
+            menus.append(m)
+            # Find children for this parent
+            for child in raw_menus:
+                if child.parent_menu_id == m.menu_id:
+                    menus.append(child)
+    
+    # RBAC Enforcement
+    try:
+        admin_menu = MasterMenu.objects.get(menu_name='Admin')
+        admin_access = RoleAccess.objects.get(role=user.role, menu=admin_menu)
+    except (MasterMenu.DoesNotExist, RoleAccess.DoesNotExist):
+        admin_access = None
+
+    if not admin_access or not admin_access.view_access:
+        messages.error(request, 'You do not have permission to view the Admin Dashboard.')
+        return redirect('index')
     
     if request.method == 'POST':
         action = request.POST.get('action')
+        
+        # RBAC Check for POST actions
+        if action == 'create_user' and not admin_access.add_access:
+            messages.error(request, 'You do not have permission to add records.')
+            return redirect('/admin-dashboard/')
+            
+        if action == 'save_permissions' and not admin_access.edit_access:
+            messages.error(request, 'You do not have permission to edit records.')
+            return redirect('/admin-dashboard/')
+            
+        if action == 'save_menu':
+            if request.POST.get('menu_id') and not admin_access.edit_access:
+                messages.error(request, 'You do not have permission to edit records.')
+                return redirect('/admin-dashboard/?tab=menu')
+            elif not request.POST.get('menu_id') and not admin_access.add_access:
+                messages.error(request, 'You do not have permission to add records.')
+                return redirect('/admin-dashboard/?tab=menu')
+                
+        if action == 'delete_menu' and not admin_access.delete_access:
+            messages.error(request, 'You do not have permission to delete records.')
+            return redirect('/admin-dashboard/?tab=menu')
+
         if action == 'create_user':
             first_name = request.POST.get('first_name', '')
             last_name = request.POST.get('last_name', '')

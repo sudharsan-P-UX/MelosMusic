@@ -23,6 +23,7 @@ class Role(models.Model):
 
 class MasterMenu(models.Model):
     menu_id = models.AutoField(primary_key=True, db_column='MenuId')
+    parent_menu = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='submenus', db_column='ParentMenuId')
     menu_name = models.CharField(max_length=255, db_column='MenuName')
     url_page = models.CharField(max_length=255, db_column='UrlPage')
     view_access = models.BooleanField(default=False, db_column='ViewAccess')

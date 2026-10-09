@@ -771,12 +771,12 @@ def timetable_view(request):
 def student_attendance_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
+    from users.models import User
     user = User.objects.get(user_id=request.session['user_id'])
-    from academics.models import Batch, StudentAttendance, StudentAttendanceDetail
+    from academics.models import Batch, LeaveRequest
     
     if request.method == 'POST':
         if request.POST.get('action') == 'apply_leave':
-            from academics.models import LeaveRequest
             student_id = request.POST.get('student_id')
             student = User.objects.get(user_id=student_id)
             LeaveRequest.objects.create(
@@ -788,58 +788,45 @@ def student_attendance_view(request):
                 request_type=request.POST.get('request_type'),
                 created_by=user.user_id
             )
-            messages.success(request, 'Leave request submitted successfully!')
+            messages.success(request, 'Attendance request submitted successfully!')
             return redirect('student_attendance')
             
-        attendance_date = request.POST.get('attendance_date')
-        batch_id = request.POST.get('batch_id')
-        student_id = request.POST.get('student_id')
-        status = request.POST.get('status')
-        remarks = request.POST.get('remarks')
-        
-        batch = Batch.objects.get(batch_id=batch_id)
-        student = User.objects.get(user_id=student_id)
-        
-        # Get or create the Master record for this day and batch
-        master, created = StudentAttendance.objects.get_or_create(
-            attendance_date=attendance_date,
-            batch=batch,
-            defaults={'created_by': user.user_id, 'course': batch.course}
-        )
-        
-        # Create the detail record
-        StudentAttendanceDetail.objects.create(
-            student_attendance=master,
-            student=student,
-            attendance_status=int(status),
-            remarks=remarks,
-            created_by=user.user_id
-        )
-        messages.success(request, 'Student attendance recorded successfully!')
-        return redirect('student_attendance')
-        
+    # Filters
+    selected_batch = request.GET.get('batch_id', '')
+    selected_student = request.GET.get('student_id', '')
+    selected_date = request.GET.get('date', '')
+    
     batches = Batch.objects.filter(is_active=True)
-    students = User.objects.filter(role__role_name='Student', is_active=True)
+    students = User.objects.filter(role__role_name__iexact='student', is_active=True)
     
-    details = StudentAttendanceDetail.objects.all().order_by('-created_date')
+    details = LeaveRequest.objects.filter(user_type='Student').select_related('user').order_by('-applied_date')
     
+    if selected_student:
+        details = details.filter(user_id=selected_student)
+        
+    if selected_date:
+        details = details.filter(from_date__lte=selected_date, to_date__gte=selected_date)
+
     return render(request, 'website/student_attendance.html', {
         'user': user,
         'page_title': 'Student Attendance',
         'batches': batches,
         'students': students,
-        'details': details
+        'details': details,
+        'selected_batch': selected_batch,
+        'selected_student': selected_student,
+        'selected_date': selected_date
     })
 
 def teacher_attendance_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
+    from users.models import User
     user = User.objects.get(user_id=request.session['user_id'])
-    from academics.models import TeacherAttendance, TeacherAttendanceDetail
+    from academics.models import LeaveRequest
     
     if request.method == 'POST':
         if request.POST.get('action') == 'apply_leave':
-            from academics.models import LeaveRequest
             teacher_id = request.POST.get('teacher_id')
             teacher = User.objects.get(user_id=teacher_id)
             LeaveRequest.objects.create(
@@ -851,44 +838,30 @@ def teacher_attendance_view(request):
                 request_type=request.POST.get('request_type'),
                 created_by=user.user_id
             )
-            messages.success(request, 'Leave request submitted successfully!')
+            messages.success(request, 'Attendance request submitted successfully!')
             return redirect('teacher_attendance')
             
-        attendance_date = request.POST.get('attendance_date')
-        teacher_id = request.POST.get('teacher_id')
-        status = request.POST.get('status')
-        check_in = request.POST.get('check_in_time')
-        check_out = request.POST.get('check_out_time')
-        remarks = request.POST.get('remarks')
-        
-        teacher = User.objects.get(user_id=teacher_id)
-        
-        master, created = TeacherAttendance.objects.get_or_create(
-            attendance_date=attendance_date,
-            defaults={'created_by': user.user_id}
-        )
-        
-        TeacherAttendanceDetail.objects.create(
-            teacher_attendance=master,
-            teacher=teacher,
-            attendance_status=int(status),
-            check_in_time=check_in if check_in else None,
-            check_out_time=check_out if check_out else None,
-            remarks=remarks,
-            created_by=user.user_id
-        )
-        messages.success(request, 'Teacher attendance recorded successfully!')
-        return redirect('teacher_attendance')
-        
-    teachers = User.objects.filter(role__role_name='Teacher', is_active=True)
+    # Filters
+    selected_teacher = request.GET.get('teacher_id', '')
+    selected_date = request.GET.get('date', '')
     
-    details = TeacherAttendanceDetail.objects.all().order_by('-created_date')
+    teachers = User.objects.filter(role__role_name__iexact='teacher', is_active=True)
     
+    details = LeaveRequest.objects.filter(user_type='Teacher').select_related('user').order_by('-applied_date')
+    
+    if selected_teacher:
+        details = details.filter(user_id=selected_teacher)
+        
+    if selected_date:
+        details = details.filter(from_date__lte=selected_date, to_date__gte=selected_date)
+
     return render(request, 'website/teacher_attendance.html', {
         'user': user,
         'page_title': 'Teacher Attendance',
         'teachers': teachers,
-        'details': details
+        'details': details,
+        'selected_teacher': selected_teacher,
+        'selected_date': selected_date
     })
 
 

@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold text-gray-800">Attendance Log</h2>
+    </div>
+
+    <!-- Purple Header Tabs -->
+    <div class="bg-[#5c4b99] rounded-t-lg flex px-4 pt-4 shadow-sm">
+        <a href="?tab=students" class="px-6 py-2.5 rounded-t-lg font-bold text-sm {% if tab == 'students' %}bg-[#8070d6] text-white{% else %}text-white/80 hover:bg-[#6d5eb5] hover:text-white{% endif %} transition-colors mr-1">
+            STUDENTS
+        </a>
+        <a href="?tab=teachers" class="px-6 py-2.5 rounded-t-lg font-bold text-sm {% if tab == 'teachers' %}bg-[#8070d6] text-white{% else %}text-white/80 hover:bg-[#6d5eb5] hover:text-white{% endif %} transition-colors">
+            TEACHERS
+        </a>
+    </div>
+
+    <!-- Content Area -->
+    <div class="bg-white rounded-b-lg shadow-sm border border-t-0 border-gray-200">
+        <!-- Filter Bar -->
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h3 class="font-medium text-gray-700">Attendance Requests</h3>
+            <form method="GET" action="" class="flex flex-wrap gap-2 items-center">
+                <input type="hidden" name="tab" value="{{ tab }}">
+                
+                <input type="date" name="filter_from" value="{{ request.GET.filter_from }}" class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:border-[#5c4b99] bg-white">
+                <span class="text-gray-500 text-sm">to</span>
+                <input type="date" name="filter_to" value="{{ request.GET.filter_to }}" class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:border-[#5c4b99] bg-white">
+                
+                <select name="filter_status" class="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:border-[#5c4b99] bg-white">
+                    <option value="">All Statuses</option>
+                    <option value="Approved" {% if request.GET.filter_status == 'Approved' %}selected{% endif %}>Approved</option>
+                    <option value="Rejected" {% if request.GET.filter_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+                
+                <button type="submit" class="bg-[#5c4b99] hover:bg-[#4b3c80] text-white rounded px-4 py-1.5 text-sm font-medium transition-colors flex items-center shadow-sm">
+                    <i class="fa-solid fa-filter mr-1.5"></i> Filter
+                </button>
+                
+                {% if request.GET.filter_from or request.GET.filter_to or request.GET.filter_status %}
+                <a href="?tab={{ tab }}" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded px-3 py-1.5 text-gray-600 transition-colors flex items-center justify-center shadow-sm" title="Clear Filter">
+                    <i class="fa-solid fa-times"></i>
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs uppercase tracking-wider">
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap">{% if tab == 'students' %}Student{% else %}Teacher{% endif %} ID</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap">Name</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap">Date (From - To)</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap text-center">No Of Days</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap text-center">Request Type</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap">Applied Date</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap">Manager Approval On</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap text-center">Status</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm text-gray-700">
+                    {% for l in leaves %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td class="py-3 px-4 font-medium text-gray-500">{{ l.user.user_id }}</td>
+                        <td class="py-3 px-4 font-medium text-gray-900">{{ l.user.display_name|default:l.user.first_name }}</td>
+                        <td class="py-3 px-4 text-gray-600">{{ l.from_date|date:"d-M-Y" }} <span class="text-gray-400 mx-1">to</span> {{ l.to_date|date:"d-M-Y" }}</td>
+                        <td class="py-3 px-4 text-center font-medium">{{ l.no_of_days }}</td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-xs bg-gray-100 text-gray-600 font-medium">{{ l.request_type }}</span>
+                        </td>
+                        <td class="py-3 px-4 text-gray-500">{{ l.applied_date|date:"d-M-Y h:i A" }}</td>
+                        <td class="py-3 px-4 text-gray-500">{{ l.manager_approval_on|date:"d-M-Y h:i A"|default:"-" }}</td>
+                        <td class="py-3 px-4 text-center">
+                            {% if l.manager_approval_status == 'Approved' %}
+                                <span class="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-medium">Approved</span>
+                            {% elif l.manager_approval_status == 'Rejected' %}
+                                <span class="px-2.5 py-1 bg-red-100 text-red-700 rounded-md text-xs font-medium">Rejected</span>
+                            {% else %}
+                                <span class="px-2.5 py-1 bg-yellow-100 text-yellow-700 rounded-md text-xs font-medium">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            {% if l.manager_approval_status != 'Pending' %}
+                            <form method="POST" action="?tab={{ tab }}" class="flex items-center justify-center">
+                                {% csrf_token %}
+                                <input type="hidden" name="tab" value="{{ tab }}">
+                                <input type="hidden" name="leave_request_id" value="{{ l.leave_request_id }}">
+                                <button type="submit" name="action" value="Revoke" class="bg-gray-100 text-gray-600 hover:bg-red-500 hover:text-white px-3 py-1 rounded-md text-xs font-medium transition-colors" title="Revoke Decision">
+                                    <i class="fa-solid fa-rotate-left mr-1"></i> Revoke
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-gray-300">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-gray-500">
+                            <div class="flex flex-col items-center justify-center">
+                                <i class="fa-solid fa-file-invoice text-4xl text-gray-300 mb-3"></i>
+                                <p>No attendance requests found.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

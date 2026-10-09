@@ -33,6 +33,7 @@ class MasterMenu(models.Model):
     export_access = models.BooleanField(default=False, db_column='ExportAccess')
     approve_access = models.BooleanField(default=False, db_column='ApproveAccess')
     is_active = models.BooleanField(default=True, db_column='IsActive')
+    display_order = models.IntegerField(default=0, db_column='DisplayOrder')
     created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
     created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
 
@@ -51,6 +52,7 @@ class MasterSubMenu(models.Model):
     export_access = models.BooleanField(default=False, db_column='ExportAccess')
     approve_access = models.BooleanField(default=False, db_column='ApproveAccess')
     is_active = models.BooleanField(default=True, db_column='IsActive')
+    display_order = models.IntegerField(default=0, db_column='DisplayOrder')
     created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
     created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
 
@@ -68,6 +70,7 @@ class RoleAccess(models.Model):
     export_access = models.BooleanField(default=False, db_column='ExportAccess')
     approve_access = models.BooleanField(default=False, db_column='ApproveAccess')
     is_active = models.BooleanField(default=True, db_column='IsActive')
+    display_order = models.IntegerField(default=0, db_column='DisplayOrder')
     created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
     created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
 

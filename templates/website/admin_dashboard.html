@@ -7,7 +7,7 @@
             'dashboard': 'Admin Dashboard',
             'users': 'User Management',
             'roles': 'Role Management',
-            'menu': 'Menu Permissions',
+            'menu': 'Menu Details',
             'settings': 'System Settings',
             'audit': 'Audit Logs'
         }[tab] || 'Admin'"></h2>
@@ -164,16 +164,17 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    
                 </tbody>
             </table>
         </div>
     </div>
     
-    <!-- Menu Permissions Tab -->
+    <!-- Menu Details Tab -->
     <div x-show="tab === 'menu'" x-transition class="space-y-4" style="display: none;">
-        <div class="bg-white rounded border border-gray-200 shadow-sm">
+        <div class="bg-white rounded border border-gray-200 shadow-sm pb-24">
             <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <h3 class="font-medium text-gray-800">Menu Master List</h3>
+                <h3 class="font-medium text-gray-800">Menu Details List</h3>
                 <button @click="editMenuData = {id: '', name: '', url: '#', parent_id: '', active: true}; showMenuModal = true" class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
                     <i class="fa-solid fa-plus mr-1"></i> Add Menu
                 </button>
@@ -181,17 +182,16 @@
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
-                        <th class="py-1.5 px-4 font-medium w-16 text-center">ID</th>
                         <th class="py-1.5 px-4 font-medium">Menu Name</th>
                         <th class="py-1.5 px-4 font-medium">URL Route</th>
                         <th class="py-1.5 px-4 font-medium text-center">Status</th>
                         <th class="py-1.5 px-4 font-medium text-center">Actions</th>
+                        <th class="py-1.5 px-4 font-medium w-24 text-center">Order List</th>
                     </tr>
                 </thead>
                 <tbody class="text-gray-700">
                     {% for m in menus %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="py-1.5 px-4 text-center text-gray-500">{{ m.menu_id }}</td>
                         <td class="py-1.5 px-4 font-medium text-gray-800">{% if m.parent_menu %}<i class="fa-solid fa-level-up-alt fa-rotate-90 text-gray-300 ml-4 mr-2"></i>{% else %}<i class="fa-solid fa-folder text-gray-300 mr-2"></i>{% endif %} {{ m.menu_name }}{% if m.parent_menu %} <span class="text-xs text-gray-400 font-normal ml-2">({{ m.parent_menu.menu_name }})</span>{% endif %}</td>
                         <td class="py-1.5 px-4 text-gray-500 font-mono text-xs">{{ m.url_page }}</td>
                         <td class="py-1.5 px-4 text-center">
@@ -210,11 +210,43 @@
                                 <button type="submit" class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
                             </form>
                         </td>
+                        <td class="py-1.5 px-4 text-center">
+                            <input type="number" name="order_{{ m.menu_id }}" value="{{ m.display_order }}" class="menu-order-input w-16 border border-gray-300 rounded px-1.5 py-1 text-xs text-center focus:ring-indigo-500 focus:border-indigo-500">
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- Sticky Save Button for Menu Orders -->
+        <div x-show="tab === 'menu'" class="fixed bottom-8 right-8 z-40">
+            <form id="menuOrderForm" method="POST" action="">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_menu_orders">
+                <button type="button" onclick="submitMenuOrders()" class="bg-[#4f46e5] hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-full shadow-xl flex items-center transition-transform hover:scale-105 border-2 border-white">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Save
+                </button>
+            </form>
+        </div>
+        
+        <script>
+        function submitMenuOrders() {
+            const form = document.getElementById('menuOrderForm');
+            // Clear previous hidden inputs if clicked multiple times
+            form.querySelectorAll('.dynamic-order-input').forEach(e => e.remove());
+            
+            document.querySelectorAll('.menu-order-input').forEach(input => {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.className = 'dynamic-order-input';
+                hidden.name = input.name;
+                hidden.value = input.value;
+                form.appendChild(hidden);
+            });
+            form.submit();
+        }
+        </script>
     </div>
     
     <!-- System Settings Tab -->
@@ -272,8 +304,40 @@
     <!-- Audit Logs Tab -->
     <div x-show="tab === 'audit'" x-transition class="space-y-4" style="display: none;">
         <div class="bg-white rounded border border-gray-200 shadow-sm">
-            <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+            <div class="p-4 border-b border-gray-200 flex flex-wrap gap-4 justify-between items-center bg-gray-50">
                 <h3 class="font-medium text-gray-800">Recent Activity Logs</h3>
+                <form method="GET" action="" class="flex flex-wrap gap-2 items-center">
+                    <input type="hidden" name="tab" value="audit">
+                    
+                    <select name="audit_user" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white">
+                        <option value="">All Users</option>
+                        {% for u in users %}
+                        <option value="{{ u.user_id }}" {% if request.GET.audit_user == u.user_id|stringformat:"s" %}selected{% endif %}>{{ u.display_name|default:u.first_name }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <input type="date" name="audit_from" value="{{ request.GET.audit_from }}" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white" title="From Date">
+                    
+                    <span class="text-gray-400 text-xs">to</span>
+                    
+                    <input type="date" name="audit_to" value="{{ request.GET.audit_to }}" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white" title="To Date">
+                    
+                    <select name="audit_status" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white">
+                        <option value="">All Statuses</option>
+                        <option value="Success" {% if request.GET.audit_status == 'Success' %}selected{% endif %}>Success</option>
+                        <option value="Failed" {% if request.GET.audit_status == 'Failed' %}selected{% endif %}>Failed</option>
+                    </select>
+                    
+                    <button type="submit" class="bg-[#4f46e5] hover:bg-indigo-700 border border-[#4f46e5] text-white rounded px-3 py-1.5 text-xs transition-colors flex items-center">
+                        <i class="fa-solid fa-filter mr-1"></i> Filter
+                    </button>
+                    
+                    {% if request.GET.audit_user or request.GET.audit_status or request.GET.audit_from or request.GET.audit_to %}
+                    <a href="?tab=audit" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded px-3 py-1.5 text-gray-600 transition-colors flex items-center justify-center" title="Clear Filter">
+                        <i class="fa-solid fa-times text-xs"></i>
+                    </a>
+                    {% endif %}
+                </form>
             </div>
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
@@ -302,6 +366,7 @@
                         <td colspan="3" class="py-8 text-center text-gray-500">No activity logs found.</td>
                     </tr>
                     {% endfor %}
+                    
                 </tbody>
             </table>
         </div>

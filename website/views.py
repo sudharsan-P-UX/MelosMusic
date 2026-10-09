@@ -514,6 +514,24 @@ def events_dashboard_view(request):
             messages.error(request, 'You do not have permission to edit records.')
             return redirect('/admin-dashboard/')
             
+        if action == 'save_menu_orders':
+            if not admin_access.edit_access:
+                messages.error(request, 'You do not have permission to edit records.')
+                return redirect('/admin-dashboard/?tab=menu')
+            
+            for key, value in request.POST.items():
+                if key.startswith('order_'):
+                    menu_id = key.replace('order_', '')
+                    try:
+                        menu = MasterMenu.objects.get(menu_id=menu_id)
+                        menu.display_order = int(value)
+                        menu.save()
+                    except Exception as e:
+                        pass
+            
+            messages.success(request, 'Menu order updated successfully!')
+            return redirect('/admin-dashboard/?tab=menu')
+
         if action == 'save_menu':
             if request.POST.get('menu_id') and not admin_access.edit_access:
                 messages.error(request, 'You do not have permission to edit records.')
@@ -983,6 +1001,24 @@ def courses_batches_view(request):
             messages.error(request, 'You do not have permission to edit records.')
             return redirect('/admin-dashboard/')
             
+        if action == 'save_menu_orders':
+            if not admin_access.edit_access:
+                messages.error(request, 'You do not have permission to edit records.')
+                return redirect('/admin-dashboard/?tab=menu')
+            
+            for key, value in request.POST.items():
+                if key.startswith('order_'):
+                    menu_id = key.replace('order_', '')
+                    try:
+                        menu = MasterMenu.objects.get(menu_id=menu_id)
+                        menu.display_order = int(value)
+                        menu.save()
+                    except Exception as e:
+                        pass
+            
+            messages.success(request, 'Menu order updated successfully!')
+            return redirect('/admin-dashboard/?tab=menu')
+
         if action == 'save_menu':
             if request.POST.get('menu_id') and not admin_access.edit_access:
                 messages.error(request, 'You do not have permission to edit records.')
@@ -1075,7 +1111,7 @@ def admin_dashboard_view(request):
     roles = Role.objects.all().select_related('role_group')
     users = User.objects.all().select_related('role')
     # Fetch menus and construct a tree (Parents first, then their children)
-    raw_menus = list(MasterMenu.objects.filter(is_active=True).order_by('menu_id'))
+    raw_menus = list(MasterMenu.objects.filter(is_active=True).order_by('display_order', 'menu_id'))
     menus = []
     for m in raw_menus:
         if not m.parent_menu_id:
@@ -1108,6 +1144,24 @@ def admin_dashboard_view(request):
             messages.error(request, 'You do not have permission to edit records.')
             return redirect('/admin-dashboard/')
             
+        if action == 'save_menu_orders':
+            if not admin_access.edit_access:
+                messages.error(request, 'You do not have permission to edit records.')
+                return redirect('/admin-dashboard/?tab=menu')
+            
+            for key, value in request.POST.items():
+                if key.startswith('order_'):
+                    menu_id = key.replace('order_', '')
+                    try:
+                        menu = MasterMenu.objects.get(menu_id=menu_id)
+                        menu.display_order = int(value)
+                        menu.save()
+                    except Exception as e:
+                        pass
+            
+            messages.success(request, 'Menu order updated successfully!')
+            return redirect('/admin-dashboard/?tab=menu')
+
         if action == 'save_menu':
             if request.POST.get('menu_id') and not admin_access.edit_access:
                 messages.error(request, 'You do not have permission to edit records.')
@@ -1222,13 +1276,15 @@ def admin_dashboard_view(request):
                     menu.menu_name = menu_name
                     menu.url_page = url_page
                     menu.is_active = is_active
+                    menu.display_order = display_order
                     menu.save()
                     messages.success(request, f'Menu {menu_name} updated successfully!')
                 else:
                     MasterMenu.objects.create(
                         menu_name=menu_name,
                         url_page=url_page,
-                        is_active=is_active
+                        is_active=is_active,
+                        display_order=display_order
                     )
                     messages.success(request, f'Menu {menu_name} created successfully!')
             except Exception as e:
@@ -1266,7 +1322,35 @@ def admin_dashboard_view(request):
             selected_role = roles.first()
     
     from users.models import UserLoginDetails
-    audit_logs = UserLoginDetails.objects.select_related('user').order_by('-login_date')[:50]
+    from django.db.models import Q
+    from datetime import datetime
+    
+    audit_user = request.GET.get('audit_user', '')
+    audit_status = request.GET.get('audit_status', '')
+    audit_from = request.GET.get('audit_from', '')
+    audit_to = request.GET.get('audit_to', '')
+    
+    audit_qs = UserLoginDetails.objects.select_related('user').order_by('-login_date')
+    
+    if audit_user:
+        audit_qs = audit_qs.filter(user_id=audit_user)
+        
+    if audit_status:
+        audit_qs = audit_qs.filter(remarks__icontains=audit_status)
+        
+    if audit_from:
+        try:
+            from_dt = datetime.strptime(audit_from, '%Y-%m-%d').date()
+            audit_qs = audit_qs.filter(login_date__date__gte=from_dt)
+        except: pass
+        
+    if audit_to:
+        try:
+            to_dt = datetime.strptime(audit_to, '%Y-%m-%d').date()
+            audit_qs = audit_qs.filter(login_date__date__lte=to_dt)
+        except: pass
+
+    audit_logs = audit_qs[:100]
     
     context = {
         'page_title': 'Admin',

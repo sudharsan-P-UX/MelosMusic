@@ -74,6 +74,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'website.context_processors.user_permissions',
+                'website.context_processors.sidebar_menu_processor',
             ],
         },
     },

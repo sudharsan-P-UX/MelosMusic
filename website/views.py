@@ -1024,45 +1024,6 @@ def courses_batches_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         
-        # RBAC Check for POST actions
-        if action == 'create_user' and not admin_access.add_access:
-            messages.error(request, 'You do not have permission to add records.')
-            return redirect('/admin-dashboard/')
-            
-        if action == 'save_permissions' and not admin_access.edit_access:
-            messages.error(request, 'You do not have permission to edit records.')
-            return redirect('/admin-dashboard/')
-            
-        if action == 'save_menu_orders':
-            if not admin_access.edit_access:
-                messages.error(request, 'You do not have permission to edit records.')
-                return redirect('/admin-dashboard/?tab=menu')
-            
-            for key, value in request.POST.items():
-                if key.startswith('order_'):
-                    menu_id = key.replace('order_', '')
-                    try:
-                        menu = MasterMenu.objects.get(menu_id=menu_id)
-                        menu.display_order = int(value)
-                        menu.save()
-                    except Exception as e:
-                        pass
-            
-            messages.success(request, 'Menu order updated successfully!')
-            return redirect('/admin-dashboard/?tab=menu')
-
-        if action == 'save_menu':
-            if request.POST.get('menu_id') and not admin_access.edit_access:
-                messages.error(request, 'You do not have permission to edit records.')
-                return redirect('/admin-dashboard/?tab=menu')
-            elif not request.POST.get('menu_id') and not admin_access.add_access:
-                messages.error(request, 'You do not have permission to add records.')
-                return redirect('/admin-dashboard/?tab=menu')
-                
-        if action == 'delete_menu' and not admin_access.delete_access:
-            messages.error(request, 'You do not have permission to delete records.')
-            return redirect('/admin-dashboard/?tab=menu')
-
         if action == 'add_course':
             course_code = request.POST.get('course_code')
             if not course_code:

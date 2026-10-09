@@ -68,11 +68,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Icons.folder;
   }
 
-  Color _getColorForMenu(int index) {
-    List<Color> colors = [Colors.blue, Colors.orange, Colors.purple, Colors.green, Colors.teal, Colors.red, Colors.indigo];
-    return colors[index % colors.length];
-  }
-
   void _handleMenuTap(String name) {
     name = name.toLowerCase();
     if (name.contains('student') && !name.contains('attendance')) {
@@ -87,20 +82,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Attendance', endpoint: 'mobile-attendance')));
     } else if (name.contains('fee')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Fees', endpoint: 'mobile-fees')));
+    } else if (name.contains('event')) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Events', endpoint: 'mobile-events')));
     } else if (name.contains('user')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Users', endpoint: 'mobile-users')));
     } else if (name.contains('role')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Roles', endpoint: 'mobile-roles')));
-    } else if (name.contains('audit')) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Audit Logs', endpoint: 'mobile-auditlogs')));
-        } else if (name.contains('event')) {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Events', endpoint: 'mobile-events')));
     } else if (name.contains('setting')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Settings', endpoint: 'mobile-settings')));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Screen for "$name" coming soon!')),
-      );
+    } else if (name.contains('audit')) {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Audit Logs', endpoint: 'mobile-auditlogs')));
+        } else {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: title, endpoint: 'mobile-generic?menu=$title')));
     }
   }
 
@@ -108,70 +101,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Dashboard'),
+        title: Text("Melo's Music"),
         backgroundColor: Colors.indigo,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
+        // The Drawer hamburger icon is automatically added if we provide a drawer
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      drawer: Drawer(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Welcome, $_firstName!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            DrawerHeader(
+              decoration: BoxDecoration(color: Colors.indigo),
+              margin: EdgeInsets.zero,
+              child: Container(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.person, size: 40, color: Colors.indigo),
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      _firstName,
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      _role,
+                      style: TextStyle(color: Colors.indigo[100], fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Role: $_role',
-              style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-            ),
-            SizedBox(height: 32),
             Expanded(
-              child: _isLoading 
+              child: _isLoading
                   ? Center(child: CircularProgressIndicator())
-                  : GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                      ),
+                  : ListView.builder(
+                      padding: EdgeInsets.zero,
                       itemCount: _menus.length,
                       itemBuilder: (context, index) {
-                        final menu = _menus[index];
-                        final menuName = menu['menu_name'];
-                        return _buildDashboardCard(
-                          menuName, 
-                          _getIconForMenu(menuName), 
-                          _getColorForMenu(index)
+                        final menuName = _menus[index]['menu_name'];
+                        return ListTile(
+                          leading: Icon(_getIconForMenu(menuName), color: Colors.indigo[400]),
+                          title: Text(menuName, style: TextStyle(fontSize: 15)),
+                          onTap: () {
+                            Navigator.pop(context); // Close the drawer
+                            _handleMenuTap(menuName);
+                          },
                         );
                       },
                     ),
             ),
+            Divider(height: 1),
+            ListTile(
+              leading: Icon(Icons.logout, color: Colors.red[400]),
+              title: Text('Logout', style: TextStyle(color: Colors.red[700])),
+              onTap: _logout,
+            ),
+            SizedBox(height: 16),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDashboardCard(String title, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () => _handleMenuTap(title),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 48, color: color),
-            SizedBox(height: 16),
-            Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          ],
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.dashboard, size: 100, color: Colors.indigo[100]),
+              SizedBox(height: 24),
+              Text(
+                'Welcome to your Dashboard!',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo[900]),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Tap the menu icon (三) in the top left corner to navigate to your accessible modules.',
+                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

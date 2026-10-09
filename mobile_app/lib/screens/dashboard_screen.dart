@@ -70,6 +70,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _handleMenuTap(String name) {
     name = name.toLowerCase();
+    if (name.contains('dashboard')) {
+      return; // Already on dashboard
+    }
     if (name.contains('student') && !name.contains('attendance')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => UserListScreen(title: 'Students', type: 'student')));
     } else if (name.contains('teacher') && !name.contains('attendance')) {

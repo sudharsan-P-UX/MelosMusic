@@ -62,9 +62,9 @@
             </div>
             
             <div class="ml-auto">
-                <button type="button" onclick="openModal()" class="bg-[#0066cc] hover:bg-blue-700 text-white font-medium py-1.5 px-4 rounded shadow-sm text-sm h-[34px] flex items-center">
+                {% if menu_access.add %}<button type="button" onclick="openModal()" class="bg-[#0066cc] hover:bg-blue-700 text-white font-medium py-1.5 px-4 rounded shadow-sm text-sm h-[34px] flex items-center">
                     <i class="fa-solid fa-plus mr-1.5"></i> Quick Add Student
-                </button>
+                </button>{% endif %}
             </div>
         </form>
     </div>

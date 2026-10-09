@@ -24,9 +24,9 @@
     <div x-show="tab === 'courses'" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-lg font-bold text-gray-800">Course Master</h3>
-            <button @click="showCourseModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
+            {% if menu_access.add %}<button @click="showCourseModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
                 <i class="fa-solid fa-plus mr-2"></i> Add Course
-            </button>
+            </button>{% endif %}
         </div>
 
         <div class="border border-gray-200 rounded-lg overflow-hidden">
@@ -74,9 +74,9 @@
     <div x-show="tab === 'batches'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-lg font-bold text-gray-800">Batch Master</h3>
-            <button @click="showBatchModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
+            {% if menu_access.add %}<button @click="showBatchModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
                 <i class="fa-solid fa-plus mr-2"></i> Add Batch
-            </button>
+            </button>{% endif %}
         </div>
 
         <div class="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">

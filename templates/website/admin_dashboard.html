@@ -122,9 +122,9 @@
         <div class="bg-white rounded border border-gray-200 shadow-sm">
             <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 class="font-medium text-gray-800">System Users</h3>
-                <button @click="showAddUserModal = true" class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
+                {% if menu_access.add %}<button @click="showAddUserModal = true" class="bg-[#4f46e5] text-white px-4 py-1.5 rounded text-xs font-medium hover:bg-indigo-700 transition">
                     <i class="fa-solid fa-user-plus mr-1"></i> Add User
-                </button>
+                </button>{% endif %}
             </div>
             <table class="w-full text-left border-collapse text-sm">
                 <thead>

@@ -17,6 +17,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _role = '';
   int _userId = 0;
   List<dynamic> _menus = [];
+  List<dynamic> _metrics = [];
   bool _isLoading = true;
 
   @override
@@ -33,6 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _userId = prefs.getInt('user_id') ?? 0;
     });
     _fetchMenus();
+    _fetchMetrics();
   }
 
   Future<void> _fetchMenus() async {
@@ -43,6 +45,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _fetchMetrics() async {
+    final metrics = await ApiService().getDashboardMetrics();
+    setState(() {
+      _metrics = metrics;
+    });
   }
 
   Future<void> _logout() async {
@@ -68,11 +77,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Icons.folder;
   }
 
+  IconData _getIconForMetric(String iconName) {
+    if (iconName == 'people') return Icons.people;
+    if (iconName == 'school') return Icons.school;
+    if (iconName == 'music_note') return Icons.music_note;
+    if (iconName == 'money') return Icons.attach_money;
+    return Icons.bar_chart;
+  }
+
+  Color _getColorForMetric(String colorName) {
+    if (colorName == 'blue') return Colors.blue;
+    if (colorName == 'orange') return Colors.orange;
+    if (colorName == 'purple') return Colors.purple;
+    if (colorName == 'red') return Colors.red;
+    return Colors.indigo;
+  }
+
   void _handleMenuTap(String name) {
     name = name.toLowerCase();
-    if (name.contains('dashboard')) {
-      return; // Already on dashboard
-    }
+    if (name.contains('dashboard')) return;
+
     if (name.contains('student') && !name.contains('attendance')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => UserListScreen(title: 'Students', type: 'student')));
     } else if (name.contains('teacher') && !name.contains('attendance')) {
@@ -95,8 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Settings', endpoint: 'mobile-settings')));
     } else if (name.contains('audit')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Audit Logs', endpoint: 'mobile-auditlogs')));
-            } else {
-      // Capitalize the first letter for the title
+    } else {
       String displayTitle = name.split(' ').map((word) => word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '').join(' ');
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: displayTitle, endpoint: 'mobile-generic?menu=$name')));
     }
@@ -108,7 +131,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text("Melo's Music"),
         backgroundColor: Colors.indigo,
-        // The Drawer hamburger icon is automatically added if we provide a drawer
       ),
       drawer: Drawer(
         child: Column(
@@ -152,7 +174,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           leading: Icon(_getIconForMenu(menuName), color: Colors.indigo[400]),
                           title: Text(menuName, style: TextStyle(fontSize: 15)),
                           onTap: () {
-                            Navigator.pop(context); // Close the drawer
+                            Navigator.pop(context);
                             _handleMenuTap(menuName);
                           },
                         );
@@ -169,27 +191,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.dashboard, size: 100, color: Colors.indigo[100]),
-              SizedBox(height: 24),
-              Text(
-                'Welcome to your Dashboard!',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo[900]),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Tap the menu icon (三) in the top left corner to navigate to your accessible modules.',
-                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome back, $_firstName!',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.indigo[900]),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Here is your overview for today.',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            SizedBox(height: 24),
+            _metrics.isEmpty
+                ? Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.1,
+                    ),
+                    itemCount: _metrics.length,
+                    itemBuilder: (context, index) {
+                      final metric = _metrics[index];
+                      return Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: _getColorForMetric(metric['color']).withOpacity(0.2),
+                                child: Icon(
+                                  _getIconForMetric(metric['icon']),
+                                  color: _getColorForMetric(metric['color']),
+                                ),
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                metric['value'],
+                                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                metric['title'],
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ],
         ),
       ),
     );

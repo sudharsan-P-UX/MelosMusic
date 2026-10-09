@@ -100,4 +100,15 @@ class ApiService {
     } catch (e) { print(e); }
     return [];
   }
+
+  Future<List<dynamic>> getDashboardMetrics() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/mobile-dashboard-metrics/'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['success'] ? data['data'] : [];
+      }
+    } catch (e) { print(e); }
+    return [];
+  }
 }

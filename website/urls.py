@@ -29,6 +29,8 @@ urlpatterns = [
     path('api/mobile-events/', views.mobile_events_api, name='mobile_events_api'),
     path('api/mobile-settings/', views.mobile_settings_api, name='mobile_settings_api'),
     path('api/mobile-generic/', views.mobile_generic_api, name='mobile_generic_api'),
+    path('api/mobile-dashboard-metrics/', views.mobile_dashboard_metrics_api, name='mobile_dashboard_metrics_api'),
+
 
 
 

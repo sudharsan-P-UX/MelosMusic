@@ -2124,3 +2124,170 @@ def audit_logs_view(request):
         'users': users,
         'audit_logs': audit_logs
     })
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+
+@csrf_exempt
+def mobile_login_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            uname = data.get('username')
+            upass = data.get('password')
+            
+            user = User.objects.select_related('role').get(first_name=uname, password=upass)
+            if user.is_active:
+                return JsonResponse({
+                    'success': True, 
+                    'user_id': user.user_id,
+                    'first_name': user.first_name,
+                    'role': user.role.role_name if user.role else 'Student'
+                })
+            else:
+                return JsonResponse({'success': False, 'error': 'Account disabled'})
+        except User.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Invalid credentials'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_students_api(request):
+    if request.method == 'GET':
+        students = User.objects.filter(role__role_name__iexact='student').values(
+            'user_id', 'first_name', 'email', 'phone'
+        )
+        return JsonResponse({'success': True, 'data': list(students)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_teachers_api(request):
+    if request.method == 'GET':
+        teachers = User.objects.filter(role__role_name__iexact='teacher').values(
+            'user_id', 'first_name', 'email', 'phone'
+        )
+        return JsonResponse({'success': True, 'data': list(teachers)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+from academics.models import Course, Timetable
+
+@csrf_exempt
+def mobile_courses_api(request):
+    if request.method == 'GET':
+        courses = Course.objects.filter(is_active=True).values(
+            'course_id', 'course_name', 'description'
+        )
+        return JsonResponse({'success': True, 'data': list(courses)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_timetable_api(request):
+    if request.method == 'GET':
+        timetables = Timetable.objects.filter(is_active=True).select_related('course', 'batch', 'teacher').values(
+            'timetable_id', 
+            'day_of_week', 
+            'start_time', 
+            'end_time', 
+            'course__course_name',
+            'batch__batch_name',
+            'teacher__first_name'
+        )
+        return JsonResponse({'success': True, 'data': list(timetables)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+from users.models import MasterMenu, RoleAccess
+
+@csrf_exempt
+def mobile_menus_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('user_id')
+            user = User.objects.select_related('role').get(user_id=user_id)
+            
+            # Get all active menus
+            all_menus = list(MasterMenu.objects.filter(is_active=True).order_by('display_order', 'menu_id'))
+            
+            # Get role access
+            access_records = RoleAccess.objects.filter(role=user.role, view_access=True).values_list('menu_id', flat=True)
+            access_set = set(access_records)
+            
+            # We will flatten the menu structure for the mobile grid, or return a list of accessible menus.
+            # For simplicity in mobile, let's just return all accessible menus that are NOT parent containers 
+            # (i.e. they actually have a url_page), OR we just return all accessible menus.
+            mobile_menus = []
+            for m in all_menus:
+                if m.menu_id in access_set and m.url_page and m.url_page != '#':
+                    mobile_menus.append({
+                        'menu_id': m.menu_id,
+                        'menu_name': m.menu_name,
+                        'url_page': m.url_page,
+                        'parent_menu_id': m.parent_menu_id
+                    })
+                    
+            return JsonResponse({'success': True, 'data': mobile_menus})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+from finance.models import StudentFee
+from academics.models import StudentAttendance
+
+@csrf_exempt
+def mobile_attendance_api(request):
+    if request.method == 'GET':
+        records = StudentAttendance.objects.all().select_related('student', 'course').values(
+            'date', 'student__first_name', 'course__course_name', 'status'
+        )[:50]
+        return JsonResponse({'success': True, 'data': list(records)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_fees_api(request):
+    if request.method == 'GET':
+        records = StudentFee.objects.all().select_related('student').values(
+            'student__first_name', 'total_fee_amount', 'fee_status', 'due_date'
+        )[:50]
+        return JsonResponse({'success': True, 'data': list(records)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_users_api(request):
+    if request.method == 'GET':
+        records = User.objects.all().select_related('role').values(
+            'first_name', 'email', 'role__role_name', 'is_active'
+        )[:50]
+        return JsonResponse({'success': True, 'data': list(records)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_roles_api(request):
+    if request.method == 'GET':
+        from users.models import Role
+        records = Role.objects.all().values('role_name', 'is_active')
+        return JsonResponse({'success': True, 'data': list(records)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_auditlogs_api(request):
+    if request.method == 'GET':
+        from users.models import AuditLog
+        records = AuditLog.objects.all().select_related('user').values(
+            'user__first_name', 'action', 'table_name', 'action_date'
+        ).order_by('-action_date')[:50]
+        return JsonResponse({'success': True, 'data': list(records)})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_events_api(request):
+    if request.method == 'GET':
+        return JsonResponse({'success': True, 'data': [{'event_name': 'Annual Day', 'date': '2026-12-01'}]})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})
+
+@csrf_exempt
+def mobile_settings_api(request):
+    if request.method == 'GET':
+        return JsonResponse({'success': True, 'data': [{'setting': 'Theme', 'value': 'Light'}, {'setting': 'Version', 'value': '1.0'}]})
+    return JsonResponse({'success': False, 'error': 'Method not allowed'})

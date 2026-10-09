@@ -9,7 +9,7 @@
     </div>
 </div>
 
-<div x-data="{ tab: 'courses', showCourseModal: false, showBatchModal: false }">
+<div x-data="courseBatchData()">
     <!-- Tabs Header -->
     <div class="bg-white rounded-t-lg shadow-sm border border-gray-200 border-b-0 px-6 pt-4 flex space-x-6">
         <button @click="tab = 'courses'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'courses', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'courses'}" class="pb-3 border-b-2 text-sm font-medium transition flex items-center">
@@ -122,12 +122,9 @@
     </div>
 
     <!-- Add Course Modal -->
-    <div x-show="showCourseModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div x-show="showCourseModal" @click="showCourseModal = false" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div x-show="showCourseModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full flex flex-col max-h-[90vh]">
-                <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+    <div x-show="showCourseModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showCourseModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="add_course">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 overflow-y-auto flex-1">
@@ -137,10 +134,7 @@
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Course Code <span class="text-red-500">*</span></label>
-                                <input type="text" name="course_code" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. GTR-BEG">
-                            </div>
+                            
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Course Name <span class="text-red-500">*</span></label>
                                 <input type="text" name="course_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Basic">
@@ -183,17 +177,13 @@
                         </button>
                     </div>
                 </form>
-            </div>
         </div>
     </div>
 
     <!-- Add Batch Modal -->
-    <div x-show="showBatchModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div x-show="showBatchModal" @click="showBatchModal = false" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div x-show="showBatchModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full flex flex-col max-h-[90vh]">
-                <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+    <div x-show="showBatchModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showBatchModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="add_batch">
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 overflow-y-auto flex-1">
@@ -203,20 +193,17 @@
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Batch Code <span class="text-red-500">*</span></label>
-                                <input type="text" name="batch_code" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. B001">
-                            </div>
+                            
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name <span class="text-red-500">*</span></label>
                                 <input type="text" name="batch_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Batch A">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                                <select name="course_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                                    <option value="">-- Select Course --</option>
+                                <select name="course_id" required x-model="selectedCourseId" @change="calculateEndDate" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                    <option value="" data-duration="0">-- Select Course --</option>
                                     {% for course in courses %}
-                                    <option value="{{ course.course_id }}">{{ course.course_name }}</option>
+                                    <option value="{{ course.course_id }}" data-duration="{{ course.duration_months|default:0 }}">{{ course.course_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -231,11 +218,11 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                                <input type="date" name="start_date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <input type="date" name="start_date" x-model="startDate" @change="calculateEndDate" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                                <input type="date" name="end_date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <input type="date" name="end_date" x-model="endDate" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
@@ -267,8 +254,47 @@
                         </button>
                     </div>
                 </form>
-            </div>
         </div>
     </div>
 </div>
+
+<script>
+function courseBatchData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || 'courses';
+    return {
+        tab: initialTab,
+        showCourseModal: false,
+        showBatchModal: false,
+        selectedCourseId: '',
+        startDate: '',
+        endDate: '',
+        
+        calculateEndDate() {
+            if (!this.startDate || !this.selectedCourseId) return;
+            
+            const select = document.getElementById('batch_course_select');
+            if(!select) return;
+            const option = select.options[select.selectedIndex];
+            if(!option) return;
+            
+            const durationMonths = parseInt(option.getAttribute('data-duration')) || 0;
+            if(durationMonths === 0) return;
+            
+            const start = new Date(this.startDate);
+            if(isNaN(start.getTime())) return;
+            
+            // Add months
+            start.setMonth(start.getMonth() + durationMonths);
+            
+            // Format to YYYY-MM-DD
+            const yyyy = start.getFullYear();
+            const mm = String(start.getMonth() + 1).padStart(2, '0');
+            const dd = String(start.getDate()).padStart(2, '0');
+            this.endDate = `${yyyy}-${mm}-${dd}`;
+        }
+    }
+}
+</script>
+
 {% endblock %}

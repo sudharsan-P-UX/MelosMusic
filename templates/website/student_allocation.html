@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block header %}Student Course Allocation{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow min-h-screen" x-data="allocationData()">
+    <!-- Header with Add Button -->
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-lg font-medium text-gray-800">Student Course Allocations</h2>
+        <button @click="showModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
+            <i class="fa-solid fa-plus mr-2"></i> Add Std Allocation
+        </button>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto p-0">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 border-b border-gray-200 text-xs uppercase tracking-wider">
+                    <th class="py-3 px-4 font-semibold">Student ID</th>
+                    <th class="py-3 px-4 font-semibold">Student Name</th>
+                    <th class="py-3 px-4 font-semibold">Student Phone</th>
+                    <th class="py-3 px-4 font-semibold">Class/Course ID</th>
+                    <th class="py-3 px-4 font-semibold">Batch ID</th>
+                    <th class="py-3 px-4 font-semibold">Teacher ID</th>
+                    <th class="py-3 px-4 font-semibold">Teacher Name</th>
+                    <th class="py-3 px-4 font-semibold">Teacher Phone</th>
+                    <th class="py-3 px-4 font-semibold">Batch Start</th>
+                    <th class="py-3 px-4 font-semibold">Batch End</th>
+                    <th class="py-3 px-4 font-semibold">Created Date</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700 text-sm">
+                {% for alloc in allocations %}
+                <tr class="border-b hover:bg-gray-50 transition">
+                    <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.student.user_code|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.student.display_name }}</td>
+                    <td class="py-3 px-4">{{ alloc.student.phone|default:"-" }}</td>
+                    <td class="py-3 px-4 font-medium">{{ alloc.course.course_name }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.batch_code|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.teacher.user_code|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.teacher.display_name|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.teacher.phone|default:"-" }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ alloc.batch.start_date|date:"d M Y"|default:"-" }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ alloc.batch.end_date|date:"d M Y"|default:"-" }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ alloc.created_date|date:"d M Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="py-8 text-center text-gray-500">
+                        No student allocations found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Allocation Modal -->
+    <div x-show="showModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
+            <form method="POST" action="{% url 'student_allocation' %}" class="flex flex-col flex-1 overflow-hidden">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="allocate_student">
+                
+                <div class="bg-white px-6 pt-5 pb-4 border-b border-gray-200 overflow-y-auto flex-1">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl leading-6 font-bold text-gray-900"><i class="fa-solid fa-user-plus text-indigo-600 mr-2"></i>Allocate Student</h3>
+                        <button type="button" @click="showModal = false" class="text-gray-400 hover:text-gray-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Student Selection -->
+                        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                            <h4 class="font-semibold text-indigo-800 mb-4 border-b border-indigo-200 pb-2">Student Selection</h4>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Student <span class="text-red-500">*</span></label>
+                                <select name="student_id" x-model="selectedStudentId" @change="fetchStudentDetails" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                    <option value="">-- Select Student --</option>
+                                    {% for s in students %}
+                                    <option value="{{ s.user_id }}">{{ s.display_name }} ({{ s.user_code|default:"-" }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="space-y-2 text-sm" x-show="studentData.name">
+                                <div class="flex justify-between"><span class="text-gray-500">Student ID:</span> <span class="font-medium text-gray-900" x-text="studentData.code"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Name:</span> <span class="font-medium text-gray-900" x-text="studentData.name"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Phone:</span> <span class="font-medium text-gray-900" x-text="studentData.phone"></span></div>
+                            </div>
+                        </div>
+
+                        <!-- Batch Selection -->
+                        <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                            <h4 class="font-semibold text-green-800 mb-4 border-b border-green-200 pb-2">Batch / Course Selection</h4>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Batch <span class="text-red-500">*</span></label>
+                                <select name="batch_id" x-model="selectedBatchId" @change="fetchBatchDetails" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-green-500 text-sm bg-white">
+                                    <option value="">-- Select Batch --</option>
+                                    {% for b in batches %}
+                                    <option value="{{ b.batch_id }}">{{ b.batch_name }} ({{ b.course.course_name }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="space-y-2 text-sm" x-show="batchData.course_name">
+                                <div class="flex justify-between"><span class="text-gray-500">Course:</span> <span class="font-medium text-gray-900" x-text="batchData.course_name"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Batch Code:</span> <span class="font-medium text-gray-900" x-text="batchData.batch_code"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Timing:</span> <span class="font-medium text-gray-900" x-text="batchData.start_time + ' - ' + batchData.end_time"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Remaining Capacity:</span> 
+                                    <span class="font-bold px-2 py-0.5 rounded text-xs" 
+                                          :class="batchData.remaining_capacity > 0 ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'"
+                                          x-text="batchData.remaining_capacity"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Teacher Auto-fill Details -->
+                        <div class="bg-orange-50 p-4 rounded-lg border border-orange-100 md:col-span-2" x-show="batchData.teacher_name">
+                            <h4 class="font-semibold text-orange-800 mb-4 border-b border-orange-200 pb-2">Assigned Teacher</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div><span class="text-gray-500 block mb-1">Teacher Name:</span> <span class="font-medium text-gray-900" x-text="batchData.teacher_name"></span></div>
+                                <div><span class="text-gray-500 block mb-1">Teacher Phone:</span> <span class="font-medium text-gray-900" x-text="batchData.teacher_phone"></span></div>
+                                <div><span class="text-gray-500 block mb-1">Teacher Status:</span> <span class="font-medium text-green-600">Active</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 flex flex-row-reverse rounded-b-lg border-t border-gray-200">
+                    <button type="submit" :disabled="batchData.remaining_capacity <= 0 && selectedBatchId != ''" :class="batchData.remaining_capacity <= 0 && selectedBatchId != '' ? 'opacity-50 cursor-not-allowed' : ''" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Confirm Allocation
+                    </button>
+                    <button type="button" @click="showModal = false" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function allocationData() {
+    return {
+        showModal: false,
+        selectedStudentId: '',
+        selectedBatchId: '',
+        studentData: { code: '', name: '', phone: '' },
+        batchData: { 
+            course_id: '', course_name: '', batch_code: '', 
+            teacher_name: '', teacher_phone: '', 
+            start_time: '', end_time: '', remaining_capacity: 0 
+        },
+        
+        fetchStudentDetails() {
+            if (!this.selectedStudentId) {
+                this.studentData = { code: '', name: '', phone: '' };
+                return;
+            }
+            fetch(`/api/get-student/?id=${this.selectedStudentId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.studentData = {
+                            code: data.student_code || 'N/A',
+                            name: data.name,
+                            phone: data.phone || 'N/A'
+                        };
+                    }
+                });
+        },
+        
+        fetchBatchDetails() {
+            if (!this.selectedBatchId) {
+                this.batchData = { course_id: '', course_name: '', batch_code: '', teacher_name: '', teacher_phone: '', start_time: '', end_time: '', remaining_capacity: 0 };
+                return;
+            }
+            fetch(`/api/get-batch/?id=${this.selectedBatchId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.batchData = data;
+                    }
+                });
+        }
+    }
+}
+</script>
+{% endblock %}

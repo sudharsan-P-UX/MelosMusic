@@ -996,8 +996,20 @@ def courses_batches_view(request):
             return redirect('/admin-dashboard/?tab=menu')
 
         if action == 'add_course':
+            course_code = request.POST.get('course_code')
+            if not course_code:
+                last_course = Course.objects.exclude(course_code__isnull=True).exclude(course_code='').order_by('-course_id').first()
+                if last_course and last_course.course_code.startswith('C'):
+                    try:
+                        num = int(last_course.course_code[1:]) + 1
+                        course_code = f"C{num}"
+                    except:
+                        course_code = "C1000"
+                else:
+                    course_code = "C1000"
+            
             Course.objects.create(
-                course_code=request.POST.get('course_code'),
+                course_code=course_code,
                 course_name=request.POST.get('course_name'),
                 category=request.POST.get('category'),
                 duration_months=request.POST.get('duration_months'),
@@ -1010,10 +1022,22 @@ def courses_batches_view(request):
             )
             messages.success(request, 'Course added successfully!')
         elif action == 'add_batch':
+            batch_code = request.POST.get('batch_code')
+            if not batch_code:
+                last_batch = Batch.objects.exclude(batch_code__isnull=True).exclude(batch_code='').order_by('-batch_id').first()
+                if last_batch and last_batch.batch_code.startswith('B'):
+                    try:
+                        num = int(last_batch.batch_code[1:]) + 1
+                        batch_code = f"B{num}"
+                    except:
+                        batch_code = "B1000"
+                else:
+                    batch_code = "B1000"
+                    
             course_id = request.POST.get('course_id')
             teacher_id = request.POST.get('teacher_id')
             Batch.objects.create(
-                batch_code=request.POST.get('batch_code'),
+                batch_code=batch_code,
                 batch_name=request.POST.get('batch_name'),
                 course_id=course_id,
                 teacher_id=teacher_id if teacher_id else None,
@@ -1026,6 +1050,7 @@ def courses_batches_view(request):
                 created_by=user.user_id
             )
             messages.success(request, 'Batch added successfully!')
+            return redirect('/courses/?tab=batches')
         return redirect('courses')
         
     courses = Course.objects.all().order_by('-course_id')
@@ -1255,3 +1280,205 @@ def admin_dashboard_view(request):
         'role_access_map': role_access_map,
     }
     return render(request, 'website/admin_dashboard.html', context)
+
+def student_course_view(request):
+    if 'user_id' not in request.session:
+        return redirect('login')
+        
+    user = User.objects.get(user_id=request.session['user_id'])
+    from academics.models import Course, StudentEnrollment
+    from django.db.models import Q
+    
+    enrollments = StudentEnrollment.objects.select_related('student', 'course', 'batch', 'batch__teacher').exclude(batch__isnull=True).order_by('-created_date')
+    courses = Course.objects.filter(is_active=True)
+    
+    # Filter logic
+    search = request.GET.get('search', '')
+    course_id = request.GET.get('course_id', '')
+    
+    if search:
+        enrollments = enrollments.filter(
+            Q(student__display_name__icontains=search) | 
+            Q(student__user_code__icontains=search) | 
+            Q(course__course_name__icontains=search)
+        )
+        
+    if course_id:
+        enrollments = enrollments.filter(course_id=course_id)
+        
+    
+    # Role based filtering
+    if user.role and user.role.role_name == 'Student':
+        enrollments = enrollments.filter(student=user)
+        
+    return render(request, 'website/student_course.html', {
+        'user': user,
+        'page_title': 'Allocation Details',
+        'allocations': enrollments,  # Changed to allocations to match template
+        'courses': courses
+    })
+
+def student_allocation_view(request):
+    if 'user_id' not in request.session:
+        return redirect('login')
+        
+    user = User.objects.get(user_id=request.session['user_id'])
+    from academics.models import Course, StudentEnrollment, Batch
+    from django.db.models import Q
+    from django.http import JsonResponse
+    import json
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'allocate_student':
+            student_id = request.POST.get('student_id')
+            batch_id = request.POST.get('batch_id')
+            
+            try:
+                student = User.objects.get(user_id=student_id)
+                batch = Batch.objects.get(batch_id=batch_id)
+                
+                # Check if already enrolled in this course
+                existing = StudentEnrollment.objects.filter(student=student, course=batch.course).first()
+                if existing:
+                    existing.batch = batch
+                    existing.save()
+                    messages.success(request, 'Student allocation updated successfully.')
+                else:
+                    StudentEnrollment.objects.create(
+                        student=student,
+                        course=batch.course,
+                        batch=batch,
+                        joining_date=batch.start_date,
+                        status=1
+                    )
+                    messages.success(request, 'Student allocated successfully.')
+            except Exception as e:
+                messages.error(request, f'Error allocating student: {str(e)}')
+            return redirect('student_allocation')
+            
+    # GET Request
+    allocations = StudentEnrollment.objects.select_related('student', 'course', 'batch', 'batch__teacher').exclude(batch__isnull=True).order_by('-created_date')
+    
+    # Pre-fetch for the modal dropdowns
+    students = User.objects.filter(role__role_name='Student', is_active=True).order_by('display_name')
+    teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
+    batches = Batch.objects.select_related('course', 'teacher').filter(is_active=True).order_by('batch_name')
+    
+    # Calculate remaining capacity for batches
+    for batch in batches:
+        enrolled_count = StudentEnrollment.objects.filter(batch=batch, status=1).count()
+        batch.remaining_capacity = (batch.capacity or 0) - enrolled_count
+    
+    return render(request, 'website/student_allocation.html', {
+        'user': user,
+        'page_title': 'Student Course Allocation',
+        'allocations': allocations,
+        'students': students,
+        'teachers': teachers,
+        'batches': batches,
+    })
+
+from django.http import JsonResponse
+def api_get_student_details(request):
+    user_id = request.GET.get('id')
+    try:
+        student = User.objects.get(user_id=user_id)
+        return JsonResponse({
+            'success': True,
+            'student_code': student.user_code,
+            'name': student.display_name,
+            'phone': student.phone
+        })
+    except:
+        return JsonResponse({'success': False})
+
+from django.http import JsonResponse
+def api_get_batch_details(request):
+    batch_id = request.GET.get('id')
+    try:
+        from academics.models import Batch, StudentEnrollment
+        batch = Batch.objects.get(batch_id=batch_id)
+        enrolled_count = StudentEnrollment.objects.filter(batch=batch, status=1).count()
+        remaining = (batch.capacity or 0) - enrolled_count
+        
+        return JsonResponse({
+            'success': True,
+            'course_id': batch.course.course_id,
+            'course_name': batch.course.course_name,
+            'batch_code': batch.batch_code,
+            'batch_name': batch.batch_name,
+            'teacher_id': batch.teacher.user_id if batch.teacher else '',
+            'teacher_name': batch.teacher.display_name if batch.teacher else '',
+            'teacher_phone': batch.teacher.phone if batch.teacher else '',
+            'start_time': batch.start_time.strftime('%H:%M') if batch.start_time else '',
+            'end_time': batch.end_time.strftime('%H:%M') if batch.end_time else '',
+            'remaining_capacity': remaining
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+def teacher_allocation_view(request):
+    if 'user_id' not in request.session:
+        return redirect('login')
+        
+    user = User.objects.get(user_id=request.session['user_id'])
+    from academics.models import Course, Batch
+    from django.db.models import Q
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'allocate_teacher':
+            teacher_id = request.POST.get('teacher_id')
+            batch_id = request.POST.get('batch_id')
+            
+            try:
+                teacher = User.objects.get(user_id=teacher_id)
+                batch = Batch.objects.get(batch_id=batch_id)
+                
+                batch.teacher = teacher
+                batch.save()
+                messages.success(request, 'Teacher allocated successfully.')
+            except Exception as e:
+                messages.error(request, f'Error allocating teacher: {str(e)}')
+            return redirect('teacher_allocation')
+            
+    # GET Request
+    allocations = Batch.objects.select_related('course', 'teacher').exclude(teacher__isnull=True).order_by('-created_date')
+    
+    # Filter logic
+    search = request.GET.get('search', '')
+    if search:
+        allocations = allocations.filter(
+            Q(teacher__display_name__icontains=search) | 
+            Q(teacher__user_code__icontains=search) | 
+            Q(course__course_name__icontains=search) |
+            Q(batch_name__icontains=search)
+        )
+        
+    # Pre-fetch for the modal dropdowns
+    teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
+    batches = Batch.objects.select_related('course').filter(is_active=True).order_by('batch_name')
+    
+    return render(request, 'website/teacher_allocation.html', {
+        'user': user,
+        'page_title': 'Teacher Class Allocation',
+        'allocations': allocations,
+        'teachers': teachers,
+        'batches': batches,
+    })
+
+from django.http import JsonResponse
+def api_get_teacher_details(request):
+    user_id = request.GET.get('id')
+    try:
+        from users.models import User
+        teacher = User.objects.get(user_id=user_id)
+        return JsonResponse({
+            'success': True,
+            'teacher_code': teacher.user_code,
+            'name': teacher.display_name,
+            'phone': teacher.phone
+        })
+    except:
+        return JsonResponse({'success': False})

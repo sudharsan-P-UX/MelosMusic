@@ -1,20 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melo's Music - School Management System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-</head>
-<body class="bg-gray-50 flex h-screen overflow-hidden">
-    <!-- Sidebar Menu -->
-    <aside class="w-64 bg-indigo-900 text-white flex flex-col">
-        <div class="h-16 flex items-center justify-center font-bold text-2xl border-b border-indigo-800">
-            Melo's Music
-        </div>
-        <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+import re
+
+with open('templates/base.html', 'r') as f:
+    content = f.read()
+
+nav_pattern = re.compile(r'<nav id="sidebar-nav".*?</nav>', re.DOTALL)
+
+new_nav = """<nav id="sidebar-nav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             
             {% if user_perms.Administration.view or user_perms.Dashboard.view %}
             <div x-data="{ open: {% if 'Administration' in page_title or 'Fee' in page_title or 'Event' in page_title or 'Course' in page_title or 'Timetable' in page_title or request.resolver_match.url_name == 'index' or 'Allocation' in page_title %}true{% else %}false{% endif %} }">
@@ -29,11 +20,11 @@
                     {% endif %}
 
                     {% if user_perms.Student_Course_Allocation.view or user_perms.Administration.view %}
-                    <a href="{% url 'student_allocation' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Student Course Allocation' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Student Course Allocation</a>
+                    <a href="{% url 'generic_page' 'student-course-allocation' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Student Course Allocation' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Student Course Allocation</a>
                     {% endif %}
 
                     {% if user_perms.Teacher_Class_Allocation.view or user_perms.Administration.view %}
-                    <a href="{% url 'teacher_allocation' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Teacher Class Allocation' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Teacher Class Allocation</a>
+                    <a href="{% url 'generic_page' 'teacher-class-allocation' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Teacher Class Allocation' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Teacher Class Allocation</a>
                     {% endif %}
 
                     {% if user_perms.Fees.view %}
@@ -83,14 +74,14 @@
             {% endif %}
             
             {% if user_perms.Student_Profile.view %}
-            <div x-data="{ open: {% if 'Student' in page_title or 'Enrollment' in page_title or 'Allocation Details' in page_title %}true{% else %}false{% endif %} }">
-                <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none {% if 'Student' in page_title or 'Enrollment' in page_title or 'Allocation Details' in page_title %}bg-indigo-800 text-white{% endif %}">
+            <div x-data="{ open: {% if 'Student' in page_title or 'Enrollment' in page_title %}true{% else %}false{% endif %} }">
+                <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none {% if 'Student' in page_title or 'Enrollment' in page_title %}bg-indigo-800 text-white{% endif %}">
                     <span>Student Profile</span>
                     <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="{'rotate-180': open}"></i>
                 </button>
                 <div x-show="open" class="pl-4 mt-1 space-y-1">
                     {% if user_perms.Student_Master.view or user_perms.Student_Profile.view %}<a href="{% url 'students' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Student Master' or page_title == 'Student Profile' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Student Master</a>{% endif %}
-                    {% if user_perms.Allocation_Details.view or user_perms.Student_Course.view or user_perms.Student_Profile.view %}<a href="{% url 'student_course' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Allocation Details' or page_title == 'Student Course' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Allocation Details</a>{% endif %}
+                    {% if user_perms.Student_Course.view or user_perms.Student_Profile.view %}<a href="{% url 'student_course' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Student Course' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Student Course</a>{% endif %}
                     {% if user_perms.Student_Attendance.view or user_perms.Student_Profile.view %}<a href="{% url 'student_attendance' %}" class="block px-4 py-2 text-sm rounded-md {% if page_title == 'Student Attendance' %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">Student Attendance</a>{% endif %}
                 </div>
             </div>
@@ -129,81 +120,9 @@
             </div>
             {% endif %}
             
-        </nav>
-        <div class="p-4 border-t border-indigo-800 text-xs text-center text-indigo-300">
-            Melo's Music Admin
-        </div>
-    </aside>
+        </nav>"""
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col relative overflow-y-auto">
-    <!-- Toast Notifications -->
-    <div class="fixed top-4 right-4 z-50 flex flex-col space-y-2 pointer-events-none">
-        {% if messages %}
-            {% for message in messages %}
-                <div x-data="{ show: true }" 
-                     x-show="show" 
-                     x-init="setTimeout(() => show = false, 4000)"
-                     x-transition:enter="transition ease-out duration-300 transform"
-                     x-transition:enter-start="translate-x-full opacity-0"
-                     x-transition:enter-end="translate-x-0 opacity-100"
-                     x-transition:leave="transition ease-in duration-200"
-                     x-transition:leave-start="opacity-100"
-                     x-transition:leave-end="opacity-0 translate-x-full"
-                     class="pointer-events-auto flex items-center p-4 rounded shadow-lg max-w-sm w-full 
-                     {% if message.tags == 'success' %}bg-green-50 border-l-4 border-green-500 text-green-800
-                     {% elif message.tags == 'error' %}bg-red-50 border-l-4 border-red-500 text-red-800
-                     {% else %}bg-blue-50 border-l-4 border-blue-500 text-blue-800{% endif %}"
-                     role="alert">
-                    <div class="mr-3">
-                        {% if message.tags == 'success' %}
-                            <i class="fa-solid fa-circle-check text-green-500 text-xl"></i>
-                        {% elif message.tags == 'error' %}
-                            <i class="fa-solid fa-circle-exclamation text-red-500 text-xl"></i>
-                        {% else %}
-                            <i class="fa-solid fa-circle-info text-blue-500 text-xl"></i>
-                        {% endif %}
-                    </div>
-                    <div class="flex-1 text-sm font-medium">{{ message }}</div>
-                    <button @click="show = false" class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    </div>
+content = nav_pattern.sub(new_nav, content)
 
-        <header class="h-16 bg-white shadow flex items-center justify-between px-6">
-            <h1 class="text-xl font-semibold text-gray-800">{% block header %}Dashboard{% endblock %}</h1>
-            <div class="flex items-center space-x-4">
-                <span class="text-sm font-medium text-gray-500">Welcome, {{ user.first_name }}</span>
-                <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">{{ user.first_name|first|upper }}</div>
-                <a href="{% url 'logout' %}" class="text-xs text-red-500 hover:text-red-700 ml-4 font-bold border border-red-200 px-2 py-1 rounded bg-red-50">Logout</a>
-            </div>
-        </header>
-
-        <div class="p-6">
-            {% block content %}
-            {% endblock %}
-        </div>
-    </main>
-
-    <!-- Restore Sidebar Scroll Position -->
-    <script>
-        document.addEventListener("DOMContentLoaded", function() { 
-            const sidebar = document.getElementById('sidebar-nav');
-            if (sidebar) {
-                const scrollpos = sessionStorage.getItem('sidebar-scrollpos');
-                if (scrollpos) {
-                    sidebar.scrollTop = parseInt(scrollpos, 10);
-                }
-                
-                // Save scroll position before leaving the page
-                window.addEventListener('beforeunload', function() {
-                    sessionStorage.setItem('sidebar-scrollpos', sidebar.scrollTop);
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+with open('templates/base.html', 'w') as f:
+    f.write(content)

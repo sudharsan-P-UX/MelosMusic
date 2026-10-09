@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block header %}Allocation Details{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow min-h-screen" x-data="allocationData()">
+    <!-- Header with Add Button -->
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-lg font-medium text-gray-800">Allocation Details</h2>
+        
+    </div>
+
+    <!-- Table -->
+    
+    <!-- Filter Bar -->
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <form method="GET" action="{% url 'student_course' %}" class="flex flex-wrap gap-4 items-end">
+            <div class="relative">
+                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search Student or Course" class="border border-gray-300 rounded px-3 py-1.5 w-64 text-sm focus:outline-none focus:border-indigo-500 h-[36px]">
+                <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400"></i>
+            </div>
+            <div class="w-48">
+                <select name="course_id" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-700 outline-none h-[36px]">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                    <option value="{{ c.course_id }}" {% if request.GET.course_id == c.course_id|stringformat:"s" %}selected{% endif %}>{{ c.course_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex space-x-2">
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm hover:bg-indigo-700 h-[36px] flex items-center shadow-sm">
+                    <i class="fa-solid fa-filter mr-1.5"></i> Apply
+                </button>
+                <a href="{% url 'student_course' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[36px] flex items-center shadow-sm">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="overflow-x-auto p-0">
+        <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 border-b border-gray-200 text-xs uppercase tracking-wider">
+                    <th class="py-3 px-4 font-semibold">Student ID</th>
+                    <th class="py-3 px-4 font-semibold">Student Name</th>
+                    <th class="py-3 px-4 font-semibold">Student Phone</th>
+                    <th class="py-3 px-4 font-semibold">Class/Course ID</th>
+                    <th class="py-3 px-4 font-semibold">Batch ID</th>
+                    <th class="py-3 px-4 font-semibold">Teacher ID</th>
+                    <th class="py-3 px-4 font-semibold">Teacher Name</th>
+                    <th class="py-3 px-4 font-semibold">Teacher Phone</th>
+                    <th class="py-3 px-4 font-semibold">Batch Start</th>
+                    <th class="py-3 px-4 font-semibold">Batch End</th>
+                    <th class="py-3 px-4 font-semibold">Created Date</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700 text-sm">
+                {% for alloc in allocations %}
+                <tr class="border-b hover:bg-gray-50 transition">
+                    <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.student.user_code|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.student.display_name }}</td>
+                    <td class="py-3 px-4">{{ alloc.student.phone|default:"-" }}</td>
+                    <td class="py-3 px-4 font-medium">{{ alloc.course.course_name }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.batch_code|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.teacher.user_code|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.teacher.display_name|default:"-" }}</td>
+                    <td class="py-3 px-4">{{ alloc.batch.teacher.phone|default:"-" }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ alloc.batch.start_date|date:"d M Y"|default:"-" }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ alloc.batch.end_date|date:"d M Y"|default:"-" }}</td>
+                    <td class="py-3 px-4 text-gray-500">{{ alloc.created_date|date:"d M Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="py-8 text-center text-gray-500">
+                        No student allocations found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    
+{% endblock %}

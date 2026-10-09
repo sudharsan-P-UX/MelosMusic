@@ -92,8 +92,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Settings', endpoint: 'mobile-settings')));
     } else if (name.contains('audit')) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: 'Audit Logs', endpoint: 'mobile-auditlogs')));
-        } else {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: title, endpoint: 'mobile-generic?menu=$title')));
+            } else {
+      // Capitalize the first letter for the title
+      String displayTitle = name.split(' ').map((word) => word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '').join(' ');
+      Navigator.push(context, MaterialPageRoute(builder: (context) => GenericListScreen(title: displayTitle, endpoint: 'mobile-generic?menu=$name')));
     }
   }
 

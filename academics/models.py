@@ -168,6 +168,7 @@ class LeaveRequest(models.Model):
     manager_approval_on = models.DateTimeField(null=True, blank=True, db_column='ManagerApprovalOn')
     manager_approval_status = models.CharField(max_length=50, default='Pending', db_column='ManagerApprovalStatus')
     created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
+    batch = models.ForeignKey('Batch', on_delete=models.SET_NULL, null=True, blank=True, db_column='BatchId')
     created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
 
     class Meta:

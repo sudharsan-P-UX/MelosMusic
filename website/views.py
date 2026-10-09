@@ -90,6 +90,11 @@ def students_view(request):
         status = request.POST.get('status') == '1'
         password = request.POST.get('password')
         
+        confirm_password = request.POST.get('confirm_password')
+        if password and password != confirm_password:
+            messages.error(request, "Password and confirm password must match.")
+            return redirect('students')
+        
         days_list = request.POST.getlist('days')
         preferred_days = ', '.join(days_list) if days_list else request.POST.get('days', '')
         
@@ -103,6 +108,36 @@ def students_view(request):
             try:
                 user_code = f"S{int(last_student.user_code[1:]) + 1}"
             except: pass
+            
+        # Uniqueness checks
+
+            
+        if User.objects.filter(first_name__iexact=fname).exists():
+
+            
+            messages.error(request, "Username (First Name) already exists.")
+
+            
+            return redirect('students')
+
+            
+        if User.objects.filter(email__iexact=email).exists():
+
+            
+            messages.error(request, "Email already exists.")
+
+            
+            return redirect('students')
+
+            
+        if User.objects.filter(phone=phone).exists():
+
+            
+            messages.error(request, "Phone already exists.")
+
+            
+            return redirect('students')
+
             
         new_student = User.objects.create(
             user_code=user_code,
@@ -178,6 +213,30 @@ def update_student(request, student_id):
             student = User.objects.get(user_id=student_id)
             name = request.POST.get('student_name')
             parts = name.split(' ', 1)
+            fname = parts[0]
+
+            email = request.POST.get('email')
+
+            phone = request.POST.get('phone')
+
+            if User.objects.filter(first_name__iexact=fname).exclude(user_id=student_id).exists():
+
+                messages.error(request, "Username (First Name) already exists.")
+
+                return redirect('students')
+
+            if User.objects.filter(email__iexact=email).exclude(user_id=student_id).exists():
+
+                messages.error(request, "Email already exists.")
+
+                return redirect('students')
+
+            if User.objects.filter(phone=phone).exclude(user_id=student_id).exists():
+
+                messages.error(request, "Phone already exists.")
+
+                return redirect('students')
+
             student.first_name = parts[0]
             student.last_name = parts[1] if len(parts) > 1 else ""
             student.display_name = name
@@ -192,8 +251,10 @@ def update_student(request, student_id):
             password = request.POST.get('password')
             if password:
                 confirm_password = request.POST.get('confirm_password')
-                if password == confirm_password:
-                    student.password = password
+                if password != confirm_password:
+                    messages.error(request, "Password and confirm password must match.")
+                    return redirect('students')
+                student.password = password
                     
             student.save()
             
@@ -240,8 +301,9 @@ def teachers_view(request):
         preferred_days = ', '.join(days_list) if days_list else ''
         
         # Simple validation
-        if password != confirm_password:
-            pass
+        if password and password != confirm_password:
+            messages.error(request, "Password and confirm password must match.")
+            return redirect('teachers')
         
         parts = name.split(' ', 1)
         fname = parts[0]
@@ -253,6 +315,36 @@ def teachers_view(request):
             try:
                 user_code = f"T{int(last_teacher.user_code[1:]) + 1}"
             except: pass
+            
+        # Uniqueness checks
+
+            
+        if User.objects.filter(first_name__iexact=fname).exists():
+
+            
+            messages.error(request, "Username (First Name) already exists.")
+
+            
+            return redirect('teachers')
+
+            
+        if User.objects.filter(email__iexact=email).exists():
+
+            
+            messages.error(request, "Email already exists.")
+
+            
+            return redirect('teachers')
+
+            
+        if User.objects.filter(phone=phone).exists():
+
+            
+            messages.error(request, "Phone already exists.")
+
+            
+            return redirect('teachers')
+
             
         new_teacher = User.objects.create(
             user_code=user_code,
@@ -371,6 +463,30 @@ def update_teacher(request, teacher_id):
             teacher = User.objects.get(user_id=teacher_id)
             name = request.POST.get('teacher_name')
             parts = name.split(' ', 1)
+            fname = parts[0]
+
+            email = request.POST.get('email')
+
+            phone = request.POST.get('phone')
+
+            if User.objects.filter(first_name__iexact=fname).exclude(user_id=teacher_id).exists():
+
+                messages.error(request, "Username (First Name) already exists.")
+
+                return redirect('teachers')
+
+            if User.objects.filter(email__iexact=email).exclude(user_id=teacher_id).exists():
+
+                messages.error(request, "Email already exists.")
+
+                return redirect('teachers')
+
+            if User.objects.filter(phone=phone).exclude(user_id=teacher_id).exists():
+
+                messages.error(request, "Phone already exists.")
+
+                return redirect('teachers')
+
             teacher.first_name = parts[0]
             teacher.last_name = parts[1] if len(parts) > 1 else ""
             teacher.display_name = name
@@ -385,8 +501,10 @@ def update_teacher(request, teacher_id):
             password = request.POST.get('password')
             if password:
                 confirm_password = request.POST.get('confirm_password')
-                if password == confirm_password:
-                    teacher.password = password
+                if password != confirm_password:
+                    messages.error(request, "Password and confirm password must match.")
+                    return redirect('teachers')
+                teacher.password = password
                     
             teacher.save()
 
@@ -484,7 +602,24 @@ def enrollment_management_view(request):
     batches = Batch.objects.all()
     enrollments = StudentEnrollment.objects.all()
     
+    from django.db.models import Count, Q
+    
+    course_stats = list(Course.objects.annotate(
+        enroll_count=Count('studentenrollment', filter=Q(studentenrollment__status=1))
+    ).values('course_name', 'enroll_count'))
+    
+    active_students = User.objects.filter(role=student_role, is_active=True).count()
+    inactive_students = User.objects.filter(role=student_role, is_active=False).count()
+    
+    batch_stats = list(Batch.objects.annotate(
+        enroll_count=Count('studentenrollment', filter=Q(studentenrollment__status=1))
+    ).values('batch_name', 'capacity', 'enroll_count')[:5])
+    
     return render(request, 'website/enrollment_management.html', {
+        'course_stats': course_stats,
+        'active_students': active_students,
+        'inactive_students': inactive_students,
+        'batch_stats': batch_stats,
         'user': user,
         'page_title': 'Enrollment Management',
         'students': students,
@@ -506,6 +641,26 @@ def events_dashboard_view(request):
         action = request.POST.get('action')
         
         # RBAC Check for POST actions
+        if action == 'save_settings':
+            import json, os
+            from django.conf import settings
+            
+            phone_length = request.POST.get('phone_length', 10)
+            email_length = request.POST.get('email_length', 255)
+            password_expire = request.POST.get('password_expire', 90)
+            
+            data = {
+                'phone_length': int(phone_length),
+                'email_length': int(email_length),
+                'password_expire': int(password_expire)
+            }
+            path = os.path.join(settings.BASE_DIR, 'security_settings.json')
+            with open(path, 'w') as fh:
+                json.dump(data, fh)
+            
+            messages.success(request, 'Settings saved successfully.')
+            return redirect('/admin-dashboard/?tab=settings')
+            
         if action == 'create_user' and not admin_access.add_access:
             messages.error(request, 'You do not have permission to add records.')
             return redirect('/admin-dashboard/')
@@ -786,12 +941,16 @@ def student_attendance_view(request):
                 to_date=request.POST.get('to_date'),
                 no_of_days=request.POST.get('no_of_days') or 1,
                 request_type=request.POST.get('request_type'),
+                batch_id=request.POST.get('batch_id'),
                 created_by=user.user_id
             )
             messages.success(request, 'Attendance request submitted successfully!')
             return redirect('student_attendance')
             
     # Filters
+    from academics.models import StudentEnrollment
+    allocated_batches = [e.batch for e in StudentEnrollment.objects.filter(student=user, status=1, batch__isnull=False).select_related('batch')]
+    
     selected_batch = request.GET.get('batch_id', '')
     selected_student = request.GET.get('student_id', '')
     selected_date = request.GET.get('date', '')
@@ -816,6 +975,8 @@ def student_attendance_view(request):
         'selected_batch': selected_batch,
         'selected_student': selected_student,
         'selected_date': selected_date
+,
+        'allocated_batches': allocated_batches
     })
 
 def teacher_attendance_view(request):
@@ -836,12 +997,16 @@ def teacher_attendance_view(request):
                 to_date=request.POST.get('to_date'),
                 no_of_days=request.POST.get('no_of_days') or 1,
                 request_type=request.POST.get('request_type'),
+                batch_id=request.POST.get('batch_id'),
                 created_by=user.user_id
             )
             messages.success(request, 'Attendance request submitted successfully!')
             return redirect('teacher_attendance')
             
     # Filters
+    from academics.models import Batch
+    allocated_batches = list(Batch.objects.filter(teacher=user, is_active=True))
+    
     selected_teacher = request.GET.get('teacher_id', '')
     selected_date = request.GET.get('date', '')
     
@@ -862,6 +1027,8 @@ def teacher_attendance_view(request):
         'details': details,
         'selected_teacher': selected_teacher,
         'selected_date': selected_date
+,
+        'allocated_batches': allocated_batches
     })
 
 
@@ -1102,6 +1269,26 @@ def admin_dashboard_view(request):
         action = request.POST.get('action')
         
         # RBAC Check for POST actions
+        if action == 'save_settings':
+            import json, os
+            from django.conf import settings
+            
+            phone_length = request.POST.get('phone_length', 10)
+            email_length = request.POST.get('email_length', 255)
+            password_expire = request.POST.get('password_expire', 90)
+            
+            data = {
+                'phone_length': int(phone_length),
+                'email_length': int(email_length),
+                'password_expire': int(password_expire)
+            }
+            path = os.path.join(settings.BASE_DIR, 'security_settings.json')
+            with open(path, 'w') as fh:
+                json.dump(data, fh)
+            
+            messages.success(request, 'Settings saved successfully.')
+            return redirect('/admin-dashboard/?tab=settings')
+            
         if action == 'create_user' and not admin_access.add_access:
             messages.error(request, 'You do not have permission to add records.')
             return redirect('/admin-dashboard/')
@@ -1147,6 +1334,11 @@ def admin_dashboard_view(request):
             phone = request.POST.get('phone', '')
             password = request.POST.get('password', '')
             role_id = request.POST.get('role_id')
+            
+            confirm_password = request.POST.get('confirm_password', '')
+            if password and password != confirm_password:
+                messages.error(request, "Password and confirm password must match.")
+                return redirect('/admin-dashboard/?tab=users')
             
             try:
                 role = Role.objects.get(role_id=role_id)
@@ -1649,3 +1841,46 @@ def attendance_approval_view(request):
         'leaves': leaves,
     }
     return render(request, 'website/attendance_approval.html', context)
+
+def audit_logs_view(request):
+    if 'user_id' not in request.session:
+        return redirect('login')
+        
+    from users.models import User, UserLoginDetails
+    from django.db.models import Q
+    from datetime import datetime
+    
+    users = User.objects.all()
+    
+    audit_user = request.GET.get('audit_user', '')
+    audit_status = request.GET.get('audit_status', '')
+    audit_from = request.GET.get('audit_from', '')
+    audit_to = request.GET.get('audit_to', '')
+    
+    audit_qs = UserLoginDetails.objects.select_related('user').order_by('-login_date')
+    
+    if audit_user:
+        audit_qs = audit_qs.filter(user_id=audit_user)
+        
+    if audit_status:
+        audit_qs = audit_qs.filter(remarks__icontains=audit_status)
+        
+    if audit_from:
+        try:
+            from_dt = datetime.strptime(audit_from, '%Y-%m-%d').date()
+            audit_qs = audit_qs.filter(login_date__date__gte=from_dt)
+        except: pass
+        
+    if audit_to:
+        try:
+            to_dt = datetime.strptime(audit_to, '%Y-%m-%d').date()
+            audit_qs = audit_qs.filter(login_date__date__lte=to_dt)
+        except: pass
+
+    audit_logs = audit_qs[:100]
+    
+    return render(request, 'website/audit_logs.html', {
+        'page_title': 'Audit Logs',
+        'users': users,
+        'audit_logs': audit_logs
+    })

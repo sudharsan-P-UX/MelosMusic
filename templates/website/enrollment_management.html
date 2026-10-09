@@ -58,88 +58,117 @@
         <!-- Dashboard Widgets -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <!-- Widget 1: Pie Chart -->
-            <div class="border border-gray-200 rounded p-4 bg-white shadow-sm">
-                <h4 class="font-medium text-gray-800 mb-4">Program Enrollments</h4>
-                <div class="flex items-center justify-center">
-                    <div class="w-32 h-32 rounded-full border-8 border-transparent flex items-center justify-center relative overflow-hidden shadow-inner" style="background: conic-gradient(#4caf50 0% 30%, #e0e0e0 30% 60%, #ff9800 60% 85%, #f44336 85% 100%);">
-                        <div class="absolute inset-0 bg-gradient-to-tr from-black/20 to-transparent mix-blend-overlay"></div>
-                    </div>
-                    <div class="ml-6 space-y-2 text-xs">
-                        <div class="flex items-center"><span class="w-3 h-3 bg-[#e0e0e0] inline-block mr-2 border border-gray-300"></span> No target</div>
-                        <div class="flex items-center"><span class="w-3 h-3 bg-[#ff9800] inline-block mr-2 border border-gray-300"></span> Below minimum</div>
-                        <div class="flex items-center"><span class="w-3 h-3 bg-[#f44336] inline-block mr-2 border border-gray-300"></span> Below target</div>
-                        <div class="flex items-center"><span class="w-3 h-3 bg-[#4caf50] inline-block mr-2 border border-gray-300"></span> Full</div>
-                    </div>
+            <div class="border border-gray-200 rounded p-4 bg-white shadow-sm flex flex-col justify-between">
+                <h4 class="font-medium text-gray-800 mb-2 text-sm">Enrollments by Course</h4>
+                <div class="flex-1 relative w-full flex items-center justify-center">
+                    <canvas id="coursePieChart" style="max-height: 160px;"></canvas>
                 </div>
             </div>
             
             <!-- Widget 2: Bar Chart -->
-            <div class="border border-gray-200 rounded p-4 bg-white shadow-sm">
-                <h4 class="font-medium text-gray-800 mb-4">Web Enrollment Status</h4>
-                <div class="h-32 flex items-end justify-center space-x-6 pb-2 border-b border-l border-gray-300 relative pl-4">
-                    <!-- Y Axis Labels -->
-                    <div class="absolute -left-2 top-0 text-[10px] text-gray-400">6</div>
-                    <div class="absolute -left-2 top-1/2 text-[10px] text-gray-400 -translate-y-1/2">3</div>
-                    <div class="absolute -left-2 bottom-0 text-[10px] text-gray-400">0</div>
-                    
-                    <div class="flex flex-col items-center group">
-                        <span class="text-xs font-bold mb-1 opacity-0 group-hover:opacity-100 transition">3</span>
-                        <div class="w-10 bg-[#e57373] h-16 border border-gray-400 shadow-sm"></div>
-                        <span class="text-[10px] mt-2 text-gray-600">Not set</span>
-                    </div>
-                    <div class="flex flex-col items-center group">
-                        <span class="text-xs font-bold mb-1 opacity-0 group-hover:opacity-100 transition">0</span>
-                        <div class="w-10 bg-[#e0e0e0] h-0 border border-gray-400 shadow-sm"></div>
-                        <span class="text-[10px] mt-2 text-gray-600">Inactive</span>
-                    </div>
-                    <div class="flex flex-col items-center group">
-                        <span class="text-xs font-bold mb-1 opacity-0 group-hover:opacity-100 transition">5</span>
-                        <div class="w-10 bg-[#81c784] h-24 border border-gray-400 shadow-sm"></div>
-                        <span class="text-[10px] mt-2 text-gray-600">Active</span>
-                    </div>
+            <div class="border border-gray-200 rounded p-4 bg-white shadow-sm flex flex-col justify-between">
+                <h4 class="font-medium text-gray-800 mb-2 text-sm">Student Status</h4>
+                <div class="flex-1 relative w-full flex items-center justify-center">
+                    <canvas id="statusBarChart" style="max-height: 160px;"></canvas>
                 </div>
             </div>
             
-            <!-- Widget 3: Horizontal Bar -->
-            <div class="border border-gray-200 rounded p-4 bg-white shadow-sm">
-                <h4 class="font-medium text-gray-800 mb-4">Program Revenue</h4>
-                <div class="space-y-3">
-                    <div class="flex items-center text-xs">
-                        <div class="w-24 text-right pr-2 truncate text-gray-600">RNREFRESH</div>
-                        <div class="flex-1 border-l border-b border-gray-300 pl-1 pb-1">
-                            <div class="bg-[#42a5f5] h-3 w-4/5 border border-blue-600"></div>
-                        </div>
-                    </div>
-                    <div class="flex items-center text-xs">
-                        <div class="w-24 text-right pr-2 truncate text-gray-600">TEACH-221_844</div>
-                        <div class="flex-1 border-l border-gray-300 pl-1">
-                            <div class="bg-[#42a5f5] h-3 w-1/5 border border-blue-600"></div>
-                        </div>
-                    </div>
-                    <div class="flex items-center text-xs">
-                        <div class="w-24 text-right pr-2 text-gray-600">10</div>
-                        <div class="flex-1 border-l border-gray-300 pl-1">
-                            <div class="bg-[#42a5f5] h-3 w-[15%] border border-blue-600"></div>
-                        </div>
-                    </div>
-                    <div class="flex items-center text-xs">
-                        <div class="w-24 text-right pr-2 text-gray-600">8</div>
-                        <div class="flex-1 border-l border-gray-300 pl-1">
-                            <div class="bg-[#42a5f5] h-3 w-[5%] border border-blue-600"></div>
-                        </div>
-                    </div>
-                    <!-- X Axis -->
-                    <div class="flex items-center text-[10px] text-gray-400">
-                        <div class="w-24 text-right pr-2"></div>
-                        <div class="flex-1 flex justify-between pl-1">
-                            <span>0</span>
-                            <span>5,000</span>
-                            <span>10,000</span>
-                        </div>
-                    </div>
+            <!-- Widget 3: Horizontal Bar Chart -->
+            <div class="border border-gray-200 rounded p-4 bg-white shadow-sm flex flex-col justify-between">
+                <h4 class="font-medium text-gray-800 mb-2 text-sm">Batch Capacity vs Enrolled</h4>
+                <div class="flex-1 relative w-full flex items-center justify-center">
+                    <canvas id="batchBarChart" style="max-height: 160px;"></canvas>
                 </div>
             </div>
         </div>
+
+        <!-- Initialize Charts -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Pie Chart
+                const courseLabels = [
+                    {% for c in course_stats %}"{{ c.course_name|escapejs }}",{% endfor %}
+                ];
+                const courseData = [
+                    {% for c in course_stats %}{{ c.enroll_count }},{% endfor %}
+                ];
+                
+                let sum = courseData.reduce((a, b) => a + b, 0);
+                if (courseLabels.length === 0 || sum === 0) {
+                    courseLabels.push("No Enrollments yet");
+                    courseData.push(1);
+                }
+
+                new Chart(document.getElementById('coursePieChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: courseLabels,
+                        datasets: [{
+                            data: courseData,
+                            backgroundColor: ['#4caf50', '#ff9800', '#f44336', '#2196f3', '#9c27b0']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: {size: 10} } } } }
+                });
+
+                // Bar Chart (Student Status)
+                new Chart(document.getElementById('statusBarChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Active', 'Inactive'],
+                        datasets: [{
+                            label: 'Students',
+                            data: [{{ active_students|default:"0" }}, {{ inactive_students|default:"0" }}],
+                            backgroundColor: ['#81c784', '#e57373']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: {size: 10} } }, x: { ticks: { font: {size: 10} } } } }
+                });
+
+                // Horizontal Bar Chart (Batch Capacity)
+                const batchLabels = [
+                    {% for b in batch_stats %}"{{ b.batch_name|escapejs }}",{% endfor %}
+                ];
+                const batchEnrolled = [
+                    {% for b in batch_stats %}{{ b.enroll_count }},{% endfor %}
+                ];
+                const batchCapacity = [
+                    {% for b in batch_stats %}{{ b.capacity|default:"0" }},{% endfor %}
+                ];
+                
+                if (batchLabels.length === 0) {
+                    batchLabels.push("No Data");
+                    batchEnrolled.push(0);
+                    batchCapacity.push(10);
+                }
+
+                new Chart(document.getElementById('batchBarChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: batchLabels,
+                        datasets: [
+                            {
+                                label: 'Enrolled',
+                                data: batchEnrolled,
+                                backgroundColor: '#42a5f5'
+                            },
+                            {
+                                label: 'Total Capacity',
+                                data: batchCapacity,
+                                backgroundColor: '#e0e0e0'
+                            }
+                        ]
+                    },
+                    options: { 
+                        indexAxis: 'y', 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: {size: 10} } } },
+                        scales: { x: { beginAtZero: true, ticks: { font: {size: 10} } }, y: { ticks: { font: {size: 10} } } }
+                    }
+                });
+            });
+        </script>
         
         <!-- Data Table -->
         <div x-show="tab === 'courses'">

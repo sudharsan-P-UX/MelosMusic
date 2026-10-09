@@ -171,11 +171,11 @@
                         </div>
                         <div>
                             <label class="block mb-1">Email <span class="text-red-500">*</span></label>
-                            <input type="email" id="modalEmail" name="email" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" required>
+                            <input type="email" id="modalEmail" name="email" maxlength="{{ security_settings.email_length|default:255 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" required>
                         </div>
                         <div>
                             <label class="block mb-1">Phone <span class="text-red-500">*</span></label>
-                            <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="10" minlength="10" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" required>
+                            <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" required>
                         </div>
                         <div>
                             <label class="block mb-1">Parent Name</label>
@@ -183,7 +183,7 @@
                         </div>
                         <div>
                             <label class="block mb-1">Parent Phone</label>
-                            <input type="text" id="modalParentPhone" name="parent_phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="10" minlength="10" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
+                            <input type="text" id="modalParentPhone" name="parent_phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
                         </div>
                         <div class="md:col-span-2">
                             <label class="block mb-1">Address</label>

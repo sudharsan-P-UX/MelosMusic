@@ -134,11 +134,11 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" id="modalEmail" name="email" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
+                        <input type="email" id="modalEmail" name="email" maxlength="{{ security_settings.email_length|default:255 }}" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="10" minlength="10" pattern="\d{10}" title="Phone number must be exactly 10 digits" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
+                        <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" pattern="\d{{ '{' }}{{ security_settings.phone_length|default:10 }}{{ '}' }}" title="Phone number must be exactly {{ security_settings.phone_length|default:10 }} digits" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
                     </div>
                 </div>
 

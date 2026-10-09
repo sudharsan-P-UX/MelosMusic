@@ -252,6 +252,9 @@
     <!-- System Settings Tab -->
     <div x-show="tab === 'settings'" x-transition class="space-y-6" style="display: none;">
         <div class="bg-white rounded border border-gray-200 shadow-sm p-6">
+            <form method="POST" action="">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_settings">
             <h3 class="font-medium text-gray-800 mb-6 pb-2 border-b border-gray-100">General Configuration</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -285,142 +288,44 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">User password expire date in days</label>
                     <div class="relative">
-                        <input type="number" value="90" min="0" max="365" class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                        <input type="number" name="password_expire" value="{{ security_settings.password_expire|default:90 }}" min="0" max="365" class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500">
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <span class="text-gray-500 sm:text-sm">days</span>
                         </div>
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Force users to reset their password after this period. Set to 0 to disable.</p>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number Length (Country Format)</label>
+                    <div class="relative">
+                        <input type="number" name="phone_length" value="{{ security_settings.phone_length|default:10 }}" min="5" max="20" class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">digits</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Maximum allowed length for user phone numbers.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email Maximum Length</label>
+                    <div class="relative">
+                        <input type="number" name="email_length" value="{{ security_settings.email_length|default:255 }}" min="10" max="255" class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">chars</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Maximum allowed length for user email addresses.</p>
+                </div>
             </div>
             <div class="mt-8 flex justify-end">
-                <button class="bg-[#4f46e5] text-white px-6 py-2 rounded text-sm font-medium hover:bg-indigo-700 shadow-sm transition">
+                <button type="submit" class="bg-[#4f46e5] text-white px-6 py-2 rounded text-sm font-medium hover:bg-indigo-700 shadow-sm transition">
                     Save Settings
                 </button>
             </div>
+            </form>
         </div>
     </div>
     
-    <!-- Audit Logs Tab -->
-    <div x-show="tab === 'audit'" x-transition class="space-y-4" style="display: none;">
-        <div class="bg-white rounded border border-gray-200 shadow-sm">
-            <div class="p-4 border-b border-gray-200 flex flex-wrap gap-4 justify-between items-center bg-gray-50">
-                <h3 class="font-medium text-gray-800">Recent Activity Logs</h3>
-                <form method="GET" action="" class="flex flex-wrap gap-2 items-center">
-                    <input type="hidden" name="tab" value="audit">
-                    
-                    <select name="audit_user" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white">
-                        <option value="">All Users</option>
-                        {% for u in users %}
-                        <option value="{{ u.user_id }}" {% if request.GET.audit_user == u.user_id|stringformat:"s" %}selected{% endif %}>{{ u.display_name|default:u.first_name }}</option>
-                        {% endfor %}
-                    </select>
-                    
-                    <input type="date" name="audit_from" value="{{ request.GET.audit_from }}" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white" title="From Date">
-                    
-                    <span class="text-gray-400 text-xs">to</span>
-                    
-                    <input type="date" name="audit_to" value="{{ request.GET.audit_to }}" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white" title="To Date">
-                    
-                    <select name="audit_status" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white">
-                        <option value="">All Statuses</option>
-                        <option value="Success" {% if request.GET.audit_status == 'Success' %}selected{% endif %}>Success</option>
-                        <option value="Failed" {% if request.GET.audit_status == 'Failed' %}selected{% endif %}>Failed</option>
-                    </select>
-                    
-                    <button type="submit" class="bg-[#4f46e5] hover:bg-indigo-700 border border-[#4f46e5] text-white rounded px-3 py-1.5 text-xs transition-colors flex items-center">
-                        <i class="fa-solid fa-filter mr-1"></i> Filter
-                    </button>
-                    
-                    {% if request.GET.audit_user or request.GET.audit_status or request.GET.audit_from or request.GET.audit_to %}
-                    <a href="?tab=audit" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded px-3 py-1.5 text-gray-600 transition-colors flex items-center justify-center" title="Clear Filter">
-                        <i class="fa-solid fa-times text-xs"></i>
-                    </a>
-                    {% endif %}
-                </form>
-            </div>
-            <table class="w-full text-left border-collapse text-sm">
-                <thead>
-                    <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
-                        <th class="py-1.5 px-4 font-medium w-48">Timestamp</th>
-                        <th class="py-1.5 px-4 font-medium">User</th>
-                        <th class="py-1.5 px-4 font-medium">Action / Remarks</th>
-                    </tr>
-                </thead>
-                <tbody class="text-gray-700">
-                    {% for log in audit_logs %}
-                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                        <td class="py-1.5 px-4 text-gray-500 text-xs">{{ log.login_date|date:"Y-m-d H:i:s" }}</td>
-                        <td class="py-1.5 px-4 font-medium text-gray-800">{{ log.user.display_name|default:log.user.first_name }}</td>
-                        <td class="py-1.5 px-4 text-gray-600">
-                            {% if "Success" in log.remarks %}
-                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs mr-2">Login</span>
-                            {% else %}
-                                <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs mr-2">Failed</span>
-                            {% endif %}
-                            {{ log.remarks }}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3" class="py-8 text-center text-gray-500">No activity logs found.</td>
-                    </tr>
-                    {% endfor %}
-                    
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Add User Modal -->
-    <div x-show="showAddUserModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Background overlay -->
-            <div x-show="showAddUserModal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showAddUserModal = false"></div>
-            
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            
-            <!-- Modal panel -->
-            <div x-show="showAddUserModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <form method="POST" action="" autocomplete="off">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="create_user">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Create New User</h3>
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name (Username)</label>
-                                    <input type="text" name="first_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                                    <input type="text" name="last_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                <input type="email" name="email" autocomplete="off" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                                <input type="text" name="phone" pattern="[0-9]{10}" maxlength="10" minlength="10" title="Phone number must be exactly 10 digits" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required autocomplete="off" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                                <input type="password" name="password" autocomplete="new-password" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                                <select name="role_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                                    <option value="">Select a role...</option>
-                                    {% for role in roles %}
-                                        <option value="{{ role.role_id }}">{{ role.role_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
+    
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
                         <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition">
                             Create User

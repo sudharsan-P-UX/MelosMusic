@@ -10,9 +10,7 @@
             <button onclick="openLeaveModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center">
                 <i class="fa-solid fa-calendar-minus mr-2"></i> Attendance Request
             </button>
-            <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center">
-                <i class="fa-solid fa-plus mr-2"></i> Add Attendance
-            </button>
+            
         </div>
     </div>
 
@@ -85,7 +83,7 @@
                 {% empty %}
                 <tr>
                     <td colspan="7" class="py-8 text-center text-gray-500">
-                        No attendance records found. Click "Add Attendance" to record today's attendance.
+                        No attendance records found. Click "Attendance Request" to submit a new request.
                     </td>
                 </tr>
                 {% endfor %}

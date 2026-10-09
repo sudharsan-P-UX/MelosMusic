@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="bg-white rounded border border-gray-200 shadow-sm p-4 min-h-screen">
+    <h2 class="text-xl font-medium text-gray-800 mb-6 border-b border-gray-200 pb-2">Audit Logs</h2>
+
+    <div class="bg-white rounded shadow-sm border border-gray-200">
+        <div class="p-4 border-b border-gray-200 flex flex-wrap gap-4 justify-between items-center bg-gray-50">
+            <h3 class="font-medium text-gray-800">Recent Activity Logs</h3>
+            <form method="GET" action="" class="flex flex-wrap gap-2 items-center">
+                
+                <select name="audit_user" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white">
+                    <option value="">All Users</option>
+                    {% for u in users %}
+                    <option value="{{ u.user_id }}" {% if request.GET.audit_user == u.user_id|stringformat:"s" %}selected{% endif %}>{{ u.display_name|default:u.first_name }}</option>
+                    {% endfor %}
+                </select>
+                
+                <input type="date" name="audit_from" value="{{ request.GET.audit_from }}" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white" title="From Date">
+                
+                <span class="text-gray-400 text-xs">to</span>
+                
+                <input type="date" name="audit_to" value="{{ request.GET.audit_to }}" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white" title="To Date">
+                
+                <select name="audit_status" class="border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:border-indigo-500 bg-white">
+                    <option value="">All Statuses</option>
+                    <option value="Success" {% if request.GET.audit_status == 'Success' %}selected{% endif %}>Success</option>
+                    <option value="Failed" {% if request.GET.audit_status == 'Failed' %}selected{% endif %}>Failed</option>
+                </select>
+                
+                <button type="submit" class="bg-[#4f46e5] hover:bg-indigo-700 border border-[#4f46e5] text-white rounded px-3 py-1.5 text-xs transition-colors flex items-center">
+                    <i class="fa-solid fa-filter mr-1"></i> Filter
+                </button>
+                
+                {% if request.GET.audit_user or request.GET.audit_status or request.GET.audit_from or request.GET.audit_to %}
+                <a href="/audit-logs/" class="bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded px-3 py-1.5 text-gray-600 transition-colors flex items-center justify-center" title="Clear Filter">
+                    <i class="fa-solid fa-times text-xs"></i>
+                </a>
+                {% endif %}
+            </form>
+        </div>
+        <table class="w-full text-left border-collapse text-sm">
+            <thead>
+                <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
+                    <th class="py-2 px-4 font-medium w-48">Timestamp</th>
+                    <th class="py-2 px-4 font-medium">User</th>
+                    <th class="py-2 px-4 font-medium">Action / Remarks</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-700">
+                {% for log in audit_logs %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-2 px-4 text-gray-500 text-xs">{{ log.login_date|date:"Y-m-d H:i:s" }}</td>
+                    <td class="py-2 px-4 font-medium text-gray-800">{{ log.user.display_name|default:log.user.first_name }}</td>
+                    <td class="py-2 px-4 text-gray-600">
+                        {% if 'failed' in log.remarks|lower %}
+                            <span class="text-red-500"><i class="fa-solid fa-circle-xmark mr-1"></i>{{ log.remarks }}</span>
+                        {% else %}
+                            <span class="text-green-600"><i class="fa-solid fa-circle-check mr-1"></i>{{ log.remarks }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center py-6 text-gray-400">No logs found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

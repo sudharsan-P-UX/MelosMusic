@@ -76,6 +76,7 @@ TEMPLATES = [
                 'website.context_processors.user_permissions',
                 'website.context_processors.sidebar_menu_processor',
                 'website.context_processors.current_menu_access_processor',
+                'website.context_processors.security_settings',
             ],
         },
     },

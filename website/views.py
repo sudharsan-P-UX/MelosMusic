@@ -11,7 +11,19 @@ def index(request):
         return redirect('login')
     
     # Fetch user for dashboard display
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+        try:
+
+            user = User.objects.get(user_id=request.session['user_id'])
+
+        except User.DoesNotExist:
+
+            request.session.flush()
+
+            return redirect('login')
+    except User.DoesNotExist:
+        request.session.flush()
+        return redirect('login')
     
     # Dashboard metrics
     total_students = User.objects.filter(role__role_name__iexact='student').count()
@@ -63,7 +75,19 @@ def students_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+    
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    
+    except User.DoesNotExist:
+
+    
+        request.session.flush()
+
+    
+        return redirect('login')
     from academics.models import Course, Batch, StudentEnrollment
     from users.models import Role, RoleGroup
     
@@ -277,7 +301,19 @@ def teachers_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+    
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    
+    except User.DoesNotExist:
+
+    
+        request.session.flush()
+
+    
+        return redirect('login')
     from academics.models import Course, Batch, UserCourse
     from users.models import Role, RoleGroup
     
@@ -590,7 +626,19 @@ def enrollment_management_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
         
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        
+        user = User.objects.get(user_id=request.session['user_id'])
+
+        
+    except User.DoesNotExist:
+
+        
+        request.session.flush()
+
+        
+        return redirect('login')
     from academics.models import Course, Batch, StudentEnrollment
     from users.models import Role, RoleGroup
     
@@ -632,7 +680,19 @@ def events_dashboard_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
         
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        
+        user = User.objects.get(user_id=request.session['user_id'])
+
+        
+    except User.DoesNotExist:
+
+        
+        request.session.flush()
+
+        
+        return redirect('login')
     
     from events.models import EventMaster, EventParticipant, EventVenue, EventAttendance
     from django.contrib import messages
@@ -773,7 +833,19 @@ def create_event_view(request):
         from events.models import EventMaster, EventVenue
         from users.models import User
         
-        user = User.objects.get(user_id=request.session['user_id'])
+        try:
+
+        
+            user = User.objects.get(user_id=request.session['user_id'])
+
+        
+        except User.DoesNotExist:
+
+        
+            request.session.flush()
+
+        
+            return redirect('login')
         
         event_id = request.POST.get('event_id') # For editing
         
@@ -852,7 +924,19 @@ def generic_page(request, page_name):
     if 'user_id' not in request.session:
         return redirect('login')
         
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        
+        user = User.objects.get(user_id=request.session['user_id'])
+
+        
+    except User.DoesNotExist:
+
+        
+        request.session.flush()
+
+        
+        return redirect('login')
     
     # Map the URL path to a display title
     titles = {
@@ -875,7 +959,19 @@ def timetable_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+    
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    
+    except User.DoesNotExist:
+
+    
+        request.session.flush()
+
+    
+        return redirect('login')
     from academics.models import Timetable, Batch
     
     if request.method == 'POST':
@@ -927,7 +1023,15 @@ def student_attendance_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     from users.models import User
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     from academics.models import Batch, LeaveRequest
     
     if request.method == 'POST':
@@ -983,7 +1087,15 @@ def teacher_attendance_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     from users.models import User
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     from academics.models import LeaveRequest
     
     if request.method == 'POST':
@@ -1035,7 +1147,15 @@ def teacher_attendance_view(request):
 def fee_dashboard_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     # We will just pass mock data for the dashboard for now since we just created the DB
     return render(request, 'website/fee_dashboard.html', {
@@ -1053,7 +1173,15 @@ def fee_dashboard_view(request):
 def fee_collection_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     from academics.models import Course, Batch
     
@@ -1078,7 +1206,15 @@ def fee_collection_view(request):
 def assign_fees_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     from academics.models import Course, Batch
     from finance.models import StudentFee
@@ -1104,7 +1240,15 @@ def assign_fees_view(request):
 def pending_fees_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     return render(request, 'website/pending_fees.html', {
         'user': user,
@@ -1114,7 +1258,15 @@ def pending_fees_view(request):
 def receipts_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     return render(request, 'website/receipts.html', {
         'user': user,
@@ -1124,7 +1276,15 @@ def receipts_view(request):
 def refunds_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     return render(request, 'website/refunds.html', {
         'user': user,
@@ -1135,7 +1295,15 @@ def refunds_view(request):
 def reports_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     from academics.models import Course, Batch
     
@@ -1157,7 +1325,15 @@ def courses_batches_view(request):
         return redirect('login')
     
     from users.models import User
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        user = User.objects.get(user_id=request.session['user_id'])
+
+    except User.DoesNotExist:
+
+        request.session.flush()
+
+        return redirect('login')
     
     from academics.models import Course, Batch
     
@@ -1238,7 +1414,19 @@ def admin_dashboard_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
         
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        
+        user = User.objects.get(user_id=request.session['user_id'])
+
+        
+    except User.DoesNotExist:
+
+        
+        request.session.flush()
+
+        
+        return redirect('login')
     from users.models import Role, RoleGroup, RoleAccess, MasterMenu
     
     roles = Role.objects.all().select_related('role_group')
@@ -1527,7 +1715,19 @@ def student_course_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
         
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        
+        user = User.objects.get(user_id=request.session['user_id'])
+
+        
+    except User.DoesNotExist:
+
+        
+        request.session.flush()
+
+        
+        return redirect('login')
     from academics.models import Course, StudentEnrollment
     from django.db.models import Q
     
@@ -1564,7 +1764,19 @@ def student_allocation_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
         
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        
+        user = User.objects.get(user_id=request.session['user_id'])
+
+        
+    except User.DoesNotExist:
+
+        
+        request.session.flush()
+
+        
+        return redirect('login')
     from academics.models import Course, StudentEnrollment, Batch
     from django.db.models import Q
     from django.http import JsonResponse
@@ -1664,7 +1876,19 @@ def teacher_allocation_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
         
-    user = User.objects.get(user_id=request.session['user_id'])
+    try:
+
+        
+        user = User.objects.get(user_id=request.session['user_id'])
+
+        
+    except User.DoesNotExist:
+
+        
+        request.session.flush()
+
+        
+        return redirect('login')
     from academics.models import Course, Batch
     from django.db.models import Q
     
@@ -1731,7 +1955,15 @@ def attendance_log_view(request):
 
     from users.models import User
     try:
-        user = User.objects.get(user_id=request.session['user_id'])
+        try:
+
+            user = User.objects.get(user_id=request.session['user_id'])
+
+        except User.DoesNotExist:
+
+            request.session.flush()
+
+            return redirect('login')
     except User.DoesNotExist:
         return redirect('login')
         
@@ -1791,7 +2023,15 @@ def attendance_approval_view(request):
 
     from users.models import User
     try:
-        user = User.objects.get(user_id=request.session['user_id'])
+        try:
+
+            user = User.objects.get(user_id=request.session['user_id'])
+
+        except User.DoesNotExist:
+
+            request.session.flush()
+
+            return redirect('login')
     except User.DoesNotExist:
         return redirect('login')
         

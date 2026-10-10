@@ -283,6 +283,9 @@
                 </div>
             </div>
             
+            <div class="overflow-x-auto w-full">
+
+            
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500">
@@ -352,10 +355,13 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
 
         <!-- Venue Management -->
         <div x-show="tab === 'venue'" x-transition style="display: none;">
+            <div class="overflow-x-auto w-full">
+
             <table class="w-full text-left border-collapse text-sm border border-gray-200 rounded overflow-hidden">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
@@ -385,7 +391,8 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
         
         <!-- 4. Event Attendance -->
         <div x-show="tab === 'attendance'" x-transition style="display: none;">
@@ -425,6 +432,9 @@
                     <span class="text-2xl font-bold text-yellow-500">0</span>
                 </div>
             </div>
+            
+            <div class="overflow-x-auto w-full">
+
             
             <table class="w-full text-left border-collapse text-sm border border-gray-200 rounded overflow-hidden">
                 <thead>
@@ -480,7 +490,8 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
 
         <!-- 5. Event Reports -->
         <div x-show="tab === 'reports'" x-transition style="display: none;">
@@ -560,6 +571,8 @@
             
             <div class="border border-gray-200 rounded bg-white shadow-sm">
                 <div class="px-4 py-3 border-b border-gray-200 text-sm font-medium text-gray-800">Recent Events</div>
+                <div class="overflow-x-auto w-full">
+
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
@@ -598,7 +611,8 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
+
+           </div> </div>
         </div>
 
         <!-- Event List -->
@@ -650,6 +664,8 @@
             </form>
 
             <div class="border border-gray-200 rounded bg-white shadow-sm overflow-hidden">
+                <div class="overflow-x-auto w-full">
+
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-gray-200 text-gray-600 bg-gray-50/50">
@@ -692,7 +708,8 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                <div class="px-4 py-3 border-t border-gray-200 flex justify-between items-center text-xs text-gray-500 bg-white">
+
+                </div><div class="px-4 py-3 border-t border-gray-200 flex justify-between items-center text-xs text-gray-500 bg-white">
                     <div>Showing 1 to {{ events|length }} of {{ events|length }} entries</div>
                     <div class="flex border border-gray-300 rounded overflow-hidden">
                         <button class="px-3 py-1.5 bg-white hover:bg-gray-50 border-r border-gray-300">Previous</button>

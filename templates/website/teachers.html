@@ -55,6 +55,8 @@
 
     <!-- Main Content Area (Table of Students) -->
     <div class="overflow-x-auto p-0">
+        <div class="overflow-x-auto w-full">
+
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-gray-100 text-gray-600 text-sm border-b">
@@ -108,7 +110,8 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+
+   </div> </div>
 </div>
 
 <!-- Modal Background -->
@@ -302,6 +305,8 @@
                             <div>
                                 <h4 class="text-md font-bold text-gray-800 border-b pb-2 mb-3">Educational Qualifications</h4>
                                 {% if teacher.qualifications.all %}
+                                <div class="overflow-x-auto w-full">
+
                                 <table class="min-w-full bg-white border border-gray-200">
                                     <thead class="bg-gray-50 text-gray-600 text-xs text-left">
                                         <tr>
@@ -322,7 +327,8 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                {% else %}
+
+                                </div>{% else %}
                                 <p class="text-sm text-gray-500">No qualifications recorded.</p>
                                 {% endif %}
                             </div>
@@ -331,6 +337,8 @@
                             <div>
                                 <h4 class="text-md font-bold text-gray-800 border-b pb-2 mb-3">Experience</h4>
                                 {% if teacher.experiences.all %}
+                                <div class="overflow-x-auto w-full">
+
                                 <table class="min-w-full bg-white border border-gray-200">
                                     <thead class="bg-gray-50 text-gray-600 text-xs text-left">
                                         <tr>
@@ -353,7 +361,8 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                {% else %}
+
+                                </div>{% else %}
                                 <p class="text-sm text-gray-500">No experience recorded.</p>
                                 {% endif %}
                             </div>
@@ -362,6 +371,8 @@
                             <div>
                                 <h4 class="text-md font-bold text-gray-800 border-b pb-2 mb-3">Certifications</h4>
                                 {% if teacher.certifications.all %}
+                                <div class="overflow-x-auto w-full">
+
                                 <table class="min-w-full bg-white border border-gray-200">
                                     <thead class="bg-gray-50 text-gray-600 text-xs text-left">
                                         <tr>
@@ -386,7 +397,8 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                {% else %}
+
+                                </div>{% else %}
                                 <p class="text-sm text-gray-500">No certifications recorded.</p>
                                 {% endif %}
                             </div>

@@ -172,6 +172,8 @@
         
         <!-- Data Table -->
         <div x-show="tab === 'courses'">
+            <div class="overflow-x-auto w-full">
+
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="text-[#0066cc] border-b border-t border-gray-200">
@@ -249,10 +251,13 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
         
         <!-- Students Tab Content (Just a placeholder table for now) -->
         <div x-show="tab === 'students'" style="display: none;">
+            <div class="overflow-x-auto w-full">
+
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="text-[#0066cc] border-b border-t border-gray-200">
@@ -283,10 +288,13 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
 
         <!-- Courses Tab Content -->
         <div x-show="tab === 'batches'" style="display: none;">
+             <div class="overflow-x-auto w-full">
+
              <table class="w-full text-left border-collapse text-xs">
                 <thead>
                     <tr class="text-[#0066cc] border-b border-t border-gray-200">
@@ -311,7 +319,8 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
         
     </div>
 </div>

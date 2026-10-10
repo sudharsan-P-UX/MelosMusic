@@ -101,12 +101,12 @@
                 <button @click="sidebarOpen = true" class="md:hidden text-gray-500 hover:text-indigo-600 focus:outline-none">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
-                <h1 class="text-xl font-semibold text-gray-800 truncate max-w-[200px] md:max-w-none">{% block header %}Dashboard{% endblock %}</h1>
+                <h1 class="text-lg md:text-xl font-semibold text-gray-800 truncate max-w-[120px] md:max-w-none">{% block header %}Dashboard{% endblock %}</h1>
             </div>
-            <div class="flex items-center space-x-4">
-                <span class="text-sm font-medium text-gray-500">Welcome, {{ user.first_name }}</span>
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <span class="hidden md:inline-block text-sm font-medium text-gray-500">Welcome, {{ user.first_name }}</span>
                 <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">{{ user.first_name|first|upper }}</div>
-                <a href="{% url 'logout' %}" class="text-xs text-red-500 hover:text-red-700 ml-4 font-bold border border-red-200 px-2 py-1 rounded bg-red-50">Logout</a>
+                <a href="{% url 'logout' %}" class="text-xs text-red-500 hover:text-red-700 ml-2 md:ml-4 font-bold border border-red-200 px-2 py-1 rounded bg-red-50">Logout</a>
             </div>
         </header>
 

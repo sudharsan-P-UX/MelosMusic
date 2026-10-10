@@ -67,6 +67,8 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="save_permissions">
                     <input type="hidden" name="role_id" value="{{ selected_role.role_id|default:'' }}">
+                    <div class="overflow-x-auto w-full">
+
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
                             <tr class="border-b-2 border-gray-200 text-gray-600 bg-gray-50/95 backdrop-blur-md sticky top-[56px] z-20 shadow-sm">
@@ -106,8 +108,9 @@
                             {% endfor %}
                         </tbody>
                     </table>
+
                     
-                    <div class="sticky bottom-0 -mx-6 -mb-6 p-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex justify-end shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] rounded-b-lg z-20 mt-6">
+                    </div><div class="sticky bottom-0 -mx-6 -mb-6 p-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex justify-end shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] rounded-b-lg z-20 mt-6">
                         <button type="submit" class="bg-[#4f46e5] text-white px-8 py-2.5 rounded shadow text-sm font-medium hover:bg-indigo-700 transition-all transform hover:scale-[1.02]">
                             <i class="fa-solid fa-check mr-2"></i> Save Role
                         </button>
@@ -126,6 +129,8 @@
                     <i class="fa-solid fa-user-plus mr-1"></i> Add User
                 </button>{% endif %}
             </div>
+            <div class="overflow-x-auto w-full">
+
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
@@ -167,7 +172,8 @@
                     
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
     </div>
     
     <!-- Menu Details Tab -->
@@ -179,6 +185,8 @@
                     <i class="fa-solid fa-plus mr-1"></i> Add Menu
                 </button>
             </div>
+            <div class="overflow-x-auto w-full">
+
             <table class="w-full text-left border-collapse text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-gray-500 bg-gray-50">
@@ -217,7 +225,8 @@
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
+
+       </div> </div>
 
         <!-- Sticky Save Button for Menu Orders -->
         <div x-show="tab === 'menu'" class="fixed bottom-8 right-8 z-40">

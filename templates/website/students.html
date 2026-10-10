@@ -149,7 +149,7 @@
         </div>
         
         <div class="p-6 overflow-y-auto flex-1 text-sm text-gray-700">
-            <form id="studentForm" method="POST" action="{% url 'students' %}">
+            <form id="studentForm" method="POST" action="{% url 'students' %}"> x-data="{ passwordError: false }" @submit="if(document.getElementById(\'modalPassword\').value !== document.getElementById(\'modalConfirmPassword\').value) { $event.preventDefault(); passwordError = true; } else { passwordError = false; }">
                 {% csrf_token %}
                 
                 <div class="mb-8">
@@ -208,11 +208,22 @@
                         <div></div>
                         <div>
                             <label class="block mb-1">Password</label>
-                            <input type="password" id="modalPassword" name="password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" autocomplete="new-password">
+                            <div class="relative" x-data="{ show: false }">
+                            <input :type="show ? 'text' : 'password'" id="modalPassword" name="password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500 pr-10" autocomplete="new-password">
+                            <button type="button" @click="show = !show" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-indigo-600 focus:outline-none">
+                                <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            </button>
+                        </div>
                         </div>
                         <div>
                             <label class="block mb-1">Confirm Password</label>
-                            <input type="password" id="modalConfirmPassword" name="confirm_password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" autocomplete="new-password">
+                            <div class="relative" x-data="{ show: false }">
+                            <input :type="show ? 'text' : 'password'" id="modalConfirmPassword" name="confirm_password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500 pr-10" autocomplete="new-password">
+                            <button type="button" @click="show = !show" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-indigo-600 focus:outline-none">
+                                <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
+                            </button>
+                        </div>
+                        <p x-show="passwordError" x-cloak style="display: none;" class="text-red-500 text-xs mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i> Passwords do not match!</p>
                         </div>
                     </div>
                 </div>

@@ -7,6 +7,7 @@ class Course(models.Model):
     course_name = models.CharField(max_length=255, db_column='CourseName')
     category = models.CharField(max_length=100, null=True, blank=True, db_column='Category')
     duration_months = models.IntegerField(null=True, blank=True, db_column='DurationMonths')
+    duration_hrs = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, db_column='DurationHrs')
     total_sessions = models.IntegerField(null=True, blank=True, db_column='TotalSessions')
     days = models.CharField(max_length=200, null=True, blank=True, db_column='Days')
     description = models.TextField(null=True, blank=True, db_column='Description')

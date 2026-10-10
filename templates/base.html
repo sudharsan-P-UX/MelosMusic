@@ -8,11 +8,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-gray-50 flex h-screen overflow-hidden">
+<body class="bg-gray-50 flex h-screen overflow-hidden" x-data="{ sidebarOpen: false }">
+        <!-- Mobile sidebar backdrop -->
+    <div x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-gray-900 bg-opacity-50 md:hidden" @click="sidebarOpen = false"></div>
+    
     <!-- Sidebar Menu -->
-    <aside class="w-64 bg-indigo-900 text-white flex flex-col">
-        <div class="h-16 flex items-center justify-center font-bold text-2xl border-b border-indigo-800">
-            Melo's Music
+    <aside :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen}" class="fixed inset-y-0 left-0 z-50 w-64 bg-indigo-900 text-white flex flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0">
+        <div class="h-16 flex items-center justify-between px-4 font-bold text-2xl border-b border-indigo-800">
+            <span class="mx-auto">Melo's Music</span>
+            <button @click="sidebarOpen = false" class="md:hidden text-indigo-300 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
         </div>
         <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             {% for menu in sidebar_menus %}
@@ -32,18 +38,18 @@
                                 </button>
                                 <div x-show="open" class="pl-4 mt-1 space-y-1 border-l border-indigo-700 ml-2">
                                     {% for subchild in child.children %}
-                                    <a href="{{ subchild.url_page }}" class="block pl-3 py-1.5 rounded-md text-xs {% if request.get_full_path == subchild.url_page or request.path == subchild.url_page %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">{{ subchild.menu_name }}</a>
+                                    <a href="{{ subchild.url_page }}" @click="sidebarOpen = false" class="block pl-3 py-1.5 rounded-md text-xs {% if request.get_full_path == subchild.url_page or request.path == subchild.url_page %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">{{ subchild.menu_name }}</a>
                                     {% endfor %}
                                 </div>
                             </div>
                             {% else %}
-                            <a href="{{ child.url_page }}" class="block px-4 py-1.5 rounded-md text-xs {% if request.get_full_path == child.url_page or request.path == child.url_page %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">{{ child.menu_name }}</a>
+                            <a href="{{ child.url_page }}" @click="sidebarOpen = false" class="block px-4 py-1.5 rounded-md text-xs {% if request.get_full_path == child.url_page or request.path == child.url_page %}bg-indigo-600 text-white font-medium{% else %}text-indigo-200 hover:text-white hover:bg-indigo-700/50{% endif %} transition-colors">{{ child.menu_name }}</a>
                             {% endif %}
                         {% endfor %}
                     </div>
                 </div>
                 {% else %}
-                <a href="{{ menu.url_page }}" class="block px-4 py-2 text-sm rounded-md {% if request.get_full_path == menu.url_page or request.path == menu.url_page %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">{{ menu.menu_name }}</a>
+                <a href="{{ menu.url_page }}" @click="sidebarOpen = false" class="block px-4 py-2 text-sm rounded-md {% if request.get_full_path == menu.url_page or request.path == menu.url_page %}bg-indigo-600 text-white font-medium{% else %}hover:bg-indigo-700{% endif %}">{{ menu.menu_name }}</a>
                 {% endif %}
             {% endfor %}
         </nav>
@@ -90,8 +96,13 @@
         {% endif %}
     </div>
 
-        <header class="h-16 bg-white shadow flex items-center justify-between px-6">
-            <h1 class="text-xl font-semibold text-gray-800">{% block header %}Dashboard{% endblock %}</h1>
+                <header class="h-16 bg-white shadow flex items-center justify-between px-4 md:px-6">
+            <div class="flex items-center gap-3">
+                <button @click="sidebarOpen = true" class="md:hidden text-gray-500 hover:text-indigo-600 focus:outline-none">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-xl font-semibold text-gray-800 truncate max-w-[200px] md:max-w-none">{% block header %}Dashboard{% endblock %}</h1>
+            </div>
             <div class="flex items-center space-x-4">
                 <span class="text-sm font-medium text-gray-500">Welcome, {{ user.first_name }}</span>
                 <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">{{ user.first_name|first|upper }}</div>

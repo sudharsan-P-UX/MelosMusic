@@ -1,5 +1,5 @@
 name: melos_music_mobile
-description: A new Flutter project for Melos Music.
+description: Melos Music WebWrapper
 
 publish_to: 'none'
 
@@ -9,8 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: any
-  shared_preferences: any
+  webview_flutter: any
 
 dev_dependencies:
   flutter_test:

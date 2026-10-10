@@ -1,4 +1,38 @@
-import 'package:flutter/material.dart';
+import os
+import shutil
+
+# Remove all existing lib files
+lib_path = 'mobile_app/lib'
+if os.path.exists(lib_path):
+    shutil.rmtree(lib_path)
+os.makedirs(lib_path)
+
+# Write pubspec.yaml
+pubspec = """name: melos_music_mobile
+description: Melos Music WebWrapper
+
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  webview_flutter: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+"""
+with open('mobile_app/pubspec.yaml', 'w') as f:
+    f.write(pubspec)
+
+# Write main.dart
+main_dart = """import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 void main() {
@@ -92,3 +126,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
     );
   }
 }
+"""
+with open('mobile_app/lib/main.dart', 'w') as f:
+    f.write(main_dart)

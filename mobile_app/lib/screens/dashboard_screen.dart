@@ -206,9 +206,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             SizedBox(height: 24),
-            _metrics.isEmpty
+            _metrics.isEmpty && _isLoading
                 ? Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
-                : GridView.builder(
+                : _metrics.isEmpty 
+                    ? Center(child: Text("Could not load metrics. Ensure backend is running.", style: TextStyle(color: Colors.red)))
+                    : GridView.builder(
+
                     shrinkWrap: true,
                     physics: NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

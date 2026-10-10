@@ -2302,13 +2302,13 @@ def mobile_generic_api(request):
             if 'allocation' in menu_name or 'enrollment' in menu_name:
                 from academics.models import StudentEnrollment
                 records = StudentEnrollment.objects.all().select_related('student', 'course', 'batch').values(
-                    'student__first_name', 'course__course_name', 'batch__batch_name', 'enrollment_date'
+                    'student__first_name', 'course__course_name', 'batch__batch_name', 'joining_date'
                 )[:50]
                 data = list(records)
             elif 'receipt' in menu_name or 'refund' in menu_name:
                 from finance.models import FeeReceipt
                 records = FeeReceipt.objects.all().select_related('fee_payment__student_fee__student').values(
-                    'receipt_number', 'fee_payment__student_fee__student__first_name', 'payment_date'
+                    'receipt_no', 'student__first_name', 'receipt_date'
                 )[:50]
                 data = list(records)
             elif 'notification' in menu_name:
@@ -2334,12 +2334,16 @@ from django.db.models import Sum, F
 
 @csrf_exempt
 def mobile_dashboard_metrics_api(request):
-    if request.method == 'GET':
+    try:
+        from users.models import User
+        from academics.models import Course
+        from finance.models import StudentFeeInstallment
+        from django.db.models import Sum, F
+        
         total_students = User.objects.filter(role__role_name__iexact='student').count()
         active_teachers = User.objects.filter(role__role_name__iexact='teacher').count()
         total_courses = Course.objects.filter(is_active=True).count()
         
-        from finance.models import StudentFeeInstallment
         pending_fees = StudentFeeInstallment.objects.filter(amount__gt=F('paid_amount')).aggregate(
             total_pending=Sum(F('amount') - F('paid_amount'))
         )['total_pending'] or 0
@@ -2351,4 +2355,6 @@ def mobile_dashboard_metrics_api(request):
             {'title': 'Pending Fees', 'value': f'${pending_fees}', 'icon': 'money', 'color': 'red'},
         ]
         return JsonResponse({'success': True, 'data': metrics})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Method not allowed'})

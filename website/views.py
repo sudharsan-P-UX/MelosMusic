@@ -971,47 +971,120 @@ def generic_page(request, page_name):
     return render(request, 'website/generic_page.html', {'user': user, 'page_title': title})
 
 
+def sync_batch_timetable(created_by_id=None):
+    try:
+        from academics.models import Batch, Timetable
+        for batch in Batch.objects.select_related('course', 'teacher').filter(is_active=True):
+            if batch.start_time and batch.end_time and batch.teacher:
+                day = batch.start_date.strftime('%A') if batch.start_date else 'Monday'
+                existing = Timetable.objects.filter(batch=batch).first()
+                room = f"Studio {batch.batch_code or '1'}"
+                if not existing:
+                    Timetable.objects.create(
+                        batch=batch,
+                        teacher=batch.teacher,
+                        day_of_week=day,
+                        start_time=batch.start_time,
+                        end_time=batch.end_time,
+                        room_number=room,
+                        created_by=created_by_id
+                    )
+                else:
+                    updated = False
+                    if existing.teacher != batch.teacher:
+                        existing.teacher = batch.teacher
+                        updated = True
+                    if existing.start_time != batch.start_time or existing.end_time != batch.end_time:
+                        existing.start_time = batch.start_time
+                        existing.end_time = batch.end_time
+                        updated = True
+                    if not existing.day_of_week:
+                        existing.day_of_week = day
+                        updated = True
+                    if updated:
+                        existing.save()
+    except Exception as e:
+        print(f"Error syncing batch timetable: {e}")
+
+
 def timetable_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     
     try:
-
-    
         user = User.objects.get(user_id=request.session['user_id'])
-
-    
     except User.DoesNotExist:
-
-    
         request.session.flush()
-
-    
         return redirect('login')
-    from academics.models import Timetable, Batch, Course
+        
+    from academics.models import Timetable, Batch, Course, StudentEnrollment
     from django.db.models import Q
     
+    sync_batch_timetable(user.user_id)
+    
     if request.method == 'POST':
-        batch_id = request.POST.get('batch_id')
-        teacher_id = request.POST.get('teacher_id')
-        day_of_week = request.POST.get('day_of_week')
-        start_time = request.POST.get('start_time')
-        end_time = request.POST.get('end_time')
-        room_number = request.POST.get('room_number')
-        
-        batch = Batch.objects.get(batch_id=batch_id)
-        teacher = User.objects.get(user_id=teacher_id)
-        
-        Timetable.objects.create(
-            batch=batch,
-            teacher=teacher,
-            day_of_week=day_of_week,
-            start_time=start_time,
-            end_time=end_time,
-            room_number=room_number
-        )
-        messages.success(request, 'Timetable slot added successfully!')
-        return redirect('timetable')
+        action = request.POST.get('action')
+        if action == 'edit_slot':
+            slot_id = request.POST.get('slot_id')
+            batch_id = request.POST.get('batch_id')
+            teacher_id = request.POST.get('teacher_id')
+            day_of_week = request.POST.get('day_of_week')
+            start_time = request.POST.get('start_time')
+            end_time = request.POST.get('end_time')
+            room_number = request.POST.get('room_number')
+            try:
+                slot = Timetable.objects.get(timetable_id=slot_id)
+                if batch_id:
+                    slot.batch = Batch.objects.get(batch_id=batch_id)
+                if teacher_id:
+                    slot.teacher = User.objects.get(user_id=teacher_id)
+                if day_of_week:
+                    slot.day_of_week = day_of_week
+                if start_time:
+                    slot.start_time = start_time
+                if end_time:
+                    slot.end_time = end_time
+                slot.room_number = room_number
+                slot.save()
+                messages.success(request, 'Timetable slot updated successfully!')
+            except Exception as e:
+                messages.error(request, f'Error updating slot: {str(e)}')
+            return redirect('timetable')
+            
+        elif action == 'delete_slot':
+            slot_id = request.POST.get('slot_id')
+            try:
+                Timetable.objects.filter(timetable_id=slot_id).delete()
+                messages.success(request, 'Timetable slot deleted successfully!')
+            except Exception as e:
+                messages.error(request, f'Error deleting slot: {str(e)}')
+            return redirect('timetable')
+            
+        else: # Add slot
+            batch_id = request.POST.get('batch_id')
+            teacher_id = request.POST.get('teacher_id')
+            day_of_week = request.POST.get('day_of_week')
+            start_time = request.POST.get('start_time')
+            end_time = request.POST.get('end_time')
+            room_number = request.POST.get('room_number')
+            
+            try:
+                batch = Batch.objects.get(batch_id=batch_id)
+                teacher = User.objects.get(user_id=teacher_id) if teacher_id else batch.teacher
+                
+                Timetable.objects.create(
+                    batch=batch,
+                    teacher=teacher,
+                    day_of_week=day_of_week,
+                    start_time=start_time or batch.start_time,
+                    end_time=end_time or batch.end_time,
+                    room_number=room_number or f"Studio {batch.batch_code or '1'}",
+                    created_by=user.user_id
+                )
+                messages.success(request, 'Timetable slot added successfully!')
+            except Exception as e:
+                messages.error(request, f'Error adding slot: {str(e)}')
+            return redirect('timetable')
         
     slots = Timetable.objects.select_related('batch', 'batch__course', 'teacher').filter(is_active=True).order_by('start_time')
 
@@ -1027,6 +1100,7 @@ def timetable_view(request):
             Q(batch__batch_name__icontains=search) |
             Q(batch__batch_code__icontains=search) |
             Q(batch__course__course_name__icontains=search) |
+            Q(batch__course__course_code__icontains=search) |
             Q(teacher__display_name__icontains=search) |
             Q(room_number__icontains=search)
         )
@@ -1039,10 +1113,18 @@ def timetable_view(request):
     if course_filter:
         slots = slots.filter(batch__course_id=course_filter)
 
-    batches = Batch.objects.select_related('course').filter(is_active=True).order_by('batch_name')
+    batches = Batch.objects.select_related('course', 'teacher').filter(is_active=True).order_by('batch_name')
     teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
     courses = Course.objects.filter(is_active=True).order_by('course_name')
     
+    # Calculate enrollment counts per batch for display
+    batch_enrollments = {}
+    for b in batches:
+        batch_enrollments[b.batch_id] = StudentEnrollment.objects.filter(batch=b, status=1).count()
+
+    for s in slots:
+        s.enrolled_count = batch_enrollments.get(s.batch.batch_id, 0) if s.batch else 0
+
     # Organize slots by day
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     display_days = [d for d in days if d.lower() == day_filter.lower()] if day_filter else days
@@ -1060,6 +1142,10 @@ def timetable_view(request):
         'batches': batches,
         'teachers': teachers,
         'courses': courses,
+        'selected_course': course_filter,
+        'selected_batch': batch_filter,
+        'selected_teacher': teacher_filter,
+        'selected_day': day_filter,
         'page_title': 'Class Schedule'
     })
 
@@ -2278,6 +2364,7 @@ def courses_batches_view(request):
                 is_active=request.POST.get('status') == 'active',
                 created_by=user.user_id
             )
+            sync_batch_timetable(user.user_id)
             messages.success(request, 'Batch added successfully!')
             return redirect('/courses/?tab=batches')
         elif action == 'edit_batch':
@@ -2297,6 +2384,7 @@ def courses_batches_view(request):
                 batch.capacity = request.POST.get('capacity') or None
                 batch.is_active = (request.POST.get('status') == 'active')
                 batch.save()
+                sync_batch_timetable(user.user_id)
                 messages.success(request, 'Batch updated successfully!')
             except Exception as e:
                 messages.error(request, f'Error updating batch: {str(e)}')
@@ -2304,11 +2392,12 @@ def courses_batches_view(request):
         elif action == 'delete_batch':
             batch_id = request.POST.get('batch_id')
             try:
-                from academics.models import StudentEnrollment
+                from academics.models import StudentEnrollment, Timetable
                 enroll_count = StudentEnrollment.objects.filter(batch_id=batch_id).count()
                 if enroll_count > 0:
                     messages.error(request, f'Cannot delete batch because it has {enroll_count} student enrollment(s).')
                 else:
+                    Timetable.objects.filter(batch_id=batch_id).delete()
                     Batch.objects.filter(batch_id=batch_id).delete()
                     messages.success(request, 'Batch deleted successfully!')
             except Exception as e:

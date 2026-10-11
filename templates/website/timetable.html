@@ -5,7 +5,10 @@
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 min-h-screen" x-data="{ showFilter: false }">
     <!-- Header -->
     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
-        <h2 class="text-xl font-bold text-gray-800">{{ page_title }}</h2>
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">{{ page_title }}</h2>
+            <p class="text-xs text-gray-500 mt-0.5">Weekly class schedule and batch course allocations</p>
+        </div>
         <div class="flex items-center gap-2">
             <!-- Mobile Filter Toggle Button -->
             <button type="button" @click="showFilter = !showFilter" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
@@ -13,9 +16,11 @@
                 <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
                 <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
             </button>
-            {% if menu_access.add %}<button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center text-sm">
+            {% if menu_access.add %}
+            <button type="button" onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center text-sm">
                 <i class="fa-solid fa-plus mr-2"></i> Add New Slot
-            </button>{% endif %}
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -26,18 +31,18 @@
             <div class="relative min-w-[200px] flex-1">
                 <label class="block text-xs text-gray-500 mb-1">Search</label>
                 <div class="relative">
-                    <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search batch, teacher, room..." class="border border-gray-300 rounded px-3 py-1.5 w-full text-sm focus:outline-none focus:border-indigo-500 h-[36px] bg-white">
+                    <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search course, batch, teacher, room..." class="border border-gray-300 rounded px-3 py-1.5 w-full text-sm focus:outline-none focus:border-indigo-500 h-[36px] bg-white">
                     <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400 text-xs"></i>
                 </div>
             </div>
 
-            <!-- Day of Week -->
-            <div class="w-40">
-                <label class="block text-xs text-gray-500 mb-1">Day</label>
-                <select name="day" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
-                    <option value="">All Days</option>
-                    {% for d in days %}
-                    <option value="{{ d }}" {% if request.GET.day|lower == d|lower %}selected{% endif %}>{{ d }}</option>
+            <!-- Course Filter -->
+            <div class="w-48">
+                <label class="block text-xs text-gray-500 mb-1">Course</label>
+                <select name="course_id" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                    <option value="{{ c.course_id }}" {% if selected_course == c.course_id|stringformat:"s" %}selected{% endif %}>{{ c.course_name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -48,28 +53,39 @@
                 <select name="batch_id" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
                     <option value="">All Batches</option>
                     {% for b in batches %}
-                    <option value="{{ b.batch_id }}" {% if request.GET.batch_id == b.batch_id|stringformat:"s" %}selected{% endif %}>{{ b.batch_name }}</option>
+                    <option value="{{ b.batch_id }}" {% if selected_batch == b.batch_id|stringformat:"s" %}selected{% endif %}>{{ b.batch_name }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <!-- Teacher Filter -->
-            <div class="w-48">
+            <div class="w-44">
                 <label class="block text-xs text-gray-500 mb-1">Teacher</label>
                 <select name="teacher_id" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
                     <option value="">All Teachers</option>
                     {% for t in teachers %}
-                    <option value="{{ t.user_id }}" {% if request.GET.teacher_id == t.user_id|stringformat:"s" %}selected{% endif %}>{{ t.display_name }}</option>
+                    <option value="{{ t.user_id }}" {% if selected_teacher == t.user_id|stringformat:"s" %}selected{% endif %}>{{ t.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Day of Week -->
+            <div class="w-36">
+                <label class="block text-xs text-gray-500 mb-1">Day</label>
+                <select name="day" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Days</option>
+                    {% for d in days %}
+                    <option value="{{ d }}" {% if selected_day|lower == d|lower %}selected{% endif %}>{{ d }}</option>
                     {% endfor %}
                 </select>
             </div>
 
             <!-- Actions -->
             <div class="flex space-x-2">
-                <button type="submit" class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm hover:bg-indigo-700 h-[36px] flex items-center shadow-sm font-medium">
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm hover:bg-indigo-700 h-[36px] flex items-center shadow-sm font-medium transition">
                     <i class="fa-solid fa-filter mr-1.5 text-xs"></i> Apply
                 </button>
-                <a href="{% url 'timetable' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[36px] flex items-center shadow-sm">
+                <a href="{% url 'timetable' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[36px] flex items-center shadow-sm transition">
                     Clear
                 </a>
             </div>
@@ -78,24 +94,122 @@
 
     <!-- Calendar View -->
     <div class="p-6 overflow-x-auto">
-        <div class="{% if schedule_data|length == 1 %}max-w-md mx-auto grid grid-cols-1{% else %}min-w-[800px] grid grid-cols-7{% endif %} gap-4">
+        <div class="{% if schedule_data|length == 1 %}max-w-md mx-auto grid grid-cols-1{% else %}min-w-[900px] grid grid-cols-7{% endif %} gap-4">
             {% for day, day_slots in schedule_data %}
             <div class="flex flex-col">
-                <div class="bg-indigo-100 text-indigo-800 font-bold text-center py-2 rounded-t-md border-b-2 border-indigo-200 uppercase text-xs tracking-wider">
-                    {{ day }}
+                <div class="bg-indigo-600 text-white font-bold text-center py-2.5 rounded-t-lg shadow-sm uppercase text-xs tracking-wider flex items-center justify-center gap-1.5">
+                    <i class="fa-regular fa-calendar text-[11px]"></i>
+                    <span>{{ day }}</span>
+                    {% if day_slots %}
+                    <span class="ml-1 bg-indigo-800 text-indigo-100 text-[10px] font-bold px-1.5 py-0.2 rounded-full">{{ day_slots|length }}</span>
+                    {% endif %}
                 </div>
-                <div class="bg-gray-50 border border-gray-200 border-t-0 rounded-b-md flex-1 p-2 space-y-3 min-h-[400px]">
+                <div class="bg-gray-50/70 border border-gray-200 border-t-0 rounded-b-lg flex-1 p-2.5 space-y-3 min-h-[420px]">
                     {% for slot in day_slots %}
-                    <div class="bg-white border border-gray-200 p-3 rounded shadow-sm hover:shadow transition relative group cursor-pointer">
-                        <div class="text-xs font-bold text-gray-500 mb-1">{{ slot.start_time|time:"h:i A" }} - {{ slot.end_time|time:"h:i A" }}</div>
-                        <div class="font-semibold text-indigo-700 text-sm leading-tight mb-1">{{ slot.batch.batch_name }}</div>
-                        <div class="text-xs text-gray-600"><i class="fa-solid fa-user-tie mr-1"></i>{{ slot.teacher.display_name }}</div>
-                        {% if slot.room_number %}
-                        <div class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>{{ slot.room_number }}</div>
-                        {% endif %}
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-indigo-300 transition duration-150 relative group">
+                        
+                        <!-- Course Name Allocation Badge -->
+                        <div class="flex items-center justify-between gap-1 mb-1.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 max-w-[170px] truncate" title="Course: {{ slot.batch.course.course_name }}">
+                                <i class="fa-solid fa-graduation-cap mr-1 text-[10px] text-indigo-500"></i>
+                                <span class="truncate">{{ slot.batch.course.course_name }}</span>
+                            </span>
+                            {% if slot.batch.batch_code %}
+                            <span class="text-[10px] font-mono font-semibold text-gray-400 bg-gray-50 px-1 py-0.5 rounded">{{ slot.batch.batch_code }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Batch Name -->
+                        <div class="font-bold text-gray-900 text-sm leading-snug mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-users-rectangle text-indigo-500 text-xs"></i>
+                            <span class="truncate" title="Batch: {{ slot.batch.batch_name }}">{{ slot.batch.batch_name }}</span>
+                        </div>
+
+                        <!-- Assigned Teacher -->
+                        <div class="text-xs text-gray-600 mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chalkboard-user text-gray-400 text-xs"></i>
+                            <span class="font-medium text-gray-700 truncate">{{ slot.teacher.display_name|default:"Unassigned" }}</span>
+                        </div>
+
+                        <!-- Timing & Duration -->
+                        <div class="text-xs font-semibold text-gray-800 mb-1.5 flex items-center justify-between gap-1">
+                            <span class="flex items-center gap-1 text-gray-700 text-[11px]">
+                                <i class="fa-regular fa-clock text-indigo-600 text-xs"></i>
+                                {{ slot.start_time|time:"g:i A" }} - {{ slot.end_time|time:"g:i A" }}
+                            </span>
+                            {% if slot.batch.duration_display %}
+                            <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded">{{ slot.batch.duration_display }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Capacity & Room Footer -->
+                        <div class="flex items-center justify-between text-[11px] text-gray-500 pt-2 border-t border-gray-100">
+                            <span title="Student Enrollment">
+                                <i class="fa-solid fa-users text-gray-400 mr-1"></i>
+                                <strong class="text-gray-700">{{ slot.enrolled_count|default:"0" }}</strong>/{{ slot.batch.capacity|default:"-" }}
+                            </span>
+                            <span title="Room / Venue">
+                                <i class="fa-solid fa-location-dot text-red-400 mr-1"></i>
+                                {{ slot.room_number|default:"Studio 1" }}
+                            </span>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-end gap-1.5">
+                            <button type="button" 
+                                    onclick="openViewSlotModal({
+                                        slot_id: '{{ slot.timetable_id }}',
+                                        course_name: '{{ slot.batch.course.course_name|escapejs }}',
+                                        course_code: '{{ slot.batch.course.course_code|default:"-"|escapejs }}',
+                                        batch_name: '{{ slot.batch.batch_name|escapejs }}',
+                                        batch_code: '{{ slot.batch.batch_code|default:"-"|escapejs }}',
+                                        teacher_name: '{{ slot.teacher.display_name|default:"Unassigned"|escapejs }}',
+                                        teacher_phone: '{{ slot.teacher.phone|default:"-"|escapejs }}',
+                                        day_of_week: '{{ slot.day_of_week|escapejs }}',
+                                        timing: '{{ slot.start_time|time:"g:i A"|escapejs }} - {{ slot.end_time|time:"g:i A"|escapejs }}',
+                                        duration: '{{ slot.batch.duration_display|escapejs }}',
+                                        room_number: '{{ slot.room_number|default:"Studio 1"|escapejs }}',
+                                        enrolled: '{{ slot.enrolled_count|default:"0" }}',
+                                        capacity: '{{ slot.batch.capacity|default:"-" }}',
+                                        start_date: '{{ slot.batch.start_date|date:"d M Y"|default:"-" }}',
+                                        end_date: '{{ slot.batch.end_date|date:"d M Y"|default:"-" }}'
+                                    })" 
+                                    class="w-7 h-7 rounded flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition" 
+                                    title="View Batch Details">
+                                <i class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                            {% if menu_access.edit %}
+                            <button type="button" 
+                                    onclick="openEditSlotModal({
+                                        slot_id: '{{ slot.timetable_id }}',
+                                        batch_id: '{{ slot.batch.batch_id }}',
+                                        teacher_id: '{{ slot.teacher.user_id|default:"" }}',
+                                        day_of_week: '{{ slot.day_of_week|escapejs }}',
+                                        start_time: '{{ slot.start_time|time:"H:i" }}',
+                                        end_time: '{{ slot.end_time|time:"H:i" }}',
+                                        room_number: '{{ slot.room_number|default:""|escapejs }}'
+                                    })" 
+                                    class="w-7 h-7 rounded flex items-center justify-center text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 transition" 
+                                    title="Edit Slot">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
+                            {% endif %}
+                            {% if menu_access.delete %}
+                            <button type="button" 
+                                    onclick="openDeleteSlotModal('{{ slot.timetable_id }}', '{{ slot.batch.batch_name|escapejs }}', '{{ slot.batch.course.course_name|escapejs }}', '{{ slot.day_of_week|escapejs }}')" 
+                                    class="w-7 h-7 rounded flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 transition" 
+                                    title="Delete Slot">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+
                     </div>
                     {% empty %}
-                    <div class="text-center text-gray-400 text-xs py-4">No classes</div>
+                    <div class="text-center text-gray-400 text-xs py-10 flex flex-col items-center">
+                        <i class="fa-solid fa-calendar-xmark text-2xl text-gray-300 mb-2"></i>
+                        <span>No classes scheduled</span>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -104,81 +218,392 @@
     </div>
 </div>
 
-<!-- Add Slot Modal -->
-<div id="addSlotModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+<!-- ========================================== -->
+<!-- View Slot Details Modal                    -->
+<!-- ========================================== -->
+<div id="viewSlotModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
-            <h3 class="text-lg font-bold text-gray-800">Add New Slot</h3>
-            <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-eye text-blue-600"></i> Batch & Course Schedule Details
+            </h3>
+            <button type="button" onclick="closeViewSlotModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
         </div>
         
-        <form id="slotForm" method="POST" action="{% url 'timetable' %}" class="flex flex-col flex-1 overflow-hidden" autocomplete="off">
+        <div class="p-6 overflow-y-auto space-y-4 text-sm flex-1">
+            <!-- Batch & Course Card -->
+            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                <div class="flex justify-between items-center border-b border-indigo-200 pb-2 mb-3">
+                    <div class="font-bold text-indigo-900 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-users-rectangle text-indigo-600"></i>
+                        <span id="view_batch_name"></span>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Active</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <span class="text-xs text-gray-500 block">Batch Code</span>
+                        <span class="font-medium text-gray-900 font-mono" id="view_batch_code"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Course Name (Allocation)</span>
+                        <span class="font-semibold text-indigo-700" id="view_course_name"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher & Capacity Card -->
+            <div class="bg-green-50 border border-green-100 rounded-lg p-4">
+                <div class="font-semibold text-green-900 border-b border-green-200 pb-2 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chalkboard-user text-green-600"></i> Teacher & Capacity
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <span class="text-xs text-gray-500 block">Assigned Teacher</span>
+                        <span class="font-medium text-gray-900" id="view_teacher_name"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Batch Capacity / Enrolled</span>
+                        <span class="font-medium text-gray-900" id="view_capacity_info"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule & Timing Card -->
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-gray-600"></i> Schedule & Timing
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                        <span class="text-xs text-gray-500 block">Day of Week</span>
+                        <span class="font-bold text-indigo-700" id="view_day_of_week"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Class Timing</span>
+                        <span class="font-medium text-gray-900" id="view_timing"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Duration</span>
+                        <span class="font-bold text-indigo-700" id="view_duration"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Room / Venue</span>
+                        <span class="font-medium text-gray-900" id="view_room"></span>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <span class="text-xs text-gray-500 block">Start Date</span>
+                        <span class="font-medium text-gray-900" id="view_start_date"></span>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <span class="text-xs text-gray-500 block">End Date</span>
+                        <span class="font-medium text-gray-900" id="view_end_date"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-6 py-3 border-t bg-gray-50 flex justify-end">
+            <button type="button" onclick="closeViewSlotModal()" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium transition">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- Add Slot Modal                             -->
+<!-- ========================================== -->
+<div id="addSlotModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-indigo-600"></i> Add New Slot
+            </h3>
+            <button type="button" onclick="closeAddModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="addSlotForm" method="POST" action="{% url 'timetable' %}" class="flex flex-col flex-1 overflow-hidden" autocomplete="off">
             {% csrf_token %}
             <div class="p-6 overflow-y-auto space-y-4 flex-1">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Batch / Class</label>
-                    <select name="batch_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Batch / Class <span class="text-red-500">*</span></label>
+                    <select name="batch_id" id="add_batch_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" onchange="onAddBatchChange(this)">
                         <option value="">-- Select Batch --</option>
                         {% for batch in batches %}
-                        <option value="{{ batch.batch_id }}">{{ batch.batch_name }} ({{ batch.course.course_name }})</option>
+                        <option value="{{ batch.batch_id }}"
+                                data-course="{{ batch.course.course_name }}"
+                                data-teacher="{{ batch.teacher.user_id|default:'' }}"
+                                data-starttime="{{ batch.start_time|time:'H:i'|default:'' }}"
+                                data-endtime="{{ batch.end_time|time:'H:i'|default:'' }}"
+                                data-day="{{ batch.start_date|date:'l'|default:'Monday' }}">
+                            {{ batch.batch_name }} ({{ batch.course.course_name }})
+                        </option>
                         {% endfor %}
                     </select>
+                    <div id="add_course_badge" class="mt-1.5 hidden">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            <i class="fa-solid fa-graduation-cap mr-1"></i> <span id="add_course_name_display"></span>
+                        </span>
+                    </div>
                 </div>
+                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                    <select name="teacher_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher <span class="text-red-500">*</span></label>
+                    <select name="teacher_id" id="add_teacher_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                         <option value="">-- Select Teacher --</option>
                         {% for teacher in teachers %}
                         <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Day of Week</label>
-                    <select name="day_of_week" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Day of Week <span class="text-red-500">*</span></label>
+                    <select name="day_of_week" id="add_day_of_week" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                         <option value="">-- Select Day --</option>
                         {% for day in days %}
                         <option value="{{ day }}">{{ day }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                        <input type="time" name="start_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Time <span class="text-red-500">*</span></label>
+                        <input type="time" name="start_time" id="add_start_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                        <input type="time" name="end_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">End Time <span class="text-red-500">*</span></label>
+                        <input type="time" name="end_time" id="add_end_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     </div>
                 </div>
+                
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Room Number / Venue</label>
-                    <input type="text" name="room_number" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Studio A">
+                    <input type="text" name="room_number" id="add_room_number" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="e.g. Studio A">
                 </div>
             </div>
+            
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow transition">Save Slot</button>
+                <button type="button" onclick="closeAddModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium shadow transition">Save Slot</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- Edit Slot Modal                            -->
+<!-- ========================================== -->
+<div id="editSlotModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
+            <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-indigo-600"></i> Edit Timetable Slot
+            </h3>
+            <button type="button" onclick="closeEditSlotModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="editSlotForm" method="POST" action="{% url 'timetable' %}" class="flex flex-col flex-1 overflow-hidden" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit_slot">
+            <input type="hidden" name="slot_id" id="edit_slot_id">
+            
+            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Batch / Class <span class="text-red-500">*</span></label>
+                    <select name="batch_id" id="edit_batch_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <option value="">-- Select Batch --</option>
+                        {% for batch in batches %}
+                        <option value="{{ batch.batch_id }}">
+                            {{ batch.batch_name }} ({{ batch.course.course_name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher <span class="text-red-500">*</span></label>
+                    <select name="teacher_id" id="edit_teacher_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <option value="">-- Select Teacher --</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Day of Week <span class="text-red-500">*</span></label>
+                    <select name="day_of_week" id="edit_day_of_week" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        {% for day in days %}
+                        <option value="{{ day }}">{{ day }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Time <span class="text-red-500">*</span></label>
+                        <input type="time" name="start_time" id="edit_start_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">End Time <span class="text-red-500">*</span></label>
+                        <input type="time" name="end_time" id="edit_end_time" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Room Number / Venue</label>
+                    <input type="text" name="room_number" id="edit_room_number" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
+                <button type="button" onclick="closeEditSlotModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium shadow transition">Update Slot</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- Delete Slot Modal                          -->
+<!-- ========================================== -->
+<div id="deleteSlotModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden p-6">
+        <div class="flex items-center gap-3 text-red-600 mb-4">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-gray-900">Delete Timetable Slot</h3>
+                <p class="text-xs text-gray-500">This action cannot be undone.</p>
+            </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-6">
+            Are you sure you want to remove the slot for <strong id="delete_slot_batch" class="text-gray-900"></strong> (<span id="delete_slot_course" class="text-indigo-600"></span>) on <span id="delete_slot_day" class="font-semibold text-gray-800"></span>?
+        </p>
+        <form method="POST" action="{% url 'timetable' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_slot">
+            <input type="hidden" name="slot_id" id="delete_slot_id">
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="closeDeleteSlotModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium transition">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-trash text-xs"></i> Delete Slot
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    const modal = document.getElementById('addSlotModal');
-    
-    function openModal() {
-        document.getElementById('slotForm').reset();
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+    // Add Slot Modal
+    const addModal = document.getElementById('addSlotModal');
+    function openAddModal() {
+        document.getElementById('addSlotForm').reset();
+        document.getElementById('add_course_badge').classList.add('hidden');
+        addModal.classList.remove('hidden');
+        addModal.classList.add('flex');
     }
-    
-    function closeModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+    function closeAddModal() {
+        addModal.classList.add('hidden');
+        addModal.classList.remove('flex');
+    }
+
+    function onAddBatchChange(selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt || !opt.value) {
+            document.getElementById('add_course_badge').classList.add('hidden');
+            return;
+        }
+        
+        const course = opt.getAttribute('data-course');
+        const teacher = opt.getAttribute('data-teacher');
+        const start = opt.getAttribute('data-starttime');
+        const end = opt.getAttribute('data-endtime');
+        const day = opt.getAttribute('data-day');
+
+        if (course) {
+            document.getElementById('add_course_name_display').textContent = course;
+            document.getElementById('add_course_badge').classList.remove('hidden');
+        }
+
+        if (teacher) {
+            document.getElementById('add_teacher_id').value = teacher;
+        }
+        if (start) {
+            document.getElementById('add_start_time').value = start;
+        }
+        if (end) {
+            document.getElementById('add_end_time').value = end;
+        }
+        if (day) {
+            document.getElementById('add_day_of_week').value = day;
+        }
+    }
+
+    // View Slot Modal
+    const viewModal = document.getElementById('viewSlotModal');
+    function openViewSlotModal(data) {
+        document.getElementById('view_batch_name').textContent = data.batch_name;
+        document.getElementById('view_batch_code').textContent = data.batch_code || '-';
+        document.getElementById('view_course_name').textContent = data.course_name;
+        document.getElementById('view_teacher_name').textContent = data.teacher_name;
+        document.getElementById('view_capacity_info').textContent = `${data.enrolled} / ${data.capacity} Students Enrolled`;
+        document.getElementById('view_day_of_week').textContent = data.day_of_week;
+        document.getElementById('view_timing').textContent = data.timing;
+        document.getElementById('view_duration').textContent = data.duration || '-';
+        document.getElementById('view_room').textContent = data.room_number;
+        document.getElementById('view_start_date').textContent = data.start_date || '-';
+        document.getElementById('view_end_date').textContent = data.end_date || '-';
+
+        viewModal.classList.remove('hidden');
+        viewModal.classList.add('flex');
+    }
+    function closeViewSlotModal() {
+        viewModal.classList.add('hidden');
+        viewModal.classList.remove('flex');
+    }
+
+    // Edit Slot Modal
+    const editModal = document.getElementById('editSlotModal');
+    function openEditSlotModal(data) {
+        document.getElementById('edit_slot_id').value = data.slot_id;
+        document.getElementById('edit_batch_id').value = data.batch_id;
+        document.getElementById('edit_teacher_id').value = data.teacher_id;
+        document.getElementById('edit_day_of_week').value = data.day_of_week;
+        document.getElementById('edit_start_time').value = data.start_time;
+        document.getElementById('edit_end_time').value = data.end_time;
+        document.getElementById('edit_room_number').value = data.room_number || '';
+
+        editModal.classList.remove('hidden');
+        editModal.classList.add('flex');
+    }
+    function closeEditSlotModal() {
+        editModal.classList.add('hidden');
+        editModal.classList.remove('flex');
+    }
+
+    // Delete Slot Modal
+    const deleteModal = document.getElementById('deleteSlotModal');
+    function openDeleteSlotModal(slotId, batchName, courseName, dayOfWeek) {
+        document.getElementById('delete_slot_id').value = slotId;
+        document.getElementById('delete_slot_batch').textContent = batchName;
+        document.getElementById('delete_slot_course').textContent = courseName;
+        document.getElementById('delete_slot_day').textContent = dayOfWeek;
+
+        deleteModal.classList.remove('hidden');
+        deleteModal.classList.add('flex');
+    }
+    function closeDeleteSlotModal() {
+        deleteModal.classList.add('hidden');
+        deleteModal.classList.remove('flex');
     }
 </script>
 {% endblock %}

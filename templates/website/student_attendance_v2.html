@@ -1,11 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="mb-6">
-    <div class="flex justify-between items-center mb-6">
+<div class="mb-6" x-data="{ showFilter: false }">
+    <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
         <h2 class="text-xl font-bold text-gray-800">{{ page_title }}</h2>
-        <div class="flex space-x-3">
+        <div class="flex items-center space-x-3">
+            <!-- Mobile Filter Toggle Button -->
+            <button @click="showFilter = !showFilter" 
+                    class="md:hidden inline-flex items-center justify-center px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition border border-indigo-200 shadow-sm">
+                <i class="fa-solid fa-filter mr-1.5"></i>
+                <span x-text="showFilter ? 'Hide Filters' : 'Filter'">Filter</span>
+                {% if selected_batch or selected_student or selected_teacher or selected_date %}
+                <span class="ml-1 px-1.5 py-0.5 text-xs bg-indigo-600 text-white rounded-full">1</span>
+                {% endif %}
+            </button>
             {% if menu_access.add %}
-            <button onclick="openLeaveModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center">
+            <button onclick="openLeaveModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center text-sm">
                 <i class="fa-solid fa-paper-plane mr-2"></i> Attendance Request
             </button>
             {% endif %}
@@ -13,7 +22,8 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6"
+         :class="showFilter ? 'block' : 'hidden md:block'">
         <form method="GET" action="" class="flex flex-wrap gap-4 items-end">
             {% if 'Student' in page_title %}
             {% if user.role.role_name != 'Student' %}<div class="w-48">

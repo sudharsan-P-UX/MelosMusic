@@ -1032,10 +1032,11 @@ def student_attendance_view(request):
         request.session.flush()
 
         return redirect('login')
-    from academics.models import Batch, LeaveRequest
+    from academics.models import Batch, LeaveRequest, StudentAttendance, StudentAttendanceDetail
     
     if request.method == 'POST':
-        if request.POST.get('action') == 'apply_leave':
+        action = request.POST.get('action')
+        if action == 'apply_leave':
             student_id = request.POST.get('student_id')
             student = User.objects.get(user_id=student_id)
             LeaveRequest.objects.create(
@@ -1045,10 +1046,44 @@ def student_attendance_view(request):
                 to_date=request.POST.get('to_date'),
                 no_of_days=request.POST.get('no_of_days') or 1,
                 request_type=request.POST.get('request_type'),
-                batch_id=request.POST.get('batch_id'),
+                batch_id=request.POST.get('batch_id') or None,
                 created_by=user.user_id
             )
             messages.success(request, 'Attendance request submitted successfully!')
+            return redirect('student_attendance')
+        elif action == 'mark_attendance':
+            att_date = request.POST.get('attendance_date')
+            batch_id = request.POST.get('batch_id')
+            student_id = request.POST.get('student_id')
+            status = request.POST.get('status')
+            remarks = request.POST.get('remarks', '')
+            
+            batch = Batch.objects.filter(batch_id=batch_id).first() if batch_id else None
+            student = User.objects.filter(user_id=student_id).first() if student_id else None
+            
+            if att_date and student:
+                course = batch.course if batch else None
+                att_record, _ = StudentAttendance.objects.get_or_create(
+                    attendance_date=att_date,
+                    batch=batch,
+                    defaults={'course': course, 'created_by': user.user_id}
+                )
+                StudentAttendanceDetail.objects.update_or_create(
+                    student_attendance=att_record,
+                    student=student,
+                    defaults={
+                        'attendance_status': int(status) if status else 1,
+                        'remarks': remarks,
+                        'created_by': user.user_id
+                    }
+                )
+                messages.success(request, f'Attendance marked for {student.display_name or student.first_name}!')
+            return redirect('student_attendance')
+        elif action == 'delete_attendance':
+            detail_id = request.POST.get('detail_id')
+            if detail_id:
+                StudentAttendanceDetail.objects.filter(student_attendance_detail_id=detail_id).delete()
+                messages.success(request, 'Attendance record deleted successfully!')
             return redirect('student_attendance')
             
     # Filters
@@ -1062,13 +1097,24 @@ def student_attendance_view(request):
     batches = Batch.objects.filter(is_active=True)
     students = User.objects.filter(role__role_name__iexact='student', is_active=True)
     
-    details = LeaveRequest.objects.filter(user_type='Student').select_related('user').order_by('-applied_date')
+    # Query Daily Attendance records
+    details = StudentAttendanceDetail.objects.select_related(
+        'student', 'student_attendance', 'student_attendance__batch', 'student_attendance__course'
+    ).order_by('-student_attendance__attendance_date', '-student_attendance_detail_id')
     
+    if selected_batch:
+        details = details.filter(student_attendance__batch_id=selected_batch)
     if selected_student:
-        details = details.filter(user_id=selected_student)
-        
+        details = details.filter(student_id=selected_student)
     if selected_date:
-        details = details.filter(from_date__lte=selected_date, to_date__gte=selected_date)
+        details = details.filter(student_attendance__attendance_date=selected_date)
+        
+    # Query Leave Requests
+    leave_requests = LeaveRequest.objects.filter(user_type='Student').select_related('user').order_by('-applied_date')
+    if selected_student:
+        leave_requests = leave_requests.filter(user_id=selected_student)
+    if selected_date:
+        leave_requests = leave_requests.filter(from_date__lte=selected_date, to_date__gte=selected_date)
 
     return render(request, 'website/student_attendance.html', {
         'user': user,
@@ -1076,10 +1122,10 @@ def student_attendance_view(request):
         'batches': batches,
         'students': students,
         'details': details,
+        'leave_requests': leave_requests,
         'selected_batch': selected_batch,
         'selected_student': selected_student,
-        'selected_date': selected_date
-,
+        'selected_date': selected_date,
         'allocated_batches': allocated_batches
     })
 
@@ -2234,15 +2280,32 @@ def mobile_menus_api(request):
     return JsonResponse({'success': False, 'error': 'Method not allowed'})
 
 from finance.models import StudentFee
-from academics.models import StudentAttendance
+from academics.models import StudentAttendance, StudentAttendanceDetail
 
 @csrf_exempt
 def mobile_attendance_api(request):
     if request.method == 'GET':
-        records = StudentAttendance.objects.all().select_related('student', 'course').values(
-            'date', 'student__first_name', 'course__course_name', 'status'
+        records = StudentAttendanceDetail.objects.all().select_related(
+            'student', 'student_attendance', 'student_attendance__course'
+        ).values(
+            'student_attendance__attendance_date',
+            'student__first_name',
+            'student__display_name',
+            'student_attendance__course__course_name',
+            'attendance_status',
+            'remarks'
         )[:50]
-        return JsonResponse({'success': True, 'data': list(records)})
+        status_map = {1: 'Present', 2: 'Absent', 3: 'Late', 4: 'Leave'}
+        formatted = []
+        for r in records:
+            formatted.append({
+                'date': str(r['student_attendance__attendance_date']) if r['student_attendance__attendance_date'] else '',
+                'student__first_name': r['student__display_name'] or r['student__first_name'] or '',
+                'course__course_name': r['student_attendance__course__course_name'] or 'General',
+                'status': status_map.get(r['attendance_status'], 'Present'),
+                'remarks': r['remarks'] or ''
+            })
+        return JsonResponse({'success': True, 'data': formatted})
     return JsonResponse({'success': False, 'error': 'Method not allowed'})
 
 @csrf_exempt

@@ -2,38 +2,51 @@
 {% load static %}
 
 {% block content %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200" x-data="{ showFilter: false }">
     <!-- Header -->
-    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h2 class="text-xl font-bold text-gray-800">Teacher Attendance</h2>
-        <div class="flex space-x-3">
-            <button onclick="openLeaveModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center">
-                <i class="fa-solid fa-calendar-minus mr-2"></i> Attendance Request
+    <div class="px-4 py-4 md:px-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800">Teacher Attendance</h2>
+            <p class="text-xs text-gray-500 mt-0.5">Manage daily teacher attendance and leave requests</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Mobile Filter Toggle Button -->
+            <button type="button" @click="showFilter = !showFilter" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
+                <i class="fa-solid fa-filter text-xs"></i>
+                <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
+                <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
             </button>
-            
+            <button onclick="openLeaveModal()" class="flex-1 sm:flex-none justify-center bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 rounded-md font-medium text-xs sm:text-sm shadow-sm transition flex items-center">
+                <i class="fa-solid fa-calendar-minus mr-1.5"></i> Attendance Request
+            </button>
+            <button onclick="openModal()" class="flex-1 sm:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-md font-medium text-xs sm:text-sm shadow-sm transition flex items-center">
+                <i class="fa-solid fa-plus mr-1.5"></i> Add Attendance
+            </button>
         </div>
     </div>
 
     <!-- Filters -->
-    <div class="p-6 pb-2 border-b border-gray-100 flex items-center space-x-4">
-        <div class="w-64">
-            <select class="w-full border border-gray-300 text-gray-600 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500">
-                <option value="">Select Teacher</option>
+    <form method="GET" action="{% url 'teacher_attendance' %}" :class="showFilter ? 'flex' : 'hidden md:flex'" class="p-4 md:p-6 pb-3 border-b border-gray-100 flex-col md:flex-row md:items-center gap-3">
+        <div class="w-full md:w-64">
+            <select name="teacher_id" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+                <option value="">All Teachers</option>
                 {% for teacher in teachers %}
-                <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
+                <option value="{{ teacher.user_id }}" {% if selected_teacher == teacher.user_id|stringformat:"s" %}selected{% endif %}>{{ teacher.display_name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div class="w-48 relative">
-            <input type="date" class="w-full border border-gray-300 text-gray-600 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500">
+        <div class="w-full md:w-48">
+            <input type="date" name="date" value="{{ selected_date }}" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
         </div>
-        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center">
-            <i class="fa-solid fa-filter mr-2"></i> Filter
-        </button>
-        <button class="border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition flex items-center">
-            <i class="fa-solid fa-arrow-rotate-right mr-2"></i> Reset
-        </button>
-    </div>
+        <div class="flex items-center gap-2">
+            <button type="submit" class="flex-1 md:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-md font-medium text-sm transition flex items-center shadow-sm">
+                <i class="fa-solid fa-filter mr-1.5 text-xs"></i> Filter
+            </button>
+            <a href="{% url 'teacher_attendance' %}" class="flex-1 md:flex-none justify-center border border-gray-300 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-md font-medium text-sm transition flex items-center">
+                <i class="fa-solid fa-arrow-rotate-right mr-1.5 text-xs"></i> Reset
+            </a>
+        </div>
+    </form>
 
     <!-- Table Header -->
     <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">

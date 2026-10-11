@@ -2,60 +2,69 @@
 {% load static %}
 
 {% block content %}
-<div class="mb-6 flex justify-between items-center">
+<div x-data="{ tab: 'collection', showFilter: false }">
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Fee Reports</h2>
+            <p class="text-gray-500 text-sm">Generate and export financial reports</p>
+        </div>
+        <!-- Mobile Filter Toggle Button -->
+        <button @click="showFilter = !showFilter" 
+                class="md:hidden inline-flex items-center justify-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition self-start sm:self-auto border border-indigo-200 shadow-sm">
+            <i class="fa-solid fa-filter mr-2"></i>
+            <span x-text="showFilter ? 'Hide Filters' : 'Filter'">Filter</span>
+        </button>
+    </div>
+
     <div>
-        <h2 class="text-2xl font-bold text-gray-800">Fee Reports</h2>
-        <p class="text-gray-500">Generate and export financial reports</p>
-    </div>
-</div>
-
-<div x-data="{ tab: 'collection' }">
-    <!-- Tabs Header -->
-    <div class="bg-white rounded-t-lg shadow-sm border border-gray-200 border-b-0 px-6 pt-4 flex space-x-6">
-        <button @click="tab = 'collection'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'collection', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'collection'}" class="pb-3 border-b-2 text-sm font-medium transition">
-            <i class="fa-solid fa-money-bill-wave mr-2"></i> Collection Report
-        </button>
-        <button @click="tab = 'pending'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'pending', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'pending'}" class="pb-3 border-b-2 text-sm font-medium transition">
-            <i class="fa-solid fa-hourglass-half mr-2"></i> Pending Fees Report
-        </button>
-        <button @click="tab = 'ledger'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'ledger', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'ledger'}" class="pb-3 border-b-2 text-sm font-medium transition">
-            <i class="fa-solid fa-book mr-2"></i> Student Ledger
-        </button>
-    </div>
-
-    <!-- Collection Report Tab -->
-    <div x-show="tab === 'collection'" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
-        <div class="flex items-end space-x-4 mb-6 border-b border-gray-100 pb-6">
-            <div class="w-40">
-                <label class="block text-xs font-medium text-gray-500 mb-1">From Date</label>
-                <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-            </div>
-            <div class="w-40">
-                <label class="block text-xs font-medium text-gray-500 mb-1">To Date</label>
-                <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-            </div>
-            <div class="w-48">
-                <label class="block text-xs font-medium text-gray-500 mb-1">Course</label>
-                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                    <option value="">All</option>
-                    {% for course in courses %}
-                    <option value="{{ course.course_id }}">{{ course.course_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="w-48">
-                <label class="block text-xs font-medium text-gray-500 mb-1">Batch</label>
-                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                    <option value="">All</option>
-                    {% for batch in batches %}
-                    <option value="{{ batch.batch_id }}">{{ batch.batch_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center">
-                <i class="fa-solid fa-arrows-rotate mr-2"></i> Generate
+        <!-- Tabs Header -->
+        <div class="bg-white rounded-t-lg shadow-sm border border-gray-200 border-b-0 px-6 pt-4 flex space-x-6 overflow-x-auto">
+            <button @click="tab = 'collection'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'collection', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'collection'}" class="pb-3 border-b-2 text-sm font-medium transition whitespace-nowrap">
+                <i class="fa-solid fa-money-bill-wave mr-2"></i> Collection Report
+            </button>
+            <button @click="tab = 'pending'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'pending', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'pending'}" class="pb-3 border-b-2 text-sm font-medium transition whitespace-nowrap">
+                <i class="fa-solid fa-hourglass-half mr-2"></i> Pending Fees Report
+            </button>
+            <button @click="tab = 'ledger'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'ledger', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'ledger'}" class="pb-3 border-b-2 text-sm font-medium transition whitespace-nowrap">
+                <i class="fa-solid fa-book mr-2"></i> Student Ledger
             </button>
         </div>
+
+        <!-- Collection Report Tab -->
+        <div x-show="tab === 'collection'" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-4 md:p-6">
+            <!-- Filters -->
+            <div class="mb-6 border-b border-gray-100 pb-6 flex-col md:flex-row flex-wrap md:items-end gap-4"
+                 :class="showFilter ? 'flex' : 'hidden md:flex'">
+                <div class="w-full md:w-40">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">From Date</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                </div>
+                <div class="w-full md:w-40">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">To Date</label>
+                    <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                </div>
+                <div class="w-full md:w-48">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Course</label>
+                    <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        <option value="">All</option>
+                        {% for course in courses %}
+                        <option value="{{ course.course_id }}">{{ course.course_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="w-full md:w-48">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Batch</label>
+                    <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        <option value="">All</option>
+                        {% for batch in batches %}
+                        <option value="{{ batch.batch_id }}">{{ batch.batch_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-arrows-rotate mr-2"></i> Generate
+                </button>
+            </div>
         
         <!-- Summary Cards -->
         <div class="grid grid-cols-4 gap-4 mb-6">
@@ -129,25 +138,27 @@
     </div>
 
     <!-- Pending Fees Report Tab -->
-    <div x-show="tab === 'pending'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
-        <div class="flex items-end space-x-4 mb-6 border-b border-gray-100 pb-6">
-            <div class="w-48">
+    <div x-show="tab === 'pending'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-4 md:p-6">
+        <!-- Filters -->
+        <div class="mb-6 border-b border-gray-100 pb-6 flex-col md:flex-row flex-wrap md:items-end gap-4"
+             :class="showFilter ? 'flex' : 'hidden md:flex'">
+            <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 mb-1">Course</label>
                 <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                     <option value="">All</option>
                 </select>
             </div>
-            <div class="w-48">
+            <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 mb-1">Batch</label>
                 <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                     <option value="">All</option>
                 </select>
             </div>
-            <div class="w-40">
+            <div class="w-full md:w-40">
                 <label class="block text-xs font-medium text-gray-500 mb-1">As On Date</label>
                 <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
             </div>
-            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center">
+            <button class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center justify-center text-sm">
                 <i class="fa-solid fa-arrows-rotate mr-2"></i> Generate
             </button>
         </div>
@@ -219,9 +230,11 @@
     </div>
 
     <!-- Student Ledger Tab -->
-    <div x-show="tab === 'ledger'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
-        <div class="flex items-end space-x-4 mb-6 border-b border-gray-100 pb-6">
-            <div class="w-64">
+    <div x-show="tab === 'ledger'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-4 md:p-6">
+        <!-- Filters -->
+        <div class="mb-6 border-b border-gray-100 pb-6 flex-col md:flex-row flex-wrap md:items-end gap-4"
+             :class="showFilter ? 'flex' : 'hidden md:flex'">
+            <div class="w-full md:w-64">
                 <label class="block text-xs font-medium text-gray-500 mb-1">Student <span class="text-red-500">*</span></label>
                 <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                     {% for student in students %}
@@ -229,15 +242,15 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="w-40">
+            <div class="w-full md:w-40">
                 <label class="block text-xs font-medium text-gray-500 mb-1">From Date</label>
                 <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
             </div>
-            <div class="w-40">
+            <div class="w-full md:w-40">
                 <label class="block text-xs font-medium text-gray-500 mb-1">To Date</label>
                 <input type="date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
             </div>
-            <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center">
+            <button class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition flex items-center justify-center text-sm">
                 <i class="fa-solid fa-arrows-rotate mr-2"></i> Generate
             </button>
         </div>
@@ -313,5 +326,6 @@
             </button>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}

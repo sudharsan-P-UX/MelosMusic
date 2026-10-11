@@ -3,17 +3,20 @@
 {% block header %}Allocation Details{% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-lg shadow min-h-screen" x-data="allocationData()">
+<div class="bg-white rounded-lg shadow min-h-screen" x-data="{ showFilter: false }">
     <!-- Header with Add Button -->
     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h2 class="text-lg font-medium text-gray-800">Allocation Details</h2>
-        
+        <!-- Mobile Filter Toggle Button -->
+        <button type="button" @click="showFilter = !showFilter" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
+            <i class="fa-solid fa-filter text-xs"></i>
+            <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
+            <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
+        </button>
     </div>
 
-    <!-- Table -->
-    
     <!-- Filter Bar -->
-    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+    <div :class="showFilter ? 'block' : 'hidden md:block'" class="px-6 py-4 border-b border-gray-200 bg-gray-50">
         <form method="GET" action="{% url 'student_course' %}" class="flex flex-wrap gap-4 items-end">
             <div class="relative">
                 <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search Student or Course" class="border border-gray-300 rounded px-3 py-1.5 w-64 text-sm focus:outline-none focus:border-indigo-500 h-[36px]">

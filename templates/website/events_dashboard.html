@@ -616,9 +616,17 @@
         </div>
 
         <!-- Event List -->
-        <div x-show="['upcoming', 'list'].includes(tab)" x-transition style="display: none;">
+        <div x-show="['upcoming', 'list'].includes(tab)" x-transition style="display: none;" x-data="{ showEventFilter: false }">
+            <div class="md:hidden flex justify-between items-center mb-4">
+                <span class="text-sm font-semibold text-gray-700">Events Directory</span>
+                <button type="button" @click="showEventFilter = !showEventFilter" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
+                    <i class="fa-solid fa-filter text-xs"></i>
+                    <span x-text="showEventFilter ? 'Hide Filter' : 'Filter'">Filter</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showEventFilter}"></i>
+                </button>
+            </div>
             
-            <form method="GET" action="{% url 'events_dashboard' %}" class="flex flex-wrap gap-4 items-end mb-6">
+            <form method="GET" action="{% url 'events_dashboard' %}" :class="showEventFilter ? 'flex' : 'hidden md:flex'" class="flex-wrap gap-4 items-end mb-6">
                 <input type="hidden" name="tab" value="list">
                 <div class="flex-1 min-w-[200px]">
                     <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search event name..." class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500">

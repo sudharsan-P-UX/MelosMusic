@@ -16,7 +16,7 @@
     <aside :class="{'translate-x-0': sidebarOpen, '-translate-x-full': !sidebarOpen}" class="fixed inset-y-0 left-0 z-50 w-64 bg-indigo-900 text-white flex flex-col transition-transform duration-300 ease-in-out md:relative md:translate-x-0">
         <div class="h-16 flex items-center justify-between px-4 font-bold text-2xl border-b border-indigo-800">
             <span class="mx-auto">Melo's Music</span>
-            <button class="md:hidden text-indigo-300 hover:text-white">
+            <button @click="sidebarOpen = false" class="md:hidden text-indigo-300 hover:text-white">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>

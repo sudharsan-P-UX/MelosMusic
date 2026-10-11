@@ -3,14 +3,25 @@
 {% block header %}Teacher Management{% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-lg shadow min-h-screen">
+<div class="bg-white rounded-lg shadow min-h-screen" x-data="{ showFilter: false }">
     <!-- Header with Add Button -->
     <div class="px-6 py-4 border-b border-gray-200">
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
             <h2 class="text-lg font-medium text-gray-800">Teachers Directory</h2>
+            <div class="flex items-center gap-2 ml-auto">
+                <!-- Mobile Filter Toggle Button -->
+                <button type="button" @click="showFilter = !showFilter" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
+                    <i class="fa-solid fa-filter text-xs"></i>
+                    <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
+                    <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
+                </button>
+                {% if menu_access.add %}<button type="button" onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded shadow-sm text-sm h-[34px] flex items-center">
+                    <i class="fa-solid fa-plus mr-1.5"></i> Add Teacher
+                </button>{% endif %}
+            </div>
         </div>
         
-        <form method="GET" action="{% url 'teachers' %}" class="flex flex-wrap gap-3 items-end pb-2">
+        <form method="GET" action="{% url 'teachers' %}" :class="showFilter ? 'flex' : 'hidden md:flex'" class="flex-wrap gap-3 items-end pb-2 pt-2 border-t border-dashed border-gray-200 md:border-0 md:pt-0">
             
             <div class="relative">
                 <select name="status_filter" class="appearance-none border border-gray-300 rounded px-3 py-1.5 pr-8 text-sm text-gray-700 hover:border-gray-400 focus:outline-none bg-white h-[34px]">
@@ -43,12 +54,6 @@
                 <a href="{% url 'teachers' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[34px] flex items-center shadow-sm">
                     Clear
                 </a>
-            </div>
-            
-            <div class="ml-auto">
-                {% if menu_access.add %}<button type="button" onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded shadow-sm text-sm h-[34px] flex items-center">
-                    <i class="fa-solid fa-plus mr-1.5"></i> Add Teacher
-                </button>{% endif %}
             </div>
         </form>
     </div>

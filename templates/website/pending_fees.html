@@ -2,40 +2,52 @@
 {% load static %}
 
 {% block content %}
-<div class="mb-6">
-    <h2 class="text-2xl font-bold text-gray-800">Pending Fees</h2>
-    <p class="text-gray-500">Track and manage overdue student fee collections</p>
-</div>
-
-<div class="bg-white rounded-lg shadow-sm border border-gray-200">
-    <!-- Filters -->
-    <div class="p-6 border-b border-gray-100 flex items-end space-x-4">
-        <div class="w-48">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Course</label>
-            <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                <option value="">All</option>
-            </select>
+<div x-data="{ showFilter: false }">
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Pending Fees</h2>
+            <p class="text-gray-500 text-sm">Track and manage overdue student fee collections</p>
         </div>
-        <div class="w-48">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Batch</label>
-            <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                <option value="">All</option>
-            </select>
-        </div>
-        <div class="w-48">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-            <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                <option value="pending" selected>Pending</option>
-                <option value="overdue">Overdue</option>
-            </select>
-        </div>
-        <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition">
-            Filter
-        </button>
-        <button class="border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition">
-            Reset
+        <!-- Mobile Filter Toggle Button -->
+        <button @click="showFilter = !showFilter" 
+                class="md:hidden inline-flex items-center justify-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition self-start sm:self-auto border border-indigo-200 shadow-sm">
+            <i class="fa-solid fa-filter mr-2"></i>
+            <span x-text="showFilter ? 'Hide Filters' : 'Filter'">Filter</span>
         </button>
     </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <!-- Filters -->
+        <div class="p-4 md:p-6 border-b border-gray-100 flex-col md:flex-row flex-wrap md:items-end gap-4"
+             :class="showFilter ? 'flex' : 'hidden md:flex'">
+            <div class="w-full md:w-48">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Course</label>
+                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div class="w-full md:w-48">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Batch</label>
+                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                    <option value="">All</option>
+                </select>
+            </div>
+            <div class="w-full md:w-48">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                    <option value="pending" selected>Pending</option>
+                    <option value="overdue">Overdue</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <button class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition text-sm">
+                    Filter
+                </button>
+                <button class="flex-1 md:flex-initial border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition text-sm">
+                    Reset
+                </button>
+            </div>
+        </div>
 
     <!-- Table -->
     <div class="overflow-x-auto">
@@ -117,5 +129,6 @@
             <button class="px-3 py-1 border border-gray-300 rounded text-gray-500 hover:bg-gray-50">Next</button>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}

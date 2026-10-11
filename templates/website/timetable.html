@@ -73,6 +73,17 @@
                 </select>
             </div>
 
+            <!-- Time Period Filter -->
+            <div class="w-36">
+                <label class="block text-xs text-gray-500 mb-1">Time Period</label>
+                <select name="period" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Periods</option>
+                    {% for p in available_periods %}
+                    <option value="{{ p }}" {% if selected_period == p|stringformat:"s" %}selected{% endif %}>{{ p }} Month{{ p|pluralize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <!-- Day of Week -->
             <div class="w-36">
                 <label class="block text-xs text-gray-500 mb-1">Day</label>
@@ -100,14 +111,14 @@
     <div class="px-6 py-3 border-b border-gray-200 bg-white flex flex-wrap items-center justify-between gap-3">
         <!-- Week Navigation Controls -->
         <div class="flex items-center gap-2">
-            <a href="{% url 'timetable' %}?week_start={{ prev_week_start }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_batch %}&batch_id={{ selected_batch }}{% endif %}{% if selected_teacher %}&teacher_id={{ selected_teacher }}{% endif %}{% if selected_day %}&day={{ selected_day }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="px-2.5 py-1.5 border border-gray-300 rounded text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center shadow-xs transition">
+            <a href="{% url 'timetable' %}?week_start={{ prev_week_start }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_batch %}&batch_id={{ selected_batch }}{% endif %}{% if selected_teacher %}&teacher_id={{ selected_teacher }}{% endif %}{% if selected_day %}&day={{ selected_day }}{% endif %}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="px-2.5 py-1.5 border border-gray-300 rounded text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center shadow-xs transition">
                 <i class="fa-solid fa-chevron-left mr-1"></i> Prev Week
             </a>
             <div class="font-bold text-gray-800 text-xs px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded text-indigo-900 flex items-center gap-1.5 shadow-xs">
                 <i class="fa-regular fa-calendar text-indigo-600"></i>
                 <span>Week: {{ current_week_str }}</span>
             </div>
-            <a href="{% url 'timetable' %}?week_start={{ next_week_start }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_batch %}&batch_id={{ selected_batch }}{% endif %}{% if selected_teacher %}&teacher_id={{ selected_teacher }}{% endif %}{% if selected_day %}&day={{ selected_day }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="px-2.5 py-1.5 border border-gray-300 rounded text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center shadow-xs transition">
+            <a href="{% url 'timetable' %}?week_start={{ next_week_start }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_batch %}&batch_id={{ selected_batch }}{% endif %}{% if selected_teacher %}&teacher_id={{ selected_teacher }}{% endif %}{% if selected_day %}&day={{ selected_day }}{% endif %}{% if selected_period %}&period={{ selected_period }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="px-2.5 py-1.5 border border-gray-300 rounded text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center shadow-xs transition">
                 Next Week <i class="fa-solid fa-chevron-right ml-1"></i>
             </a>
             <a href="{% url 'timetable' %}" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold ml-1.5">
@@ -126,6 +137,23 @@
             <a href="{% url 'holidays' %}" class="text-xs font-semibold text-amber-700 hover:text-amber-900 hover:underline flex items-center gap-1 ml-1">
                 <i class="fa-solid fa-gear text-[10px]"></i> Configure Holidays
             </a>
+        </div>
+    </div>
+
+    <!-- Batch Time Periods & Schedules Summary Banner -->
+    <div class="px-6 py-2.5 bg-gray-50/90 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="font-bold text-gray-700 flex items-center gap-1.5">
+                <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i> Batch Time Periods:
+            </span>
+            {% for bp in batch_periods_summary %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white border border-gray-200 text-gray-700 shadow-xs">
+                <span class="font-bold text-indigo-900">{{ bp.batch_name }}</span>
+                <span class="bg-purple-100 text-purple-700 text-[10px] font-bold px-1.5 py-0.2 rounded">{{ bp.duration_months }} Mos</span>
+                <span class="text-gray-400 font-mono text-[10px]">({{ bp.start_date }} - {{ bp.end_date }})</span>
+                <span class="text-emerald-700 font-semibold text-[10px]">&bull; {{ bp.days }}</span>
+            </span>
+            {% endfor %}
         </div>
     </div>
 
@@ -205,6 +233,17 @@
                             <span class="truncate" title="Batch: {{ slot.batch.batch_name }}">{{ slot.batch.batch_name }}</span>
                         </div>
 
+                        <!-- Time Period & Progress Badge -->
+                        <div class="flex items-center justify-between gap-1 mb-2 flex-wrap">
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200" title="Course Time Period: {{ slot.time_period_display }}">
+                                <i class="fa-solid fa-hourglass-half mr-1 text-[9px] text-purple-500"></i>
+                                {{ slot.time_period_display }}
+                            </span>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border {{ slot.period_status_class }}" title="Schedule Status for this week">
+                                {{ slot.period_status_label|safe }}
+                            </span>
+                        </div>
+
                         <!-- Assigned Teacher -->
                         <div class="text-xs text-gray-600 mb-1 flex items-center gap-1.5">
                             <i class="fa-solid fa-chalkboard-user text-gray-400 text-xs"></i>
@@ -221,6 +260,14 @@
                             <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded">{{ slot.batch.duration_display }}</span>
                             {% endif %}
                         </div>
+
+                        <!-- Period Date Range -->
+                        {% if slot.period_dates_display and slot.period_dates_display != "-" %}
+                        <div class="text-[10px] text-gray-500 mb-1.5 flex items-center gap-1 font-mono">
+                            <i class="fa-regular fa-calendar-check text-[10px] text-gray-400"></i>
+                            <span>{{ slot.period_dates_display }}</span>
+                        </div>
+                        {% endif %}
 
                         <!-- Capacity & Room Footer -->
                         <div class="flex items-center justify-between text-[11px] text-gray-500 pt-2 border-t border-gray-100">
@@ -248,6 +295,9 @@
                                         day_of_week: '{{ slot.day_of_week|escapejs }}',
                                         timing: '{{ slot.start_time|time:"g:i A"|escapejs }} - {{ slot.end_time|time:"g:i A"|escapejs }}',
                                         duration: '{{ slot.batch.duration_display|escapejs }}',
+                                        time_period: '{{ slot.time_period_display|escapejs }}',
+                                        period_status: '{{ slot.period_status_label|striptags|escapejs }}',
+                                        period_dates: '{{ slot.period_dates_display|escapejs }}',
                                         room_number: '{{ slot.room_number|default:"Studio 1"|escapejs }}',
                                         enrolled: '{{ slot.enrolled_count|default:"0" }}',
                                         capacity: '{{ slot.batch.capacity|default:"-" }}',
@@ -322,9 +372,9 @@
                         <i class="fa-solid fa-users-rectangle text-indigo-600"></i>
                         <span id="view_batch_name"></span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Active</span>
+                    <span id="view_period_status_badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Active</span>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div>
                         <span class="text-xs text-gray-500 block">Batch Code</span>
                         <span class="font-medium text-gray-900 font-mono" id="view_batch_code"></span>
@@ -332,6 +382,14 @@
                     <div>
                         <span class="text-xs text-gray-500 block">Course Name (Allocation)</span>
                         <span class="font-semibold text-indigo-700" id="view_course_name"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Time Period</span>
+                        <span class="font-bold text-purple-700 bg-purple-100/60 border border-purple-200 px-2 py-0.5 rounded inline-block text-xs" id="view_time_period"></span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-gray-500 block">Batch Date Range</span>
+                        <span class="font-medium text-gray-900 font-mono text-xs" id="view_period_dates"></span>
                     </div>
                 </div>
             </div>
@@ -641,9 +699,16 @@
         document.getElementById('view_day_of_week').textContent = data.day_of_week;
         document.getElementById('view_timing').textContent = data.timing;
         document.getElementById('view_duration').textContent = data.duration || '-';
+        document.getElementById('view_time_period').textContent = data.time_period ? `${data.time_period} Course` : '-';
+        document.getElementById('view_period_dates').textContent = data.period_dates || '-';
         document.getElementById('view_room').textContent = data.room_number;
         document.getElementById('view_start_date').textContent = data.start_date || '-';
         document.getElementById('view_end_date').textContent = data.end_date || '-';
+
+        const statusBadge = document.getElementById('view_period_status_badge');
+        if (statusBadge) {
+            statusBadge.textContent = data.period_status || 'Active';
+        }
 
         viewModal.classList.remove('hidden');
         viewModal.classList.add('flex');

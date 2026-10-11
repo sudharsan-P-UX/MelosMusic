@@ -973,36 +973,75 @@ def generic_page(request, page_name):
 
 def sync_batch_timetable(created_by_id=None):
     try:
-        from academics.models import Batch, Timetable
+        from academics.models import Batch, Timetable, Course
+
+        default_course_days = {
+            'Guiter Class Basic': 'Tuesday, Thursday, Saturday',
+            'Piano Class': 'Monday, Wednesday, Friday',
+            'Flute Class Mid': 'Monday, Thursday',
+        }
+        for c in Course.objects.filter(is_active=True):
+            if not c.days and c.course_name in default_course_days:
+                c.days = default_course_days[c.course_name]
+                c.save(update_fields=['days'])
+
+        day_map = {
+            'mon': 'Monday', 'monday': 'Monday',
+            'tue': 'Tuesday', 'tues': 'Tuesday', 'tuesday': 'Tuesday',
+            'wed': 'Wednesday', 'wednesday': 'Wednesday',
+            'thu': 'Thursday', 'thur': 'Thursday', 'thurs': 'Thursday', 'thursday': 'Thursday',
+            'fri': 'Friday', 'friday': 'Friday',
+            'sat': 'Saturday', 'saturday': 'Saturday',
+            'sun': 'Sunday', 'sunday': 'Sunday'
+        }
+
         for batch in Batch.objects.select_related('course', 'teacher').filter(is_active=True):
-            if batch.start_time and batch.end_time and batch.teacher:
-                day = batch.start_date.strftime('%A') if batch.start_date else 'Monday'
-                existing = Timetable.objects.filter(batch=batch).first()
-                room = f"Studio {batch.batch_code or '1'}"
-                if not existing:
-                    Timetable.objects.create(
-                        batch=batch,
-                        teacher=batch.teacher,
-                        day_of_week=day,
-                        start_time=batch.start_time,
-                        end_time=batch.end_time,
-                        room_number=room,
-                        created_by=created_by_id
-                    )
-                else:
+            if not (batch.start_time and batch.end_time and batch.teacher):
+                continue
+
+            course_days = []
+            if batch.course and batch.course.days:
+                raw_days = [d.strip() for d in batch.course.days.replace(';', ',').split(',') if d.strip()]
+                for rd in raw_days:
+                    clean = day_map.get(rd.lower())
+                    if clean and clean not in course_days:
+                        course_days.append(clean)
+
+            if not course_days:
+                course_days = [batch.start_date.strftime('%A') if batch.start_date else 'Monday']
+
+            room = f"Studio {batch.batch_code}" if batch.batch_code else "Studio 1"
+
+            # Remove obsolete slots for days not in this course's schedule
+            Timetable.objects.filter(batch=batch).exclude(day_of_week__in=course_days).delete()
+
+            for day in course_days:
+                slot, created = Timetable.objects.get_or_create(
+                    batch=batch,
+                    day_of_week=day,
+                    defaults={
+                        'teacher': batch.teacher,
+                        'start_time': batch.start_time,
+                        'end_time': batch.end_time,
+                        'room_number': room,
+                        'is_active': True,
+                        'created_by': created_by_id
+                    }
+                )
+                if not created:
                     updated = False
-                    if existing.teacher != batch.teacher:
-                        existing.teacher = batch.teacher
+                    if slot.teacher != batch.teacher:
+                        slot.teacher = batch.teacher
                         updated = True
-                    if existing.start_time != batch.start_time or existing.end_time != batch.end_time:
-                        existing.start_time = batch.start_time
-                        existing.end_time = batch.end_time
+                    if slot.start_time != batch.start_time or slot.end_time != batch.end_time:
+                        slot.start_time = batch.start_time
+                        slot.end_time = batch.end_time
                         updated = True
-                    if not existing.day_of_week:
-                        existing.day_of_week = day
+                    if not slot.is_active:
+                        slot.is_active = True
                         updated = True
                     if updated:
-                        existing.save()
+                        slot.save()
     except Exception as e:
         print(f"Error syncing batch timetable: {e}")
 
@@ -1094,6 +1133,7 @@ def timetable_view(request):
     teacher_filter = request.GET.get('teacher_id', '').strip()
     day_filter = request.GET.get('day', '').strip()
     course_filter = request.GET.get('course_id', '').strip()
+    period_filter = request.GET.get('period', '').strip()
 
     if search:
         slots = slots.filter(
@@ -1112,11 +1152,34 @@ def timetable_view(request):
         slots = slots.filter(day_of_week__iexact=day_filter)
     if course_filter:
         slots = slots.filter(batch__course_id=course_filter)
+    if period_filter:
+        try:
+            p_int = int(period_filter)
+            slots = slots.filter(batch__course__duration_months=p_int)
+        except ValueError:
+            pass
 
     batches = Batch.objects.select_related('course', 'teacher').filter(is_active=True).order_by('batch_name')
     teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
     courses = Course.objects.filter(is_active=True).order_by('course_name')
-    
+
+    # Batch periods summary for display
+    batch_periods_summary = []
+    for b in batches:
+        dur = b.course.duration_months if b.course and b.course.duration_months else 0
+        if not dur and b.start_date and b.end_date:
+            dur = max(1, (b.end_date - b.start_date).days // 30)
+        batch_periods_summary.append({
+            'batch_id': b.batch_id,
+            'batch_name': b.batch_name,
+            'course_name': b.course.course_name if b.course else '-',
+            'duration_months': dur,
+            'days': b.course.days if b.course and b.course.days else 'Scheduled',
+            'start_date': b.start_date.strftime('%d %b %Y') if b.start_date else '-',
+            'end_date': b.end_date.strftime('%d %b %Y') if b.end_date else '-'
+        })
+    available_periods = sorted(list(set(item['duration_months'] for item in batch_periods_summary if item['duration_months'])))
+
     # Calculate enrollment counts per batch for display
     batch_enrollments = {}
     for b in batches:
@@ -1180,6 +1243,30 @@ def timetable_view(request):
 
         day_slots = [s for s in slots if s.day_of_week.lower() == day.lower()]
 
+        # Decorate slots with time period & status for d_date
+        for s in day_slots:
+            b = s.batch
+            dur = b.course.duration_months if b and b.course and b.course.duration_months else 0
+            if not dur and b and b.start_date and b.end_date:
+                dur = max(1, (b.end_date - b.start_date).days // 30)
+            s.duration_months = dur
+            s.time_period_display = f"{dur} Month{'s' if dur > 1 else ''}"
+            s.period_dates_display = f"{b.start_date.strftime('%d %b %Y')} - {b.end_date.strftime('%d %b %Y')}" if b and b.start_date and b.end_date else "-"
+
+            if b and b.start_date and d_date < b.start_date:
+                s.period_status = 'upcoming'
+                s.period_status_label = f"Starts {b.start_date.strftime('%d %b')}"
+                s.period_status_class = "bg-blue-50 text-blue-700 border-blue-200"
+            elif b and b.end_date and d_date > b.end_date:
+                s.period_status = 'completed'
+                s.period_status_label = f"Course Finished ({dur} Mos ended)"
+                s.period_status_class = "bg-gray-100 text-gray-500 border-gray-200"
+            else:
+                curr_month = max(1, min(dur, ((d_date - b.start_date).days // 30) + 1)) if b and b.start_date and dur > 0 else 1
+                s.period_status = 'active'
+                s.period_status_label = f"Active &bull; Month {curr_month} of {dur}"
+                s.period_status_class = "bg-emerald-50 text-emerald-700 border-emerald-200"
+
         schedule_data.append({
             'day': day,
             'date': d_date,
@@ -1203,6 +1290,9 @@ def timetable_view(request):
         'selected_batch': batch_filter,
         'selected_teacher': teacher_filter,
         'selected_day': day_filter,
+        'selected_period': period_filter,
+        'available_periods': available_periods,
+        'batch_periods_summary': batch_periods_summary,
         'current_monday': current_monday.isoformat(),
         'prev_week_start': prev_week_start,
         'next_week_start': next_week_start,

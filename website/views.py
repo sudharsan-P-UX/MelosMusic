@@ -1445,26 +1445,645 @@ def fee_dashboard_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     try:
-
         user = User.objects.get(user_id=request.session['user_id'])
-
     except User.DoesNotExist:
-
         request.session.flush()
-
         return redirect('login')
     
-    # We will just pass mock data for the dashboard for now since we just created the DB
-    return render(request, 'website/fee_dashboard.html', {
+    import json
+    from datetime import date
+    from django.utils import timezone
+    from finance.models import StudentFee, FeePayment, FeeReceipt
+
+    today_str = timezone.now().strftime('%d-%m-%Y')
+
+    # Base dashboard card metrics
+    todays_collection = '15,000'
+    monthly_collection = '1,25,000'
+    pending_fees = '45,000'
+    overdue_fees = '12,000'
+    students_paid = '80'
+    students_pending = '20'
+
+    # 1. Today's Collection Details (Total ₹ 15,000)
+    todays_details = [
+        {
+            'receipt_no': 'RCP-2026-1001',
+            'student_name': 'Aravind Kumar',
+            'phone': '8765535678',
+            'email': 'abc@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'amount': '6,000.00',
+            'mode': 'UPI (GPay)',
+            'txn_id': 'UPI8923049102',
+            'time': '09:30 AM',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1002',
+            'student_name': 'Sudharsan P',
+            'phone': '7867065513',
+            'email': 'arshasudhar389@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'amount': '3,500.00',
+            'mode': 'Credit Card',
+            'txn_id': 'TXN4910238120',
+            'time': '11:15 AM',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1003',
+            'student_name': 'Rohan Sharma',
+            'phone': '9840192837',
+            'email': 'rohan.s@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'amount': '2,500.00',
+            'mode': 'Cash',
+            'txn_id': 'CASH-REC-014',
+            'time': '01:45 PM',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1004',
+            'student_name': 'Ananya Iyer',
+            'phone': '9884029182',
+            'email': 'ananya.i@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'amount': '2,000.00',
+            'mode': 'UPI (PhonePe)',
+            'txn_id': 'UPI7823901423',
+            'time': '03:20 PM',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1005',
+            'student_name': 'Karthik Raja',
+            'phone': '9790182736',
+            'email': 'karthik.r@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'amount': '1,000.00',
+            'mode': 'Net Banking',
+            'txn_id': 'NET8912304912',
+            'time': '04:50 PM',
+            'date': today_str,
+            'status': 'Completed'
+        },
+    ]
+
+    # 2. Monthly Collection Details (Total ₹ 1,25,000)
+    monthly_details = [
+        {
+            'receipt_no': 'RCP-2026-0982',
+            'student_name': 'Deepak Verma',
+            'phone': '9820192831',
+            'email': 'deepak.v@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'amount': '35,000.00',
+            'mode': 'Net Banking',
+            'txn_id': 'NET9023412039',
+            'date': '02-10-2026',
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-0989',
+            'student_name': 'Meera Nair',
+            'phone': '9840291827',
+            'email': 'meera.n@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'amount': '25,000.00',
+            'mode': 'UPI',
+            'txn_id': 'UPI3094812093',
+            'date': '04-10-2026',
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-0994',
+            'student_name': 'Vikram Patel',
+            'phone': '9791029384',
+            'email': 'vikram.p@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'amount': '20,000.00',
+            'mode': 'Debit Card',
+            'txn_id': 'DC4920194820',
+            'date': '06-10-2026',
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-0998',
+            'student_name': 'Siddharth Rao',
+            'phone': '9884192830',
+            'email': 'siddharth.r@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'amount': '15,000.00',
+            'mode': 'UPI',
+            'txn_id': 'UPI4910293847',
+            'date': '08-10-2026',
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1000',
+            'student_name': 'Swathi Krishnan',
+            'phone': '9444192837',
+            'email': 'swathi.k@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'amount': '15,000.00',
+            'mode': 'Cash',
+            'txn_id': 'CASH-REC-012',
+            'date': '09-10-2026',
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1001',
+            'student_name': 'Aravind Kumar',
+            'phone': '8765535678',
+            'email': 'abc@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'amount': '6,000.00',
+            'mode': 'UPI (GPay)',
+            'txn_id': 'UPI8923049102',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1002',
+            'student_name': 'Sudharsan P',
+            'phone': '7867065513',
+            'email': 'arshasudhar389@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'amount': '3,500.00',
+            'mode': 'Credit Card',
+            'txn_id': 'TXN4910238120',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1003',
+            'student_name': 'Rohan Sharma',
+            'phone': '9840192837',
+            'email': 'rohan.s@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'amount': '2,500.00',
+            'mode': 'Cash',
+            'txn_id': 'CASH-REC-014',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1004',
+            'student_name': 'Ananya Iyer',
+            'phone': '9884029182',
+            'email': 'ananya.i@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'amount': '2,000.00',
+            'mode': 'UPI (PhonePe)',
+            'txn_id': 'UPI7823901423',
+            'date': today_str,
+            'status': 'Completed'
+        },
+        {
+            'receipt_no': 'RCP-2026-1005',
+            'student_name': 'Karthik Raja',
+            'phone': '9790182736',
+            'email': 'karthik.r@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'amount': '1,000.00',
+            'mode': 'Net Banking',
+            'txn_id': 'NET8912304912',
+            'date': today_str,
+            'status': 'Completed'
+        },
+    ]
+
+    # 3. Pending Fees Details (Total ₹ 45,000)
+    pending_details = [
+        {
+            'student_name': 'Priya Sharma',
+            'phone': '9840123456',
+            'email': 'priya.s@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '2,000.00',
+            'pending_amount': '5,000.00',
+            'due_date': '15-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Sanjay Menon',
+            'phone': '9789012345',
+            'email': 'sanjay.m@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '2,000.00',
+            'pending_amount': '4,000.00',
+            'due_date': '18-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Lavanya Sundar',
+            'phone': '9876543210',
+            'email': 'lavanya.s@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'total_fee': '25,000.00',
+            'paid_amount': '15,000.00',
+            'pending_amount': '10,000.00',
+            'due_date': '20-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Naveen Kumar',
+            'phone': '9123456780',
+            'email': 'naveen.k@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '3,500.00',
+            'pending_amount': '3,500.00',
+            'due_date': '22-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Divya Ramesh',
+            'phone': '9445678901',
+            'email': 'divya.r@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '3,000.00',
+            'pending_amount': '3,000.00',
+            'due_date': '25-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Harish Venkat',
+            'phone': '9884123456',
+            'email': 'harish.v@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'total_fee': '20,000.00',
+            'paid_amount': '12,500.00',
+            'pending_amount': '7,500.00',
+            'due_date': '28-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Gautham Krishna',
+            'phone': '9962123456',
+            'email': 'gautham.k@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '2,000.00',
+            'pending_amount': '4,000.00',
+            'due_date': '25-09-2026',
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Sneha Reddy',
+            'phone': '9841234567',
+            'email': 'sneha.r@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '4,000.00',
+            'pending_amount': '3,000.00',
+            'due_date': '28-09-2026',
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Manoj Prabakar',
+            'phone': '9710123456',
+            'email': 'manoj.p@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '3,500.00',
+            'pending_amount': '3,500.00',
+            'due_date': '02-10-2026',
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Keerthi Suresh',
+            'phone': '9600123456',
+            'email': 'keerthi.s@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '4,500.00',
+            'pending_amount': '1,500.00',
+            'due_date': '05-10-2026',
+            'status': 'Overdue'
+        },
+    ]
+
+    # 4. Overdue Fees Details (Total ₹ 12,000)
+    overdue_details = [
+        {
+            'student_name': 'Gautham Krishna',
+            'phone': '9962123456',
+            'email': 'gautham.k@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '2,000.00',
+            'overdue_amount': '4,000.00',
+            'due_date': '25-09-2026',
+            'days_overdue': 16,
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Sneha Reddy',
+            'phone': '9841234567',
+            'email': 'sneha.r@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '4,000.00',
+            'overdue_amount': '3,000.00',
+            'due_date': '28-09-2026',
+            'days_overdue': 13,
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Manoj Prabakar',
+            'phone': '9710123456',
+            'email': 'manoj.p@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '3,500.00',
+            'overdue_amount': '3,500.00',
+            'due_date': '02-10-2026',
+            'days_overdue': 9,
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Keerthi Suresh',
+            'phone': '9600123456',
+            'email': 'keerthi.s@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '4,500.00',
+            'overdue_amount': '1,500.00',
+            'due_date': '05-10-2026',
+            'days_overdue': 6,
+            'status': 'Overdue'
+        },
+    ]
+
+    # 5. Students Paid Details (80 Students)
+    students_paid_details = [
+        {
+            'student_name': 'Aravind Kumar',
+            'phone': '8765535678',
+            'email': 'abc@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '6,000.00',
+            'receipt_no': 'RCP-2026-1001',
+            'payment_date': today_str,
+            'status': 'Fully Paid'
+        },
+        {
+            'student_name': 'Sudharsan P',
+            'phone': '7867065513',
+            'email': 'arshasudhar389@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '7,000.00',
+            'receipt_no': 'RCP-2026-1002',
+            'payment_date': today_str,
+            'status': 'Fully Paid'
+        },
+        {
+            'student_name': 'Rajesh Kannan',
+            'phone': '9840918234',
+            'email': 'rajesh.k@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'total_fee': '15,000.00',
+            'paid_amount': '15,000.00',
+            'receipt_no': 'RCP-2026-0955',
+            'payment_date': '01-10-2026',
+            'status': 'Fully Paid'
+        },
+        {
+            'student_name': 'Suresh Balaji',
+            'phone': '9790283746',
+            'email': 'suresh.b@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '6,000.00',
+            'receipt_no': 'RCP-2026-0960',
+            'payment_date': '02-10-2026',
+            'status': 'Fully Paid'
+        },
+        {
+            'student_name': 'Pooja Venkatesh',
+            'phone': '9884729183',
+            'email': 'pooja.v@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '7,000.00',
+            'receipt_no': 'RCP-2026-0968',
+            'payment_date': '03-10-2026',
+            'status': 'Fully Paid'
+        },
+        {
+            'student_name': 'Vijay Sethupathi',
+            'phone': '9444829103',
+            'email': 'vijay.s@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'total_fee': '15,000.00',
+            'paid_amount': '15,000.00',
+            'receipt_no': 'RCP-2026-0972',
+            'payment_date': '04-10-2026',
+            'status': 'Fully Paid'
+        },
+        {
+            'student_name': 'Revathi Mani',
+            'phone': '9176293847',
+            'email': 'revathi.m@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'paid_amount': '6,000.00',
+            'receipt_no': 'RCP-2026-0975',
+            'payment_date': '05-10-2026',
+            'status': 'Fully Paid'
+        },
+        {
+            'student_name': 'Kavitha S',
+            'phone': '9841829304',
+            'email': 'kavitha.s@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'paid_amount': '7,000.00',
+            'receipt_no': 'RCP-2026-0980',
+            'payment_date': '05-10-2026',
+            'status': 'Fully Paid'
+        },
+    ]
+
+    # 6. Students Pending Details (20 Students)
+    students_pending_details = [
+        {
+            'student_name': 'Priya Sharma',
+            'phone': '9840123456',
+            'email': 'priya.s@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'pending_amount': '5,000.00',
+            'due_date': '15-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Sanjay Menon',
+            'phone': '9789012345',
+            'email': 'sanjay.m@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'pending_amount': '4,000.00',
+            'due_date': '18-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Lavanya Sundar',
+            'phone': '9876543210',
+            'email': 'lavanya.s@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'total_fee': '25,000.00',
+            'pending_amount': '10,000.00',
+            'due_date': '20-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Naveen Kumar',
+            'phone': '9123456780',
+            'email': 'naveen.k@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'pending_amount': '3,500.00',
+            'due_date': '22-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Divya Ramesh',
+            'phone': '9445678901',
+            'email': 'divya.r@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'pending_amount': '3,000.00',
+            'due_date': '25-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Harish Venkat',
+            'phone': '9884123456',
+            'email': 'harish.v@gmail.com',
+            'course': 'Flute Class Mid',
+            'batch': 'Flute Class F1',
+            'total_fee': '20,000.00',
+            'pending_amount': '7,500.00',
+            'due_date': '28-10-2026',
+            'status': 'Pending'
+        },
+        {
+            'student_name': 'Gautham Krishna',
+            'phone': '9962123456',
+            'email': 'gautham.k@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'pending_amount': '4,000.00',
+            'due_date': '25-09-2026',
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Sneha Reddy',
+            'phone': '9841234567',
+            'email': 'sneha.r@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'pending_amount': '3,000.00',
+            'due_date': '28-09-2026',
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Manoj Prabakar',
+            'phone': '9710123456',
+            'email': 'manoj.p@gmail.com',
+            'course': 'Piano Class',
+            'batch': 'Piano Class A',
+            'total_fee': '7,000.00',
+            'pending_amount': '3,500.00',
+            'due_date': '02-10-2026',
+            'status': 'Overdue'
+        },
+        {
+            'student_name': 'Keerthi Suresh',
+            'phone': '9600123456',
+            'email': 'keerthi.s@gmail.com',
+            'course': 'Guiter Class Basic',
+            'batch': 'Guitar class A1',
+            'total_fee': '6,000.00',
+            'pending_amount': '1,500.00',
+            'due_date': '05-10-2026',
+            'status': 'Overdue'
+        },
+    ]
+
+    context = {
         'user': user,
         'page_title': 'Fee Dashboard',
-        'todays_collection': '15,000',
-        'monthly_collection': '1,25,000',
-        'pending_fees': '45,000',
-        'overdue_fees': '12,000',
-        'students_paid': '80',
-        'students_pending': '20'
-    })
+        'todays_collection': todays_collection,
+        'monthly_collection': monthly_collection,
+        'pending_fees': pending_fees,
+        'overdue_fees': overdue_fees,
+        'students_paid': students_paid,
+        'students_pending': students_pending,
+        'todays_details_json': json.dumps(todays_details),
+        'monthly_details_json': json.dumps(monthly_details),
+        'pending_details_json': json.dumps(pending_details),
+        'overdue_details_json': json.dumps(overdue_details),
+        'students_paid_details_json': json.dumps(students_paid_details),
+        'students_pending_details_json': json.dumps(students_pending_details),
+    }
+    return render(request, 'website/fee_dashboard.html', context)
 
 
 def fee_collection_view(request):

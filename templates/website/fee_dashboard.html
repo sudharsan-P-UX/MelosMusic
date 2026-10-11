@@ -2,97 +2,660 @@
 {% load static %}
 
 {% block content %}
-<div class="mb-6">
-    <h2 class="text-2xl font-bold text-gray-800">Fee Dashboard</h2>
-    <p class="text-gray-500">Summary of fee collections and dues</p>
-</div>
-
-<!-- Dashboard Summary Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-    
-    <!-- Today's Collection -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col justify-between hover:shadow-md transition">
-        <div class="flex items-start justify-between">
-            <div class="bg-green-100 text-green-600 p-3 rounded-lg">
-                <i class="fa-solid fa-money-bill-transfer text-xl"></i>
-            </div>
-            <span class="text-xs font-semibold text-green-500 bg-green-50 px-2 py-1 rounded">+12%</span>
+<div x-data="{
+    activeTab: 'today',
+    searchQuery: '',
+    selectedBatch: '',
+    showModal: false,
+    selectedItem: null,
+    detailsData: {
+        today: {{ todays_details_json|safe }},
+        monthly: {{ monthly_details_json|safe }},
+        pending: {{ pending_details_json|safe }},
+        overdue: {{ overdue_details_json|safe }},
+        paid: {{ students_paid_details_json|safe }},
+        unpaid: {{ students_pending_details_json|safe }}
+    },
+    get currentList() {
+        let list = this.detailsData[this.activeTab] || [];
+        if (this.selectedBatch) {
+            list = list.filter(item => item.batch === this.selectedBatch);
+        }
+        if (!this.searchQuery.trim()) return list;
+        const q = this.searchQuery.toLowerCase();
+        return list.filter(item => {
+            return (item.student_name && item.student_name.toLowerCase().includes(q)) ||
+                   (item.receipt_no && item.receipt_no.toLowerCase().includes(q)) ||
+                   (item.course && item.course.toLowerCase().includes(q)) ||
+                   (item.batch && item.batch.toLowerCase().includes(q)) ||
+                   (item.phone && item.phone.toLowerCase().includes(q)) ||
+                   (item.mode && item.mode.toLowerCase().includes(q)) ||
+                   (item.txn_id && item.txn_id.toLowerCase().includes(q)) ||
+                   (item.status && item.status.toLowerCase().includes(q));
+        });
+    },
+    openModal(item) {
+        this.selectedItem = item;
+        this.showModal = true;
+    },
+    get tabTitle() {
+        const titles = {
+            'today': "Today's Collection Details",
+            'monthly': "Monthly Collection Details",
+            'pending': "Pending Fees Details",
+            'overdue': "Overdue Fees Details",
+            'paid': "Students Paid Details",
+            'unpaid': "Students Pending Fees Details"
+        };
+        return titles[this.activeTab] || 'Fee Details';
+    },
+    get tabBadge() {
+        const badges = {
+            'today': 'Total ₹ {{ todays_collection }}',
+            'monthly': 'Total ₹ {{ monthly_collection }}',
+            'pending': 'Total ₹ {{ pending_fees }}',
+            'overdue': 'Total ₹ {{ overdue_fees }}',
+            'paid': '{{ students_paid }} Students Paid',
+            'unpaid': '{{ students_pending }} Students Pending'
+        };
+        return badges[this.activeTab] || '';
+    }
+}">
+    <!-- Header -->
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800">Fee Dashboard</h2>
+            <p class="text-gray-500 text-sm">Summary of fee collections, dues, and transaction details</p>
         </div>
-        <div class="mt-4">
-            <p class="text-sm font-medium text-gray-500">Today's Collection</p>
-            <h3 class="text-2xl font-bold text-gray-800 mt-1">₹ {{ todays_collection }}</h3>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'fee_collection' %}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition shadow-sm">
+                <i class="fa-solid fa-cash-register mr-2"></i> Collect Fee
+            </a>
+            <a href="{% url 'assign_fees' %}" class="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium transition shadow-sm">
+                <i class="fa-solid fa-plus-circle mr-2 text-indigo-600"></i> Assign Fee
+            </a>
+        </div>
+    </div>
+
+    <!-- Dashboard Summary Cards (Click any amount to show details) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
+        
+        <!-- 1. Today's Collection -->
+        <div @click="activeTab = 'today'; searchQuery = ''; selectedBatch = ''"
+             class="group bg-white rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 border"
+             :class="activeTab === 'today' ? 'ring-2 ring-green-500 border-green-500 bg-green-50/25 shadow-md transform -translate-y-0.5' : 'border-gray-200 hover:border-green-300 hover:shadow-md'">
+            <div class="flex items-start justify-between">
+                <div class="bg-green-100 text-green-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-money-bill-transfer text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">+12%</span>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Today's Collection</p>
+                <h3 class="text-2xl font-bold text-gray-800 mt-1">₹ {{ todays_collection }}</h3>
+                <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span x-show="activeTab === 'today'" class="text-green-600 font-semibold flex items-center"><i class="fa-solid fa-circle-check mr-1.5"></i> Viewing Details</span>
+                    <span x-show="activeTab !== 'today'" class="text-gray-400 group-hover:text-green-600 flex items-center">Click to view <i class="fa-solid fa-chevron-right ml-1 text-[10px]"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Monthly Collection -->
+        <div @click="activeTab = 'monthly'; searchQuery = ''; selectedBatch = ''"
+             class="group bg-white rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 border"
+             :class="activeTab === 'monthly' ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50/25 shadow-md transform -translate-y-0.5' : 'border-gray-200 hover:border-blue-300 hover:shadow-md'">
+            <div class="flex items-start justify-between">
+                <div class="bg-blue-100 text-blue-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-chart-simple text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Month</span>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Collection</p>
+                <h3 class="text-2xl font-bold text-gray-800 mt-1">₹ {{ monthly_collection }}</h3>
+                <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span x-show="activeTab === 'monthly'" class="text-blue-600 font-semibold flex items-center"><i class="fa-solid fa-circle-check mr-1.5"></i> Viewing Details</span>
+                    <span x-show="activeTab !== 'monthly'" class="text-gray-400 group-hover:text-blue-600 flex items-center">Click to view <i class="fa-solid fa-chevron-right ml-1 text-[10px]"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Pending Fees -->
+        <div @click="activeTab = 'pending'; searchQuery = ''; selectedBatch = ''"
+             class="group bg-white rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 border"
+             :class="activeTab === 'pending' ? 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/25 shadow-md transform -translate-y-0.5' : 'border-gray-200 hover:border-amber-300 hover:shadow-md'">
+            <div class="flex items-start justify-between">
+                <div class="bg-amber-100 text-amber-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-hourglass-half text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Dues</span>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Pending Fees</p>
+                <h3 class="text-2xl font-bold text-amber-600 mt-1">₹ {{ pending_fees }}</h3>
+                <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span x-show="activeTab === 'pending'" class="text-amber-600 font-semibold flex items-center"><i class="fa-solid fa-circle-check mr-1.5"></i> Viewing Details</span>
+                    <span x-show="activeTab !== 'pending'" class="text-gray-400 group-hover:text-amber-600 flex items-center">Click to view <i class="fa-solid fa-chevron-right ml-1 text-[10px]"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Overdue Fees -->
+        <div @click="activeTab = 'overdue'; searchQuery = ''; selectedBatch = ''"
+             class="group bg-white rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 border"
+             :class="activeTab === 'overdue' ? 'ring-2 ring-red-500 border-red-500 bg-red-50/25 shadow-md transform -translate-y-0.5' : 'border-gray-200 hover:border-red-300 hover:shadow-md'">
+            <div class="flex items-start justify-between">
+                <div class="bg-red-100 text-red-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">Urgent</span>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Overdue Fees</p>
+                <h3 class="text-2xl font-bold text-red-600 mt-1">₹ {{ overdue_fees }}</h3>
+                <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span x-show="activeTab === 'overdue'" class="text-red-600 font-semibold flex items-center"><i class="fa-solid fa-circle-check mr-1.5"></i> Viewing Details</span>
+                    <span x-show="activeTab !== 'overdue'" class="text-gray-400 group-hover:text-red-600 flex items-center">Click to view <i class="fa-solid fa-chevron-right ml-1 text-[10px]"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Students Paid -->
+        <div @click="activeTab = 'paid'; searchQuery = ''; selectedBatch = ''"
+             class="group bg-white rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 border"
+             :class="activeTab === 'paid' ? 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/25 shadow-md transform -translate-y-0.5' : 'border-gray-200 hover:border-emerald-300 hover:shadow-md'">
+            <div class="flex items-start justify-between">
+                <div class="bg-emerald-100 text-emerald-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-users text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Cleared</span>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Students Paid</p>
+                <h3 class="text-2xl font-bold text-emerald-600 mt-1">{{ students_paid }}</h3>
+                <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span x-show="activeTab === 'paid'" class="text-emerald-600 font-semibold flex items-center"><i class="fa-solid fa-circle-check mr-1.5"></i> Viewing Details</span>
+                    <span x-show="activeTab !== 'paid'" class="text-gray-400 group-hover:text-emerald-600 flex items-center">Click to view <i class="fa-solid fa-chevron-right ml-1 text-[10px]"></i></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Students Pending -->
+        <div @click="activeTab = 'unpaid'; searchQuery = ''; selectedBatch = ''"
+             class="group bg-white rounded-xl p-5 flex flex-col justify-between cursor-pointer transition-all duration-200 border"
+             :class="activeTab === 'unpaid' ? 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50/25 shadow-md transform -translate-y-0.5' : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'">
+            <div class="flex items-start justify-between">
+                <div class="bg-indigo-100 text-indigo-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-user-clock text-xl"></i>
+                </div>
+                <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">Balance</span>
+            </div>
+            <div class="mt-4">
+                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Students Pending</p>
+                <h3 class="text-2xl font-bold text-indigo-600 mt-1">{{ students_pending }}</h3>
+                <div class="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+                    <span x-show="activeTab === 'unpaid'" class="text-indigo-600 font-semibold flex items-center"><i class="fa-solid fa-circle-check mr-1.5"></i> Viewing Details</span>
+                    <span x-show="activeTab !== 'unpaid'" class="text-gray-400 group-hover:text-indigo-600 flex items-center">Click to view <i class="fa-solid fa-chevron-right ml-1 text-[10px]"></i></span>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Details Section Container -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        
+        <!-- Details Header & Toolbar -->
+        <div class="p-5 border-b border-gray-200 bg-gray-50/70 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            
+            <!-- Left: Dynamic Title & Total Badge based on Active Card -->
+            <div class="flex items-center gap-3">
+                <div class="p-3 rounded-lg flex items-center justify-center text-white"
+                     :class="{
+                        'bg-green-600': activeTab === 'today',
+                        'bg-blue-600': activeTab === 'monthly',
+                        'bg-amber-600': activeTab === 'pending',
+                        'bg-red-600': activeTab === 'overdue',
+                        'bg-emerald-600': activeTab === 'paid',
+                        'bg-indigo-600': activeTab === 'unpaid'
+                     }">
+                    <i class="fa-solid"
+                       :class="{
+                        'fa-money-bill-transfer': activeTab === 'today',
+                        'fa-chart-simple': activeTab === 'monthly',
+                        'fa-hourglass-half': activeTab === 'pending',
+                        'fa-triangle-exclamation': activeTab === 'overdue',
+                        'fa-users': activeTab === 'paid',
+                        'fa-user-clock': activeTab === 'unpaid'
+                       }"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-lg font-bold text-gray-800" x-text="tabTitle"></h3>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                              :class="{
+                                'bg-green-100 text-green-700': activeTab === 'today',
+                                'bg-blue-100 text-blue-700': activeTab === 'monthly',
+                                'bg-amber-100 text-amber-700': activeTab === 'pending',
+                                'bg-red-100 text-red-700': activeTab === 'overdue',
+                                'bg-emerald-100 text-emerald-700': activeTab === 'paid',
+                                'bg-indigo-100 text-indigo-700': activeTab === 'unpaid'
+                              }"
+                              x-text="tabBadge"></span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        Showing <span class="font-bold text-gray-700" x-text="currentList.length"></span> record(s) matching current view
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right: Search, Filter & Quick Actions -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Search Input -->
+                <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                    <input type="text" 
+                           x-model="searchQuery" 
+                           placeholder="Search student, receipt, course..." 
+                           class="w-full pl-8 pr-8 py-1.5 text-xs border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm">
+                    <button x-show="searchQuery" 
+                            @click="searchQuery = ''" 
+                            class="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Print Button -->
+                <button @click="window.print()" class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition">
+                    <i class="fa-solid fa-print mr-1.5 text-gray-500"></i> Print
+                </button>
+
+                <!-- Navigation link based on active state -->
+                <a x-show="activeTab === 'today' || activeTab === 'monthly'" 
+                   href="{% url 'receipts' %}" 
+                   class="inline-flex items-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-medium transition">
+                    <i class="fa-solid fa-receipt mr-1.5"></i> All Receipts
+                </a>
+                <a x-show="activeTab === 'pending' || activeTab === 'overdue' || activeTab === 'unpaid'" 
+                   href="{% url 'pending_fees' %}" 
+                   class="inline-flex items-center px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-medium transition">
+                    <i class="fa-solid fa-clock-rotate-left mr-1.5"></i> Pending Fees Page
+                </a>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div class="overflow-x-auto w-full">
+            
+            <!-- Table 1 & 2: Today's Collection & Monthly Collection -->
+            <table x-show="activeTab === 'today' || activeTab === 'monthly'" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left font-bold">#</th>
+                        <th class="py-3 px-4 text-left font-bold">Receipt No</th>
+                        <th class="py-3 px-4 text-left font-bold">Student Name</th>
+                        <th class="py-3 px-4 text-left font-bold">Course & Batch</th>
+                        <th class="py-3 px-4 text-right font-bold">Paid Amount (₹)</th>
+                        <th class="py-3 px-4 text-left font-bold">Payment Mode</th>
+                        <th class="py-3 px-4 text-left font-bold">Txn / Ref No</th>
+                        <th class="py-3 px-4 text-left font-bold" x-text="activeTab === 'today' ? 'Time' : 'Date'"></th>
+                        <th class="py-3 px-4 text-center font-bold">Status</th>
+                        <th class="py-3 px-4 text-center font-bold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm bg-white">
+                    <template x-for="(item, index) in currentList" :key="index">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 text-gray-500 text-xs" x-text="index + 1"></td>
+                            <td class="py-3 px-4">
+                                <span class="font-mono text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded" x-text="item.receipt_no"></span>
+                            </td>
+                            <td class="py-3 px-4 font-medium text-gray-800" x-text="item.student_name"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600">
+                                <div class="font-medium text-gray-800" x-text="item.course"></div>
+                                <div class="text-gray-400" x-text="item.batch"></div>
+                            </td>
+                            <td class="py-3 px-4 text-right font-bold text-green-600" x-text="'₹ ' + item.amount"></td>
+                            <td class="py-3 px-4 text-xs">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700" x-text="item.mode"></span>
+                            </td>
+                            <td class="py-3 px-4 text-xs text-gray-500 font-mono" x-text="item.txn_id || '-'"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600" x-text="activeTab === 'today' ? item.time : item.date"></td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                    <i class="fa-solid fa-check mr-1 text-[10px]"></i> <span x-text="item.status"></span>
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <button @click="openModal(item)" 
+                                        class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"
+                                        title="View Receipt Details">
+                                    <i class="fa-solid fa-eye text-xs"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+
+            <!-- Table 3: Pending Fees -->
+            <table x-show="activeTab === 'pending'" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left font-bold">#</th>
+                        <th class="py-3 px-4 text-left font-bold">Student Name</th>
+                        <th class="py-3 px-4 text-left font-bold">Contact</th>
+                        <th class="py-3 px-4 text-left font-bold">Course & Batch</th>
+                        <th class="py-3 px-4 text-right font-bold">Total Fee (₹)</th>
+                        <th class="py-3 px-4 text-right font-bold">Paid (₹)</th>
+                        <th class="py-3 px-4 text-right font-bold">Pending Due (₹)</th>
+                        <th class="py-3 px-4 text-left font-bold">Due Date</th>
+                        <th class="py-3 px-4 text-center font-bold">Status</th>
+                        <th class="py-3 px-4 text-center font-bold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm bg-white">
+                    <template x-for="(item, index) in currentList" :key="index">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 text-gray-500 text-xs" x-text="index + 1"></td>
+                            <td class="py-3 px-4 font-medium text-gray-800" x-text="item.student_name"></td>
+                            <td class="py-3 px-4 text-xs text-gray-500" x-text="item.phone"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600">
+                                <div class="font-medium text-gray-800" x-text="item.course"></div>
+                                <div class="text-gray-400" x-text="item.batch"></div>
+                            </td>
+                            <td class="py-3 px-4 text-right text-gray-700" x-text="'₹ ' + item.total_fee"></td>
+                            <td class="py-3 px-4 text-right text-green-600" x-text="'₹ ' + item.paid_amount"></td>
+                            <td class="py-3 px-4 text-right font-bold text-amber-600" x-text="'₹ ' + item.pending_amount"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600" x-text="item.due_date"></td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                                      :class="item.status === 'Overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'">
+                                    <span x-text="item.status"></span>
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <a :href="'{% url 'fee_collection' %}?student=' + encodeURIComponent(item.student_name)" 
+                                       class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded transition"
+                                       title="Collect Fee">
+                                        <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
+                                    </a>
+                                    <button @click="openModal(item)" 
+                                            class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"
+                                            title="View Details">
+                                        <i class="fa-solid fa-eye text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+
+            <!-- Table 4: Overdue Fees -->
+            <table x-show="activeTab === 'overdue'" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left font-bold">#</th>
+                        <th class="py-3 px-4 text-left font-bold">Student Name</th>
+                        <th class="py-3 px-4 text-left font-bold">Contact</th>
+                        <th class="py-3 px-4 text-left font-bold">Course & Batch</th>
+                        <th class="py-3 px-4 text-right font-bold">Total Fee (₹)</th>
+                        <th class="py-3 px-4 text-right font-bold">Paid (₹)</th>
+                        <th class="py-3 px-4 text-right font-bold">Overdue Amount (₹)</th>
+                        <th class="py-3 px-4 text-left font-bold">Due Date</th>
+                        <th class="py-3 px-4 text-center font-bold">Days Overdue</th>
+                        <th class="py-3 px-4 text-center font-bold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm bg-white">
+                    <template x-for="(item, index) in currentList" :key="index">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 text-gray-500 text-xs" x-text="index + 1"></td>
+                            <td class="py-3 px-4 font-medium text-gray-800" x-text="item.student_name"></td>
+                            <td class="py-3 px-4 text-xs text-gray-500" x-text="item.phone"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600">
+                                <div class="font-medium text-gray-800" x-text="item.course"></div>
+                                <div class="text-gray-400" x-text="item.batch"></div>
+                            </td>
+                            <td class="py-3 px-4 text-right text-gray-700" x-text="'₹ ' + item.total_fee"></td>
+                            <td class="py-3 px-4 text-right text-green-600" x-text="'₹ ' + item.paid_amount"></td>
+                            <td class="py-3 px-4 text-right font-bold text-red-600" x-text="'₹ ' + item.overdue_amount"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600" x-text="item.due_date"></td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700" x-text="item.days_overdue + ' days'"></span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <a :href="'{% url 'fee_collection' %}?student=' + encodeURIComponent(item.student_name)" 
+                                       class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded transition"
+                                       title="Collect Overdue Fee">
+                                        <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
+                                    </a>
+                                    <button @click="openModal(item)" 
+                                            class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"
+                                            title="View Details">
+                                        <i class="fa-solid fa-eye text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+
+            <!-- Table 5: Students Paid -->
+            <table x-show="activeTab === 'paid'" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left font-bold">#</th>
+                        <th class="py-3 px-4 text-left font-bold">Student Name</th>
+                        <th class="py-3 px-4 text-left font-bold">Contact</th>
+                        <th class="py-3 px-4 text-left font-bold">Course & Batch</th>
+                        <th class="py-3 px-4 text-right font-bold">Total Fees (₹)</th>
+                        <th class="py-3 px-4 text-right font-bold">Paid Amount (₹)</th>
+                        <th class="py-3 px-4 text-left font-bold">Receipt No</th>
+                        <th class="py-3 px-4 text-left font-bold">Payment Date</th>
+                        <th class="py-3 px-4 text-center font-bold">Status</th>
+                        <th class="py-3 px-4 text-center font-bold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm bg-white">
+                    <template x-for="(item, index) in currentList" :key="index">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 text-gray-500 text-xs" x-text="index + 1"></td>
+                            <td class="py-3 px-4 font-medium text-gray-800" x-text="item.student_name"></td>
+                            <td class="py-3 px-4 text-xs text-gray-500" x-text="item.phone"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600">
+                                <div class="font-medium text-gray-800" x-text="item.course"></div>
+                                <div class="text-gray-400" x-text="item.batch"></div>
+                            </td>
+                            <td class="py-3 px-4 text-right text-gray-700" x-text="'₹ ' + item.total_fee"></td>
+                            <td class="py-3 px-4 text-right font-bold text-green-600" x-text="'₹ ' + item.paid_amount"></td>
+                            <td class="py-3 px-4 font-mono text-xs text-indigo-600" x-text="item.receipt_no"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600" x-text="item.payment_date"></td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                    <i class="fa-solid fa-check-double mr-1 text-[10px]"></i> <span x-text="item.status"></span>
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <button @click="openModal(item)" 
+                                        class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"
+                                        title="View Receipt">
+                                    <i class="fa-solid fa-receipt text-xs"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+
+            <!-- Table 6: Students Pending -->
+            <table x-show="activeTab === 'unpaid'" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="py-3 px-4 text-left font-bold">#</th>
+                        <th class="py-3 px-4 text-left font-bold">Student Name</th>
+                        <th class="py-3 px-4 text-left font-bold">Contact</th>
+                        <th class="py-3 px-4 text-left font-bold">Course & Batch</th>
+                        <th class="py-3 px-4 text-right font-bold">Total Fees (₹)</th>
+                        <th class="py-3 px-4 text-right font-bold">Balance Due (₹)</th>
+                        <th class="py-3 px-4 text-left font-bold">Due Date</th>
+                        <th class="py-3 px-4 text-center font-bold">Status</th>
+                        <th class="py-3 px-4 text-center font-bold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm bg-white">
+                    <template x-for="(item, index) in currentList" :key="index">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 text-gray-500 text-xs" x-text="index + 1"></td>
+                            <td class="py-3 px-4 font-medium text-gray-800" x-text="item.student_name"></td>
+                            <td class="py-3 px-4 text-xs text-gray-500" x-text="item.phone"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600">
+                                <div class="font-medium text-gray-800" x-text="item.course"></div>
+                                <div class="text-gray-400" x-text="item.batch"></div>
+                            </td>
+                            <td class="py-3 px-4 text-right text-gray-700" x-text="'₹ ' + item.total_fee"></td>
+                            <td class="py-3 px-4 text-right font-bold"
+                                :class="item.status === 'Overdue' ? 'text-red-600' : 'text-amber-600'"
+                                x-text="'₹ ' + (item.pending_amount || item.overdue_amount)"></td>
+                            <td class="py-3 px-4 text-xs text-gray-600" x-text="item.due_date"></td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                                      :class="item.status === 'Overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'">
+                                    <span x-text="item.status"></span>
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <a :href="'{% url 'fee_collection' %}?student=' + encodeURIComponent(item.student_name)" 
+                                       class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded transition"
+                                       title="Collect Fee">
+                                        <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
+                                    </a>
+                                    <button @click="openModal(item)" 
+                                            class="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"
+                                            title="View Details">
+                                        <i class="fa-solid fa-eye text-xs"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+
+            <!-- Empty Search Results -->
+            <div x-show="currentList.length === 0" class="py-12 text-center text-gray-400">
+                <i class="fa-solid fa-magnifying-glass text-3xl mb-2 text-gray-300"></i>
+                <p class="text-sm">No records match your search query "<span class="font-semibold text-gray-600" x-text="searchQuery"></span>"</p>
+                <button @click="searchQuery = ''" class="mt-2 text-xs text-indigo-600 hover:underline">Clear search</button>
+            </div>
+        </div>
+
+        <!-- Table Footer Summary -->
+        <div class="px-6 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
+            <div>
+                Showing <span class="font-semibold text-gray-700" x-text="currentList.length"></span> of 
+                <span class="font-semibold text-gray-700" x-text="(detailsData[activeTab] || []).length"></span> records
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-500">Category:</span>
+                <span class="font-bold text-gray-800 uppercase tracking-wide" x-text="activeTab"></span>
+            </div>
         </div>
     </div>
 
-    <!-- Monthly Collection -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col justify-between hover:shadow-md transition">
-        <div class="flex items-start justify-between">
-            <div class="bg-blue-100 text-blue-600 p-3 rounded-lg">
-                <i class="fa-solid fa-chart-simple text-xl"></i>
+    <!-- Details Modal / Receipt Modal -->
+    <div x-show="showModal" 
+         x-cloak 
+         class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+         @click.self="showModal = false">
+        
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all border border-gray-100">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-indigo-700 to-indigo-900 px-6 py-4 text-white flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-receipt text-indigo-200"></i>
+                    <h3 class="font-bold text-base">Fee & Transaction Details</h3>
+                </div>
+                <button @click="showModal = false" class="text-indigo-200 hover:text-white text-xl leading-none">&times;</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4" x-show="selectedItem">
+                <!-- Student Header -->
+                <div class="flex items-center justify-between border-b pb-4 border-gray-100">
+                    <div>
+                        <h4 class="text-lg font-bold text-gray-800" x-text="selectedItem ? selectedItem.student_name : ''"></h4>
+                        <p class="text-xs text-gray-500" x-text="selectedItem ? ((selectedItem.course || '') + ' • ' + (selectedItem.batch || '')) : ''"></p>
+                    </div>
+                    <div>
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                              :class="{
+                                'bg-green-100 text-green-700': selectedItem && (selectedItem.status === 'Completed' || selectedItem.status === 'Fully Paid'),
+                                'bg-amber-100 text-amber-700': selectedItem && selectedItem.status === 'Pending',
+                                'bg-red-100 text-red-700': selectedItem && selectedItem.status === 'Overdue'
+                              }"
+                              x-text="selectedItem ? selectedItem.status : ''"></span>
+                    </div>
+                </div>
+
+                <!-- Info Grid -->
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <span class="text-gray-400 block mb-0.5">Contact Phone</span>
+                        <span class="font-medium text-gray-800" x-text="selectedItem ? (selectedItem.phone || '-') : '-'"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <span class="text-gray-400 block mb-0.5">Email</span>
+                        <span class="font-medium text-gray-800 truncate block" x-text="selectedItem ? (selectedItem.email || '-') : '-'"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg" x-show="selectedItem && selectedItem.receipt_no">
+                        <span class="text-gray-400 block mb-0.5">Receipt No</span>
+                        <span class="font-mono font-semibold text-indigo-600" x-text="selectedItem ? selectedItem.receipt_no : ''"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg" x-show="selectedItem && selectedItem.mode">
+                        <span class="text-gray-400 block mb-0.5">Payment Mode</span>
+                        <span class="font-medium text-gray-800" x-text="selectedItem ? selectedItem.mode : ''"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg" x-show="selectedItem && selectedItem.txn_id">
+                        <span class="text-gray-400 block mb-0.5">Transaction ID</span>
+                        <span class="font-mono text-gray-700" x-text="selectedItem ? selectedItem.txn_id : ''"></span>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg">
+                        <span class="text-gray-400 block mb-0.5" x-text="selectedItem && selectedItem.due_date ? 'Due Date' : 'Date / Time'"></span>
+                        <span class="font-medium text-gray-800" x-text="selectedItem ? (selectedItem.due_date || selectedItem.payment_date || selectedItem.date || selectedItem.time) : ''"></span>
+                    </div>
+                </div>
+
+                <!-- Amount Breakdown -->
+                <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs text-indigo-600 block font-medium"
+                              x-text="selectedItem && (selectedItem.amount || selectedItem.paid_amount) ? 'Amount Paid' : 'Pending Balance'"></span>
+                        <span class="text-xl font-extrabold text-indigo-900"
+                              x-text="'₹ ' + (selectedItem ? (selectedItem.amount || selectedItem.paid_amount || selectedItem.pending_amount || selectedItem.overdue_amount) : '0.00')"></span>
+                    </div>
+                    <div x-show="selectedItem && selectedItem.total_fee" class="text-right">
+                        <span class="text-xs text-gray-500 block">Total Course Fee</span>
+                        <span class="text-sm font-bold text-gray-700" x-text="'₹ ' + (selectedItem ? selectedItem.total_fee : '')"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+                <button @click="window.print()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition shadow-sm">
+                    <i class="fa-solid fa-print mr-1.5"></i> Print Details
+                </button>
+                <button @click="showModal = false" class="px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-medium transition shadow-sm">
+                    Close
+                </button>
             </div>
         </div>
-        <div class="mt-4">
-            <p class="text-sm font-medium text-gray-500">Monthly Collection</p>
-            <h3 class="text-2xl font-bold text-gray-800 mt-1">₹ {{ monthly_collection }}</h3>
-        </div>
     </div>
-
-    <!-- Pending Fees -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col justify-between hover:shadow-md transition">
-        <div class="flex items-start justify-between">
-            <div class="bg-red-50 text-red-400 p-3 rounded-lg border border-red-100">
-                <i class="fa-solid fa-hourglass-half text-xl"></i>
-            </div>
-        </div>
-        <div class="mt-4">
-            <p class="text-sm font-medium text-gray-500">Pending Fees</p>
-            <h3 class="text-2xl font-bold text-red-500 mt-1">₹ {{ pending_fees }}</h3>
-        </div>
-    </div>
-
-    <!-- Overdue Fees -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col justify-between hover:shadow-md transition">
-        <div class="flex items-start justify-between">
-            <div class="bg-red-100 text-red-600 p-3 rounded-lg">
-                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
-            </div>
-        </div>
-        <div class="mt-4">
-            <p class="text-sm font-medium text-gray-500">Overdue Fees</p>
-            <h3 class="text-2xl font-bold text-red-600 mt-1">₹ {{ overdue_fees }}</h3>
-        </div>
-    </div>
-
-    <!-- Students Paid -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col justify-between hover:shadow-md transition">
-        <div class="flex items-start justify-between">
-            <div class="bg-green-100 text-green-600 p-3 rounded-lg">
-                <i class="fa-solid fa-users text-xl"></i>
-            </div>
-        </div>
-        <div class="mt-4">
-            <p class="text-sm font-medium text-gray-500">Students Paid</p>
-            <h3 class="text-2xl font-bold text-green-600 mt-1">{{ students_paid }}</h3>
-        </div>
-    </div>
-
-    <!-- Students Pending -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col justify-between hover:shadow-md transition">
-        <div class="flex items-start justify-between">
-            <div class="bg-indigo-100 text-indigo-600 p-3 rounded-lg">
-                <i class="fa-solid fa-user-clock text-xl"></i>
-            </div>
-        </div>
-        <div class="mt-4">
-            <p class="text-sm font-medium text-gray-500">Students Pending</p>
-            <h3 class="text-2xl font-bold text-indigo-600 mt-1">{{ students_pending }}</h3>
-        </div>
-    </div>
-    
-</div>
-
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center text-gray-500">
-    <i class="fa-solid fa-money-check-dollar text-4xl mb-3 text-gray-300"></i>
-    <p>Select an option from the Fees menu on the left to manage student fees, assign new fees, or process receipts and refunds.</p>
 </div>
 {% endblock %}

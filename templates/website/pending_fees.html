@@ -18,36 +18,43 @@
 
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <!-- Filters -->
-        <div class="p-4 md:p-6 border-b border-gray-100 flex-col md:flex-row flex-wrap md:items-end gap-4"
-             :class="showFilter ? 'flex' : 'hidden md:flex'">
+        <form method="GET" class="p-4 md:p-6 border-b border-gray-100 flex-col md:flex-row flex-wrap md:items-end gap-4"
+              :class="showFilter ? 'flex' : 'hidden md:flex'">
             <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 mb-1">Course</label>
-                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                    <option value="">All</option>
+                <select name="course" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                    <option value="">All Courses</option>
+                    {% for c in courses %}
+                    <option value="{{ c.course_id }}" {% if selected_course == c.course_id|stringformat:"s" %}selected{% endif %}>{{ c.course_name }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 mb-1">Batch</label>
-                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                    <option value="">All</option>
+                <select name="batch" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                    <option value="">All Batches</option>
+                    {% for b in batches %}
+                    <option value="{{ b.batch_id }}" {% if selected_batch == b.batch_id|stringformat:"s" %}selected{% endif %}>{{ b.batch_name }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                <select class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                    <option value="pending" selected>Pending</option>
-                    <option value="overdue">Overdue</option>
+                <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
                 </select>
             </div>
             <div class="flex items-center gap-2 w-full md:w-auto">
-                <button class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition text-sm">
+                <button type="submit" class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition text-sm">
                     Filter
                 </button>
-                <button class="flex-1 md:flex-initial border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition text-sm">
+                <a href="{% url 'pending_fees' %}" class="flex-1 md:flex-initial border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition text-sm text-center">
                     Reset
-                </button>
+                </a>
             </div>
-        </div>
+        </form>
 
     <!-- Table -->
     <div class="overflow-x-auto">
@@ -69,52 +76,33 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-sm">
-                <!-- Mock Data -->
+                {% for item in pending_list %}
                 <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-4 text-gray-600">1</td>
-                    <td class="py-3 px-4 text-gray-800 font-medium">Arun Kumar</td>
-                    <td class="py-3 px-4 text-gray-600">Guitar - Beginner</td>
-                    <td class="py-3 px-4 text-gray-600">Batch A</td>
-                    <td class="py-3 px-4 text-right text-gray-800">3,700.00</td>
-                    <td class="py-3 px-4 text-right text-green-600">1,000.00</td>
-                    <td class="py-3 px-4 text-right text-red-600 font-bold">2,700.00</td>
-                    <td class="py-3 px-4 text-gray-600">25/05/2025</td>
-                    <td class="py-3 px-4 text-center text-gray-400">-</td>
+                    <td class="py-3 px-4 text-gray-600">{{ item.index }}</td>
+                    <td class="py-3 px-4 text-gray-800 font-medium">{{ item.student_name }}</td>
+                    <td class="py-3 px-4 text-gray-600">{{ item.course_name }}</td>
+                    <td class="py-3 px-4 text-gray-600">{{ item.batch_name }}</td>
+                    <td class="py-3 px-4 text-right text-gray-800">₹ {{ item.total_fees }}</td>
+                    <td class="py-3 px-4 text-right text-green-600">₹ {{ item.paid_amount }}</td>
+                    <td class="py-3 px-4 text-right text-red-600 font-bold">₹ {{ item.pending_amount }}</td>
+                    <td class="py-3 px-4 text-gray-600">{{ item.due_date }}</td>
+                    <td class="py-3 px-4 text-center {% if item.is_overdue %}font-bold text-red-500{% else %}text-gray-400{% endif %}">
+                        {{ item.days_overdue }}
+                    </td>
                     <td class="py-3 px-4 text-center">
-                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-file-invoice-dollar"></i></a>
-                        <button class="text-red-600 bg-red-50 p-1.5 rounded hover:bg-red-100 ml-2"><i class="fa-solid fa-trash-can"></i></button>
+                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100" title="Collect Fee">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </a>
                     </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-4 text-gray-600">2</td>
-                    <td class="py-3 px-4 text-gray-800 font-medium">Priya Sharma</td>
-                    <td class="py-3 px-4 text-gray-600">Keyboard</td>
-                    <td class="py-3 px-4 text-gray-600">Batch B</td>
-                    <td class="py-3 px-4 text-right text-gray-800">4,000.00</td>
-                    <td class="py-3 px-4 text-right text-green-600">1,500.00</td>
-                    <td class="py-3 px-4 text-right text-red-600 font-bold">2,500.00</td>
-                    <td class="py-3 px-4 text-gray-600">20/05/2025</td>
-                    <td class="py-3 px-4 text-center font-bold text-red-500">5</td>
-                    <td class="py-3 px-4 text-center">
-                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-file-invoice-dollar"></i></a>
-                        <button class="text-red-600 bg-red-50 p-1.5 rounded hover:bg-red-100 ml-2"><i class="fa-solid fa-trash-can"></i></button>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="py-12 text-center text-gray-400">
+                        <i class="fa-solid fa-hourglass-empty text-3xl mb-2 text-gray-300"></i>
+                        <p class="text-sm">No pending fee records found.</p>
                     </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-4 text-gray-600">3</td>
-                    <td class="py-3 px-4 text-gray-800 font-medium">Vikram Singh</td>
-                    <td class="py-3 px-4 text-gray-600">Vocal - Adv</td>
-                    <td class="py-3 px-4 text-gray-600">Batch A</td>
-                    <td class="py-3 px-4 text-right text-gray-800">3,500.00</td>
-                    <td class="py-3 px-4 text-right text-green-600">500.00</td>
-                    <td class="py-3 px-4 text-right text-red-600 font-bold">3,000.00</td>
-                    <td class="py-3 px-4 text-gray-600">15/05/2025</td>
-                    <td class="py-3 px-4 text-center font-bold text-red-500">10</td>
-                    <td class="py-3 px-4 text-center">
-                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-file-invoice-dollar"></i></a>
-                        <button class="text-red-600 bg-red-50 p-1.5 rounded hover:bg-red-100 ml-2"><i class="fa-solid fa-trash-can"></i></button>
-                    </td>
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
 

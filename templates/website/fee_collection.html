@@ -72,16 +72,12 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-sm">
                     <tr>
-                        <td class="py-2 px-4 text-gray-700">Registration Fee</td>
-                        <td class="py-2 px-4 text-right font-medium text-gray-700">500.00</td>
-                    </tr>
-                    <tr>
                         <td class="py-2 px-4 text-gray-700">Course Fee</td>
-                        <td class="py-2 px-4 text-right font-medium text-gray-700">3,000.00</td>
+                        <td class="py-2 px-4 text-right font-medium text-gray-700" id="detail_course_fee">0.00</td>
                     </tr>
                     <tr>
-                        <td class="py-2 px-4 text-gray-700">Material Fee</td>
-                        <td class="py-2 px-4 text-right font-medium text-gray-700">500.00</td>
+                        <td class="py-2 px-4 text-gray-700">Registration Fee</td>
+                        <td class="py-2 px-4 text-right font-medium text-gray-700" id="detail_reg_fee">0.00</td>
                     </tr>
                 </tbody>
             </table>
@@ -91,15 +87,15 @@
         <div class="space-y-2 border-t border-gray-200 pt-3">
             <div class="flex justify-between items-center text-sm">
                 <span class="font-medium text-gray-600">Total Amount</span>
-                <span class="font-bold text-gray-800">4,000.00</span>
+                <span class="font-bold text-gray-800" id="detail_total">0.00</span>
             </div>
             <div class="flex justify-between items-center text-sm">
                 <span class="font-medium text-gray-600">Discount</span>
-                <span class="font-bold text-green-600">- 500.00</span>
+                <span class="font-bold text-green-600" id="detail_discount">0.00</span>
             </div>
             <div class="flex justify-between items-center text-lg mt-2 pt-2 border-t border-gray-200">
                 <span class="font-bold text-gray-800">Payable Amount</span>
-                <span class="font-black text-indigo-700">3,500.00</span>
+                <span class="font-black text-indigo-700" id="detail_payable">0.00</span>
             </div>
         </div>
     </div>
@@ -132,7 +128,7 @@
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Amount Paid <span class="text-red-500">*</span></label>
-                <input type="number" name="amount_paid" step="0.01" value="3500.00" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-lg text-indigo-700">
+                <input type="number" name="amount_paid" step="0.01" value="0.00" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-lg text-indigo-700">
             </div>
             
             <div class="pt-2">
@@ -148,7 +144,7 @@
 <div class="bg-white rounded-lg shadow-sm border border-gray-200">
     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 class="font-bold text-gray-800">Fee Collection History</h3>
-        <button class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">View All Receipts</button>
+        <a href="{% url 'receipts' %}" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">View All Receipts</a>
     </div>
     <div class="overflow-x-auto">
         <div class="overflow-x-auto w-full">
@@ -165,39 +161,29 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-sm">
-                <!-- Mock Data matching user's image -->
+                {% for p in recent_payments %}
                 <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-6 text-indigo-600 font-medium">RCP00123</td>
-                    <td class="py-3 px-6 text-gray-600">25/05/2025</td>
-                    <td class="py-3 px-6 text-gray-800 font-medium">Arun Kumar</td>
-                    <td class="py-3 px-6 text-gray-800 font-bold">3,500.00</td>
-                    <td class="py-3 px-6 text-gray-600">UPI</td>
-                    <td class="py-3 px-6"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Paid</span></td>
+                    <td class="py-3 px-6 text-indigo-600 font-medium">{{ p.receipt_no }}</td>
+                    <td class="py-3 px-6 text-gray-600">{{ p.date }}</td>
+                    <td class="py-3 px-6 text-gray-800 font-medium">{{ p.student_name }}</td>
+                    <td class="py-3 px-6 text-gray-800 font-bold">₹ {{ p.amount }}</td>
+                    <td class="py-3 px-6 text-gray-600">{{ p.mode }}</td>
+                    <td class="py-3 px-6">
+                        {% if p.status == 'Paid' %}
+                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Paid</span>
+                        {% else %}
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded">Partial</span>
+                        {% endif %}
+                    </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-6 text-indigo-600 font-medium">RCP00122</td>
-                    <td class="py-3 px-6 text-gray-600">24/05/2025</td>
-                    <td class="py-3 px-6 text-gray-800 font-medium">Priya Sharma</td>
-                    <td class="py-3 px-6 text-gray-800 font-bold">2,000.00</td>
-                    <td class="py-3 px-6 text-gray-600">Cash</td>
-                    <td class="py-3 px-6"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Paid</span></td>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-8 text-center text-gray-400">
+                        <i class="fa-solid fa-receipt text-2xl mb-2 text-gray-300"></i>
+                        <p class="text-sm">No fee collection history found.</p>
+                    </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-6 text-indigo-600 font-medium">RCP00121</td>
-                    <td class="py-3 px-6 text-gray-600">23/05/2025</td>
-                    <td class="py-3 px-6 text-gray-800 font-medium">Vikram Singh</td>
-                    <td class="py-3 px-6 text-gray-800 font-bold">3,000.00</td>
-                    <td class="py-3 px-6 text-gray-600">Card</td>
-                    <td class="py-3 px-6"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Paid</span></td>
-                </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-6 text-indigo-600 font-medium">RCP00120</td>
-                    <td class="py-3 px-6 text-gray-600">23/05/2025</td>
-                    <td class="py-3 px-6 text-gray-800 font-medium">Anjali Mehta</td>
-                    <td class="py-3 px-6 text-gray-800 font-bold">1,500.00</td>
-                    <td class="py-3 px-6 text-gray-600">UPI</td>
-                    <td class="py-3 px-6"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded">Partial</span></td>
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
 

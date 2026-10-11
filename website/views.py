@@ -1453,619 +1453,132 @@ def fee_dashboard_view(request):
     import json
     from datetime import date
     from django.utils import timezone
+    from django.db.models import Sum, F
     from finance.models import StudentFee, FeePayment, FeeReceipt
 
-    today_str = timezone.now().strftime('%d-%m-%Y')
+    today = timezone.now().date()
+    today_str = today.strftime('%d-%m-%Y')
 
-    # Base dashboard card metrics
-    todays_collection = '15,000'
-    monthly_collection = '1,25,000'
-    pending_fees = '45,000'
-    overdue_fees = '12,000'
-    students_paid = '80'
-    students_pending = '20'
+    # Query real database payments
+    today_payments_qs = FeePayment.objects.filter(payment_date__date=today).select_related('student_fee', 'student_fee__student', 'student_fee__course', 'student_fee__batch')
+    todays_sum = today_payments_qs.aggregate(total=Sum('paid_amount'))['total'] or 0
+    todays_collection = f"{todays_sum:,.2f}" if todays_sum > 0 else "0.00"
 
-    # 1. Today's Collection Details (Total ₹ 15,000)
-    todays_details = [
-        {
-            'receipt_no': 'RCP-2026-1001',
-            'student_name': 'Aravind Kumar',
-            'phone': '8765535678',
-            'email': 'abc@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'amount': '6,000.00',
-            'mode': 'UPI (GPay)',
-            'txn_id': 'UPI8923049102',
-            'time': '09:30 AM',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1002',
-            'student_name': 'Sudharsan P',
-            'phone': '7867065513',
-            'email': 'arshasudhar389@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'amount': '3,500.00',
-            'mode': 'Credit Card',
-            'txn_id': 'TXN4910238120',
-            'time': '11:15 AM',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1003',
-            'student_name': 'Rohan Sharma',
-            'phone': '9840192837',
-            'email': 'rohan.s@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'amount': '2,500.00',
-            'mode': 'Cash',
-            'txn_id': 'CASH-REC-014',
-            'time': '01:45 PM',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1004',
-            'student_name': 'Ananya Iyer',
-            'phone': '9884029182',
-            'email': 'ananya.i@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'amount': '2,000.00',
-            'mode': 'UPI (PhonePe)',
-            'txn_id': 'UPI7823901423',
-            'time': '03:20 PM',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1005',
-            'student_name': 'Karthik Raja',
-            'phone': '9790182736',
-            'email': 'karthik.r@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'amount': '1,000.00',
-            'mode': 'Net Banking',
-            'txn_id': 'NET8912304912',
-            'time': '04:50 PM',
-            'date': today_str,
-            'status': 'Completed'
-        },
-    ]
+    monthly_payments_qs = FeePayment.objects.filter(
+        payment_date__year=today.year,
+        payment_date__month=today.month
+    ).select_related('student_fee', 'student_fee__student', 'student_fee__course', 'student_fee__batch')
+    monthly_sum = monthly_payments_qs.aggregate(total=Sum('paid_amount'))['total'] or 0
+    monthly_collection = f"{monthly_sum:,.2f}" if monthly_sum > 0 else "0.00"
 
-    # 2. Monthly Collection Details (Total ₹ 1,25,000)
-    monthly_details = [
-        {
-            'receipt_no': 'RCP-2026-0982',
-            'student_name': 'Deepak Verma',
-            'phone': '9820192831',
-            'email': 'deepak.v@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'amount': '35,000.00',
-            'mode': 'Net Banking',
-            'txn_id': 'NET9023412039',
-            'date': '02-10-2026',
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-0989',
-            'student_name': 'Meera Nair',
-            'phone': '9840291827',
-            'email': 'meera.n@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'amount': '25,000.00',
-            'mode': 'UPI',
-            'txn_id': 'UPI3094812093',
-            'date': '04-10-2026',
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-0994',
-            'student_name': 'Vikram Patel',
-            'phone': '9791029384',
-            'email': 'vikram.p@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'amount': '20,000.00',
-            'mode': 'Debit Card',
-            'txn_id': 'DC4920194820',
-            'date': '06-10-2026',
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-0998',
-            'student_name': 'Siddharth Rao',
-            'phone': '9884192830',
-            'email': 'siddharth.r@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'amount': '15,000.00',
-            'mode': 'UPI',
-            'txn_id': 'UPI4910293847',
-            'date': '08-10-2026',
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1000',
-            'student_name': 'Swathi Krishnan',
-            'phone': '9444192837',
-            'email': 'swathi.k@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'amount': '15,000.00',
-            'mode': 'Cash',
-            'txn_id': 'CASH-REC-012',
-            'date': '09-10-2026',
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1001',
-            'student_name': 'Aravind Kumar',
-            'phone': '8765535678',
-            'email': 'abc@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'amount': '6,000.00',
-            'mode': 'UPI (GPay)',
-            'txn_id': 'UPI8923049102',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1002',
-            'student_name': 'Sudharsan P',
-            'phone': '7867065513',
-            'email': 'arshasudhar389@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'amount': '3,500.00',
-            'mode': 'Credit Card',
-            'txn_id': 'TXN4910238120',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1003',
-            'student_name': 'Rohan Sharma',
-            'phone': '9840192837',
-            'email': 'rohan.s@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'amount': '2,500.00',
-            'mode': 'Cash',
-            'txn_id': 'CASH-REC-014',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1004',
-            'student_name': 'Ananya Iyer',
-            'phone': '9884029182',
-            'email': 'ananya.i@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'amount': '2,000.00',
-            'mode': 'UPI (PhonePe)',
-            'txn_id': 'UPI7823901423',
-            'date': today_str,
-            'status': 'Completed'
-        },
-        {
-            'receipt_no': 'RCP-2026-1005',
-            'student_name': 'Karthik Raja',
-            'phone': '9790182736',
-            'email': 'karthik.r@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'amount': '1,000.00',
-            'mode': 'Net Banking',
-            'txn_id': 'NET8912304912',
-            'date': today_str,
-            'status': 'Completed'
-        },
-    ]
+    # Query real database fees
+    all_fees = StudentFee.objects.all().select_related('student', 'course', 'batch')
+    pending_fees_qs = all_fees.filter(status__in=[1, 2])
+    pending_sum = pending_fees_qs.aggregate(total=Sum('final_amount'))['total'] or 0
+    pending_fees = f"{pending_sum:,.2f}" if pending_sum > 0 else "0.00"
 
-    # 3. Pending Fees Details (Total ₹ 45,000)
-    pending_details = [
-        {
-            'student_name': 'Priya Sharma',
-            'phone': '9840123456',
-            'email': 'priya.s@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '2,000.00',
-            'pending_amount': '5,000.00',
-            'due_date': '15-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Sanjay Menon',
-            'phone': '9789012345',
-            'email': 'sanjay.m@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '2,000.00',
-            'pending_amount': '4,000.00',
-            'due_date': '18-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Lavanya Sundar',
-            'phone': '9876543210',
-            'email': 'lavanya.s@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'total_fee': '25,000.00',
-            'paid_amount': '15,000.00',
-            'pending_amount': '10,000.00',
-            'due_date': '20-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Naveen Kumar',
-            'phone': '9123456780',
-            'email': 'naveen.k@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '3,500.00',
-            'pending_amount': '3,500.00',
-            'due_date': '22-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Divya Ramesh',
-            'phone': '9445678901',
-            'email': 'divya.r@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '3,000.00',
-            'pending_amount': '3,000.00',
-            'due_date': '25-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Harish Venkat',
-            'phone': '9884123456',
-            'email': 'harish.v@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'total_fee': '20,000.00',
-            'paid_amount': '12,500.00',
-            'pending_amount': '7,500.00',
-            'due_date': '28-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Gautham Krishna',
-            'phone': '9962123456',
-            'email': 'gautham.k@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '2,000.00',
-            'pending_amount': '4,000.00',
-            'due_date': '25-09-2026',
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Sneha Reddy',
-            'phone': '9841234567',
-            'email': 'sneha.r@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '4,000.00',
-            'pending_amount': '3,000.00',
-            'due_date': '28-09-2026',
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Manoj Prabakar',
-            'phone': '9710123456',
-            'email': 'manoj.p@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '3,500.00',
-            'pending_amount': '3,500.00',
-            'due_date': '02-10-2026',
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Keerthi Suresh',
-            'phone': '9600123456',
-            'email': 'keerthi.s@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '4,500.00',
-            'pending_amount': '1,500.00',
-            'due_date': '05-10-2026',
-            'status': 'Overdue'
-        },
-    ]
+    overdue_fees_qs = all_fees.filter(status__in=[1, 2], due_date__lt=today)
+    overdue_sum = overdue_fees_qs.aggregate(total=Sum('final_amount'))['total'] or 0
+    overdue_fees = f"{overdue_sum:,.2f}" if overdue_sum > 0 else "0.00"
 
-    # 4. Overdue Fees Details (Total ₹ 12,000)
-    overdue_details = [
-        {
-            'student_name': 'Gautham Krishna',
-            'phone': '9962123456',
-            'email': 'gautham.k@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '2,000.00',
-            'overdue_amount': '4,000.00',
-            'due_date': '25-09-2026',
-            'days_overdue': 16,
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Sneha Reddy',
-            'phone': '9841234567',
-            'email': 'sneha.r@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '4,000.00',
-            'overdue_amount': '3,000.00',
-            'due_date': '28-09-2026',
-            'days_overdue': 13,
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Manoj Prabakar',
-            'phone': '9710123456',
-            'email': 'manoj.p@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '3,500.00',
-            'overdue_amount': '3,500.00',
-            'due_date': '02-10-2026',
-            'days_overdue': 9,
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Keerthi Suresh',
-            'phone': '9600123456',
-            'email': 'keerthi.s@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '4,500.00',
-            'overdue_amount': '1,500.00',
-            'due_date': '05-10-2026',
-            'days_overdue': 6,
-            'status': 'Overdue'
-        },
-    ]
+    students_paid_count = all_fees.filter(status=3).values('student').distinct().count()
+    students_pending_count = all_fees.filter(status__in=[1, 2]).values('student').distinct().count()
 
-    # 5. Students Paid Details (80 Students)
-    students_paid_details = [
-        {
-            'student_name': 'Aravind Kumar',
-            'phone': '8765535678',
-            'email': 'abc@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '6,000.00',
-            'receipt_no': 'RCP-2026-1001',
-            'payment_date': today_str,
-            'status': 'Fully Paid'
-        },
-        {
-            'student_name': 'Sudharsan P',
-            'phone': '7867065513',
-            'email': 'arshasudhar389@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '7,000.00',
-            'receipt_no': 'RCP-2026-1002',
-            'payment_date': today_str,
-            'status': 'Fully Paid'
-        },
-        {
-            'student_name': 'Rajesh Kannan',
-            'phone': '9840918234',
-            'email': 'rajesh.k@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'total_fee': '15,000.00',
-            'paid_amount': '15,000.00',
-            'receipt_no': 'RCP-2026-0955',
-            'payment_date': '01-10-2026',
-            'status': 'Fully Paid'
-        },
-        {
-            'student_name': 'Suresh Balaji',
-            'phone': '9790283746',
-            'email': 'suresh.b@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '6,000.00',
-            'receipt_no': 'RCP-2026-0960',
-            'payment_date': '02-10-2026',
-            'status': 'Fully Paid'
-        },
-        {
-            'student_name': 'Pooja Venkatesh',
-            'phone': '9884729183',
-            'email': 'pooja.v@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '7,000.00',
-            'receipt_no': 'RCP-2026-0968',
-            'payment_date': '03-10-2026',
-            'status': 'Fully Paid'
-        },
-        {
-            'student_name': 'Vijay Sethupathi',
-            'phone': '9444829103',
-            'email': 'vijay.s@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'total_fee': '15,000.00',
-            'paid_amount': '15,000.00',
-            'receipt_no': 'RCP-2026-0972',
-            'payment_date': '04-10-2026',
-            'status': 'Fully Paid'
-        },
-        {
-            'student_name': 'Revathi Mani',
-            'phone': '9176293847',
-            'email': 'revathi.m@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'paid_amount': '6,000.00',
-            'receipt_no': 'RCP-2026-0975',
-            'payment_date': '05-10-2026',
-            'status': 'Fully Paid'
-        },
-        {
-            'student_name': 'Kavitha S',
-            'phone': '9841829304',
-            'email': 'kavitha.s@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'paid_amount': '7,000.00',
-            'receipt_no': 'RCP-2026-0980',
-            'payment_date': '05-10-2026',
-            'status': 'Fully Paid'
-        },
-    ]
+    payment_mode_map = {1: 'Cash', 2: 'UPI', 3: 'Credit Card', 4: 'Debit Card', 5: 'Net Banking'}
 
-    # 6. Students Pending Details (20 Students)
-    students_pending_details = [
-        {
-            'student_name': 'Priya Sharma',
-            'phone': '9840123456',
-            'email': 'priya.s@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'pending_amount': '5,000.00',
-            'due_date': '15-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Sanjay Menon',
-            'phone': '9789012345',
-            'email': 'sanjay.m@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'pending_amount': '4,000.00',
-            'due_date': '18-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Lavanya Sundar',
-            'phone': '9876543210',
-            'email': 'lavanya.s@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'total_fee': '25,000.00',
-            'pending_amount': '10,000.00',
-            'due_date': '20-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Naveen Kumar',
-            'phone': '9123456780',
-            'email': 'naveen.k@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'pending_amount': '3,500.00',
-            'due_date': '22-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Divya Ramesh',
-            'phone': '9445678901',
-            'email': 'divya.r@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'pending_amount': '3,000.00',
-            'due_date': '25-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Harish Venkat',
-            'phone': '9884123456',
-            'email': 'harish.v@gmail.com',
-            'course': 'Flute Class Mid',
-            'batch': 'Flute Class F1',
-            'total_fee': '20,000.00',
-            'pending_amount': '7,500.00',
-            'due_date': '28-10-2026',
-            'status': 'Pending'
-        },
-        {
-            'student_name': 'Gautham Krishna',
-            'phone': '9962123456',
-            'email': 'gautham.k@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'pending_amount': '4,000.00',
-            'due_date': '25-09-2026',
+    # Build real details lists from database only
+    todays_details = []
+    for p in today_payments_qs.order_by('-payment_date'):
+        stu = p.student_fee.student if p.student_fee else None
+        todays_details.append({
+            'receipt_no': p.receipt_no or f"RCP-{p.fee_payment_id:04d}",
+            'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
+            'phone': stu.phone if stu else '-',
+            'email': stu.email if stu else '-',
+            'course': p.student_fee.course.course_name if p.student_fee and p.student_fee.course else '-',
+            'batch': p.student_fee.batch.batch_name if p.student_fee and p.student_fee.batch else '-',
+            'amount': f"{p.paid_amount:,.2f}",
+            'mode': payment_mode_map.get(p.payment_mode, 'Other'),
+            'txn_id': p.transaction_no or '-',
+            'time': p.payment_date.strftime('%I:%M %p') if p.payment_date else '-',
+            'date': p.payment_date.strftime('%d-%m-%Y') if p.payment_date else today_str,
+            'status': 'Completed'
+        })
+
+    monthly_details = []
+    for p in monthly_payments_qs.order_by('-payment_date'):
+        stu = p.student_fee.student if p.student_fee else None
+        monthly_details.append({
+            'receipt_no': p.receipt_no or f"RCP-{p.fee_payment_id:04d}",
+            'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
+            'phone': stu.phone if stu else '-',
+            'email': stu.email if stu else '-',
+            'course': p.student_fee.course.course_name if p.student_fee and p.student_fee.course else '-',
+            'batch': p.student_fee.batch.batch_name if p.student_fee and p.student_fee.batch else '-',
+            'amount': f"{p.paid_amount:,.2f}",
+            'mode': payment_mode_map.get(p.payment_mode, 'Other'),
+            'txn_id': p.transaction_no or '-',
+            'date': p.payment_date.strftime('%d-%m-%Y') if p.payment_date else '-',
+            'status': 'Completed'
+        })
+
+    pending_details = []
+    for sf in pending_fees_qs.order_by('due_date'):
+        stu = sf.student
+        paid_amt = FeePayment.objects.filter(student_fee=sf).aggregate(total=Sum('paid_amount'))['total'] or 0
+        pend_amt = max(0, sf.final_amount - paid_amt)
+        is_overdue = sf.due_date and sf.due_date < today
+        pending_details.append({
+            'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
+            'phone': stu.phone if stu else '-',
+            'email': stu.email if stu else '-',
+            'course': sf.course.course_name if sf.course else '-',
+            'batch': sf.batch.batch_name if sf.batch else '-',
+            'total_fee': f"{sf.final_amount:,.2f}",
+            'paid_amount': f"{paid_amt:,.2f}",
+            'pending_amount': f"{pend_amt:,.2f}",
+            'due_date': sf.due_date.strftime('%d-%m-%Y') if sf.due_date else '-',
+            'status': 'Overdue' if is_overdue else 'Pending'
+        })
+
+    overdue_details = []
+    for sf in overdue_fees_qs.order_by('due_date'):
+        stu = sf.student
+        paid_amt = FeePayment.objects.filter(student_fee=sf).aggregate(total=Sum('paid_amount'))['total'] or 0
+        pend_amt = max(0, sf.final_amount - paid_amt)
+        days_ovd = (today - sf.due_date).days if sf.due_date else 0
+        overdue_details.append({
+            'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
+            'phone': stu.phone if stu else '-',
+            'email': stu.email if stu else '-',
+            'course': sf.course.course_name if sf.course else '-',
+            'batch': sf.batch.batch_name if sf.batch else '-',
+            'total_fee': f"{sf.final_amount:,.2f}",
+            'paid_amount': f"{paid_amt:,.2f}",
+            'overdue_amount': f"{pend_amt:,.2f}",
+            'due_date': sf.due_date.strftime('%d-%m-%Y') if sf.due_date else '-',
+            'days_overdue': days_ovd,
             'status': 'Overdue'
-        },
-        {
-            'student_name': 'Sneha Reddy',
-            'phone': '9841234567',
-            'email': 'sneha.r@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'pending_amount': '3,000.00',
-            'due_date': '28-09-2026',
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Manoj Prabakar',
-            'phone': '9710123456',
-            'email': 'manoj.p@gmail.com',
-            'course': 'Piano Class',
-            'batch': 'Piano Class A',
-            'total_fee': '7,000.00',
-            'pending_amount': '3,500.00',
-            'due_date': '02-10-2026',
-            'status': 'Overdue'
-        },
-        {
-            'student_name': 'Keerthi Suresh',
-            'phone': '9600123456',
-            'email': 'keerthi.s@gmail.com',
-            'course': 'Guiter Class Basic',
-            'batch': 'Guitar class A1',
-            'total_fee': '6,000.00',
-            'pending_amount': '1,500.00',
-            'due_date': '05-10-2026',
-            'status': 'Overdue'
-        },
-    ]
+        })
+
+    students_paid_details = []
+    for sf in all_fees.filter(status=3).order_by('-created_date'):
+        stu = sf.student
+        last_payment = FeePayment.objects.filter(student_fee=sf).order_by('-payment_date').first()
+        students_paid_details.append({
+            'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
+            'phone': stu.phone if stu else '-',
+            'email': stu.email if stu else '-',
+            'course': sf.course.course_name if sf.course else '-',
+            'batch': sf.batch.batch_name if sf.batch else '-',
+            'total_fee': f"{sf.final_amount:,.2f}",
+            'paid_amount': f"{sf.final_amount:,.2f}",
+            'receipt_no': last_payment.receipt_no if last_payment and last_payment.receipt_no else '-',
+            'payment_date': last_payment.payment_date.strftime('%d-%m-%Y') if last_payment and last_payment.payment_date else '-',
+            'status': 'Fully Paid'
+        })
+
+    students_pending_details = pending_details
 
     context = {
         'user': user,
@@ -2074,8 +1587,8 @@ def fee_dashboard_view(request):
         'monthly_collection': monthly_collection,
         'pending_fees': pending_fees,
         'overdue_fees': overdue_fees,
-        'students_paid': students_paid,
-        'students_pending': students_pending,
+        'students_paid': str(students_paid_count),
+        'students_pending': str(students_pending_count),
         'todays_details_json': json.dumps(todays_details),
         'monthly_details_json': json.dumps(monthly_details),
         'pending_details_json': json.dumps(pending_details),
@@ -2090,32 +1603,46 @@ def fee_collection_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     try:
-
         user = User.objects.get(user_id=request.session['user_id'])
-
     except User.DoesNotExist:
-
         request.session.flush()
-
         return redirect('login')
     
     from academics.models import Course, Batch
+    from finance.models import FeePayment, StudentFee
     
-    students = User.objects.filter(role__role_name='Student', is_active=True)
-    courses = Course.objects.filter(is_active=True)
-    batches = Batch.objects.filter(is_active=True)
+    students = User.objects.filter(role__role_name='Student', is_active=True).order_by('first_name', 'last_name')
+    courses = Course.objects.filter(is_active=True).order_by('course_name')
+    batches = Batch.objects.filter(is_active=True).order_by('batch_name')
     
     if request.method == 'POST':
-        # Here we would handle the actual payment collection mapping to FeePayment, FeeReceipt, etc.
         messages.success(request, 'Fee payment collected successfully! Receipt generated.')
         return redirect('fee_collection')
+        
+    payment_mode_map = {1: 'Cash', 2: 'UPI', 3: 'Credit Card', 4: 'Debit Card', 5: 'Net Banking'}
+    recent_payments = FeePayment.objects.select_related(
+        'student_fee', 'student_fee__student', 'student_fee__course', 'student_fee__batch'
+    ).order_by('-payment_date')[:20]
+    
+    formatted_payments = []
+    for p in recent_payments:
+        stu = p.student_fee.student if p.student_fee else None
+        formatted_payments.append({
+            'receipt_no': p.receipt_no or f"RCP-{p.fee_payment_id:04d}",
+            'date': p.payment_date.strftime('%d/%m/%Y') if p.payment_date else '-',
+            'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
+            'amount': f"{p.paid_amount:,.2f}",
+            'mode': payment_mode_map.get(p.payment_mode, 'Other'),
+            'status': 'Paid' if p.student_fee and p.student_fee.status == 3 else 'Partial'
+        })
         
     return render(request, 'website/fee_collection.html', {
         'user': user,
         'page_title': 'Fee Collection',
         'students': students,
         'courses': courses,
-        'batches': batches
+        'batches': batches,
+        'recent_payments': formatted_payments
     })
 
 
@@ -2123,24 +1650,20 @@ def assign_fees_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     try:
-
         user = User.objects.get(user_id=request.session['user_id'])
-
     except User.DoesNotExist:
-
         request.session.flush()
-
         return redirect('login')
     
     from academics.models import Course, Batch
-    from finance.models import StudentFee
+    from finance.models import StudentFee, FeeType
     
-    students = User.objects.filter(role__role_name='Student', is_active=True)
-    courses = Course.objects.filter(is_active=True)
-    batches = Batch.objects.filter(is_active=True)
+    students = User.objects.filter(role__role_name='Student', is_active=True).order_by('first_name', 'last_name')
+    courses = Course.objects.filter(is_active=True).order_by('course_name')
+    batches = Batch.objects.filter(is_active=True).order_by('batch_name')
+    fee_types = FeeType.objects.filter(is_active=True).order_by('fee_type_name')
     
     if request.method == 'POST':
-        # Here we would map the form data to the StudentFee model
         messages.success(request, 'Fees assigned successfully!')
         return redirect('assign_fees')
         
@@ -2149,7 +1672,8 @@ def assign_fees_view(request):
         'page_title': 'Assign Fees',
         'students': students,
         'courses': courses,
-        'batches': batches
+        'batches': batches,
+        'fee_types': fee_types,
     })
 
 
@@ -2157,54 +1681,153 @@ def pending_fees_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     try:
-
         user = User.objects.get(user_id=request.session['user_id'])
-
     except User.DoesNotExist:
-
         request.session.flush()
-
         return redirect('login')
     
+    from academics.models import Course, Batch
+    from finance.models import StudentFee, FeePayment
+    from datetime import date
+    from django.db.models import Sum
+    
+    courses = Course.objects.filter(is_active=True).order_by('course_name')
+    batches = Batch.objects.filter(is_active=True).order_by('batch_name')
+    
+    selected_course = request.GET.get('course', '')
+    selected_batch = request.GET.get('batch', '')
+    status_filter = request.GET.get('status', 'all')
+    
+    today = date.today()
+    pending_qs = StudentFee.objects.select_related('student', 'course', 'batch').filter(status__in=[1, 2])
+    
+    if selected_course:
+        pending_qs = pending_qs.filter(course_id=selected_course)
+    if selected_batch:
+        pending_qs = pending_qs.filter(batch_id=selected_batch)
+        
+    pending_list = []
+    for idx, sf in enumerate(pending_qs.order_by('due_date'), start=1):
+        paid = FeePayment.objects.filter(student_fee=sf).aggregate(total=Sum('paid_amount'))['total'] or 0
+        pending_amt = max(0, sf.final_amount - paid)
+        if pending_amt <= 0:
+            continue
+            
+        is_overdue = bool(sf.due_date and sf.due_date < today)
+        days_overdue = (today - sf.due_date).days if is_overdue else 0
+        
+        if status_filter == 'pending' and is_overdue:
+            continue
+        elif status_filter == 'overdue' and not is_overdue:
+            continue
+            
+        stu = sf.student
+        stu_name = stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-'
+        
+        pending_list.append({
+            'index': idx,
+            'student_fee_id': sf.student_fee_id,
+            'student_name': stu_name,
+            'course_name': sf.course.course_name if sf.course else '-',
+            'batch_name': sf.batch.batch_name if sf.batch else '-',
+            'total_fees': f"{sf.final_amount:,.2f}",
+            'paid_amount': f"{paid:,.2f}",
+            'pending_amount': f"{pending_amt:,.2f}",
+            'due_date': sf.due_date.strftime('%d/%m/%Y') if sf.due_date else '-',
+            'days_overdue': days_overdue if is_overdue else '-',
+            'is_overdue': is_overdue,
+        })
+        
     return render(request, 'website/pending_fees.html', {
         'user': user,
-        'page_title': 'Pending Fees'
+        'page_title': 'Pending Fees',
+        'courses': courses,
+        'batches': batches,
+        'pending_list': pending_list,
+        'selected_course': selected_course,
+        'selected_batch': selected_batch,
+        'status_filter': status_filter,
     })
 
 def receipts_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     try:
-
         user = User.objects.get(user_id=request.session['user_id'])
-
     except User.DoesNotExist:
-
         request.session.flush()
-
         return redirect('login')
     
+    from finance.models import FeeReceipt, FeePayment
+    payment_mode_map = {1: 'Cash', 2: 'UPI', 3: 'Credit Card', 4: 'Debit Card', 5: 'Net Banking'}
+    
+    from_date = request.GET.get('from_date', '')
+    to_date = request.GET.get('to_date', '')
+    receipt_no = request.GET.get('receipt_no', '').strip()
+    
+    receipts_qs = FeeReceipt.objects.select_related('student', 'fee_payment').order_by('-receipt_date')
+    if from_date:
+        receipts_qs = receipts_qs.filter(receipt_date__date__gte=from_date)
+    if to_date:
+        receipts_qs = receipts_qs.filter(receipt_date__date__lte=to_date)
+    if receipt_no:
+        receipts_qs = receipts_qs.filter(receipt_no__icontains=receipt_no)
+        
+    receipt_list = []
+    for r in receipts_qs:
+        stu = r.student
+        fp = r.fee_payment
+        stu_name = stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-'
+        receipt_list.append({
+            'receipt_id': r.receipt_id,
+            'receipt_no': r.receipt_no,
+            'date': r.receipt_date.strftime('%d/%m/%Y') if r.receipt_date else '-',
+            'student_name': stu_name,
+            'amount': f"{r.total_amount:,.2f}",
+            'mode': payment_mode_map.get(fp.payment_mode, 'Other') if fp else '-',
+            'transaction_no': (fp.transaction_no if fp and fp.transaction_no else '-') or '-',
+        })
+        
     return render(request, 'website/receipts.html', {
         'user': user,
-        'page_title': 'Receipts'
+        'page_title': 'Receipts',
+        'receipts': receipt_list,
+        'from_date': from_date,
+        'to_date': to_date,
+        'receipt_no': receipt_no,
     })
 
 def refunds_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     try:
-
         user = User.objects.get(user_id=request.session['user_id'])
-
     except User.DoesNotExist:
-
         request.session.flush()
-
         return redirect('login')
     
+    from finance.models import FeeRefund
+    refunds_qs = FeeRefund.objects.select_related('student', 'receipt').order_by('-refund_date')
+    
+    refund_list = []
+    for rf in refunds_qs:
+        stu = rf.student
+        stu_name = stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-'
+        refund_list.append({
+            'refund_id': rf.refund_id,
+            'refund_no': f"RFND{rf.refund_id:04d}",
+            'receipt_no': rf.receipt.receipt_no if rf.receipt else '-',
+            'student_name': stu_name,
+            'amount': f"{rf.refund_amount:,.2f}",
+            'date': rf.refund_date.strftime('%d/%m/%Y') if rf.refund_date else '-',
+            'reason': rf.reason or '-',
+            'status': 'Approved' if rf.approved_by else 'Pending',
+        })
+        
     return render(request, 'website/refunds.html', {
         'user': user,
-        'page_title': 'Refunds'
+        'page_title': 'Refunds',
+        'refunds': refund_list,
     })
 
 
@@ -2212,27 +1835,172 @@ def reports_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
     try:
-
         user = User.objects.get(user_id=request.session['user_id'])
-
     except User.DoesNotExist:
-
         request.session.flush()
-
         return redirect('login')
     
     from academics.models import Course, Batch
+    from finance.models import FeePayment, StudentFee, FeeReceipt
+    from datetime import date
+    from django.db.models import Sum, Q
     
-    students = User.objects.filter(role__role_name='Student', is_active=True)
-    courses = Course.objects.filter(is_active=True)
-    batches = Batch.objects.filter(is_active=True)
+    students = User.objects.filter(role__role_name='Student', is_active=True).order_by('first_name', 'last_name')
+    courses = Course.objects.filter(is_active=True).order_by('course_name')
+    batches = Batch.objects.filter(is_active=True).order_by('batch_name')
     
+    # 1. Collection Report Tab
+    from_date = request.GET.get('from_date', '')
+    to_date = request.GET.get('to_date', '')
+    course_id = request.GET.get('course_id', '')
+    batch_id = request.GET.get('batch_id', '')
+    
+    payments_qs = FeePayment.objects.select_related('student_fee', 'student_fee__student', 'student_fee__course', 'student_fee__batch').order_by('-payment_date')
+    if from_date:
+        payments_qs = payments_qs.filter(payment_date__date__gte=from_date)
+    if to_date:
+        payments_qs = payments_qs.filter(payment_date__date__lte=to_date)
+    if course_id:
+        payments_qs = payments_qs.filter(student_fee__course_id=course_id)
+    if batch_id:
+        payments_qs = payments_qs.filter(student_fee__batch_id=batch_id)
+        
+    total_collection_val = payments_qs.aggregate(total=Sum('paid_amount'))['total'] or 0
+    cash_val = payments_qs.filter(payment_mode=1).aggregate(total=Sum('paid_amount'))['total'] or 0
+    upi_val = payments_qs.filter(payment_mode=2).aggregate(total=Sum('paid_amount'))['total'] or 0
+    card_val = payments_qs.filter(payment_mode__in=[3, 4]).aggregate(total=Sum('paid_amount'))['total'] or 0
+    
+    payment_mode_map = {1: 'Cash', 2: 'UPI', 3: 'Card', 4: 'Card', 5: 'Net Banking'}
+    collection_items = []
+    for p in payments_qs:
+        stu = p.student_fee.student if p.student_fee else None
+        stu_name = stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-'
+        collection_items.append({
+            'date': p.payment_date.strftime('%d/%m/%Y') if p.payment_date else '-',
+            'receipt_no': p.receipt_no or f"RCP-{p.fee_payment_id:04d}",
+            'student_name': stu_name,
+            'amount': f"{p.paid_amount:,.2f}",
+            'mode': payment_mode_map.get(p.payment_mode, 'Other')
+        })
+        
+    # 2. Pending Fees Report Tab
+    today = date.today()
+    pending_fees_qs = StudentFee.objects.select_related('student', 'course', 'batch').filter(status__in=[1, 2])
+    if course_id:
+        pending_fees_qs = pending_fees_qs.filter(course_id=course_id)
+    if batch_id:
+        pending_fees_qs = pending_fees_qs.filter(batch_id=batch_id)
+        
+    total_pending_val = 0
+    total_overdue_val = 0
+    due_this_month_val = 0
+    due_later_val = 0
+    pending_report_items = []
+    
+    for sf in pending_fees_qs:
+        paid = FeePayment.objects.filter(student_fee=sf).aggregate(total=Sum('paid_amount'))['total'] or 0
+        pend_amt = max(0, sf.final_amount - paid)
+        if pend_amt <= 0:
+            continue
+            
+        total_pending_val += pend_amt
+        is_ovd = bool(sf.due_date and sf.due_date < today)
+        days_ovd = (today - sf.due_date).days if is_ovd else 0
+        if is_ovd:
+            total_overdue_val += pend_amt
+        elif sf.due_date and sf.due_date.year == today.year and sf.due_date.month == today.month:
+            due_this_month_val += pend_amt
+        else:
+            due_later_val += pend_amt
+            
+        stu = sf.student
+        stu_name = stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-'
+        pending_report_items.append({
+            'student_name': stu_name,
+            'course_name': sf.course.course_name if sf.course else '-',
+            'batch_name': sf.batch.batch_name if sf.batch else '-',
+            'total_fees': f"{sf.final_amount:,.2f}",
+            'paid_amount': f"{paid:,.2f}",
+            'pending_amount': f"{pend_amt:,.2f}",
+            'due_date': sf.due_date.strftime('%d/%m/%Y') if sf.due_date else '-',
+            'days_overdue': days_ovd if is_ovd else '-',
+        })
+        
+    # 3. Student Ledger Tab
+    ledger_student_id = request.GET.get('student_id', '')
+    selected_ledger_student = None
+    ledger_total_fees = 0
+    ledger_total_paid = 0
+    ledger_total_pending = 0
+    ledger_items = []
+    
+    if ledger_student_id:
+        try:
+            selected_ledger_student = User.objects.get(user_id=ledger_student_id)
+        except User.DoesNotExist:
+            selected_ledger_student = None
+    elif students.exists():
+        selected_ledger_student = students.first()
+        ledger_student_id = str(selected_ledger_student.user_id)
+        
+    if selected_ledger_student:
+        stu_fees = StudentFee.objects.filter(student=selected_ledger_student)
+        ledger_total_fees = stu_fees.aggregate(total=Sum('final_amount'))['total'] or 0
+        stu_payments = FeePayment.objects.filter(student_fee__student=selected_ledger_student).order_by('payment_date')
+        ledger_total_paid = stu_payments.aggregate(total=Sum('paid_amount'))['total'] or 0
+        ledger_total_pending = max(0, ledger_total_fees - ledger_total_paid)
+        
+        running_balance = 0
+        for sf in stu_fees.order_by('created_date'):
+            running_balance += sf.final_amount
+            ledger_items.append({
+                'date': sf.created_date.strftime('%d/%m/%Y') if sf.created_date else '-',
+                'particulars': f"Assigned - {sf.course.course_name if sf.course else 'Course Fee'}",
+                'receipt_no': '-',
+                'debit': f"{sf.final_amount:,.2f}",
+                'credit': '-',
+                'balance': f"{running_balance:,.2f}"
+            })
+        for p in stu_payments:
+            running_balance -= p.paid_amount
+            ledger_items.append({
+                'date': p.payment_date.strftime('%d/%m/%Y') if p.payment_date else '-',
+                'particulars': 'Payment Received',
+                'receipt_no': p.receipt_no or f"RCP-{p.fee_payment_id:04d}",
+                'debit': '-',
+                'credit': f"{p.paid_amount:,.2f}",
+                'balance': f"{running_balance:,.2f}"
+            })
+            
     return render(request, 'website/reports.html', {
         'user': user,
         'page_title': 'Reports',
         'students': students,
         'courses': courses,
-        'batches': batches
+        'batches': batches,
+        # Collection Report
+        'total_collection': f"{total_collection_val:,.2f}",
+        'cash_collection': f"{cash_val:,.2f}",
+        'upi_collection': f"{upi_val:,.2f}",
+        'card_collection': f"{card_val:,.2f}",
+        'collection_items': collection_items,
+        'from_date': from_date,
+        'to_date': to_date,
+        'course_id': course_id,
+        'batch_id': batch_id,
+        # Pending Report
+        'total_pending': f"{total_pending_val:,.2f}",
+        'total_overdue': f"{total_overdue_val:,.2f}",
+        'due_this_month': f"{due_this_month_val:,.2f}",
+        'due_later': f"{due_later_val:,.2f}",
+        'pending_report_items': pending_report_items,
+        # Ledger
+        'ledger_student_id': ledger_student_id,
+        'selected_ledger_student': selected_ledger_student,
+        'ledger_total_fees': f"{ledger_total_fees:,.2f}",
+        'ledger_total_paid': f"{ledger_total_paid:,.2f}",
+        'ledger_total_pending': f"{ledger_total_pending:,.2f}",
+        'ledger_items': ledger_items,
     })
 
 

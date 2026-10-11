@@ -30,43 +30,33 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-sm">
-                <!-- Mock Data -->
+                {% for rf in refunds %}
                 <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-6 text-indigo-600 font-medium">RFND0086</td>
-                    <td class="py-3 px-6 text-gray-600">RCP0085</td>
-                    <td class="py-3 px-6 text-gray-800 font-medium">Arun Kumar</td>
-                    <td class="py-3 px-6 text-right text-gray-800 font-bold">500.00</td>
-                    <td class="py-3 px-6 text-gray-600">20/05/2025</td>
-                    <td class="py-3 px-6 text-gray-600">Batch Cancelled</td>
-                    <td class="py-3 px-6"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Approved</span></td>
+                    <td class="py-3 px-6 text-indigo-600 font-medium">{{ rf.refund_no }}</td>
+                    <td class="py-3 px-6 text-gray-600">{{ rf.receipt_no }}</td>
+                    <td class="py-3 px-6 text-gray-800 font-medium">{{ rf.student_name }}</td>
+                    <td class="py-3 px-6 text-right text-gray-800 font-bold">₹ {{ rf.amount }}</td>
+                    <td class="py-3 px-6 text-gray-600">{{ rf.date }}</td>
+                    <td class="py-3 px-6 text-gray-600">{{ rf.reason }}</td>
+                    <td class="py-3 px-6">
+                        {% if rf.status == 'Approved' %}
+                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Approved</span>
+                        {% else %}
+                        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded">Pending</span>
+                        {% endif %}
+                    </td>
                     <td class="py-3 px-6 text-center">
                         <button class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-eye"></i></button>
                     </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-6 text-indigo-600 font-medium">RFND0084</td>
-                    <td class="py-3 px-6 text-gray-600">RCP0090</td>
-                    <td class="py-3 px-6 text-gray-800 font-medium">Priya Sharma</td>
-                    <td class="py-3 px-6 text-right text-gray-800 font-bold">300.00</td>
-                    <td class="py-3 px-6 text-gray-600">18/05/2025</td>
-                    <td class="py-3 px-6 text-gray-600">Course Change</td>
-                    <td class="py-3 px-6"><span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Approved</span></td>
-                    <td class="py-3 px-6 text-center">
-                        <button class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-eye"></i></button>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="py-12 text-center text-gray-400">
+                        <i class="fa-solid fa-money-bill-transfer text-3xl mb-2 text-gray-300"></i>
+                        <p class="text-sm">No refund records found.</p>
                     </td>
                 </tr>
-                <tr class="hover:bg-gray-50">
-                    <td class="py-3 px-6 text-indigo-600 font-medium">RFND0082</td>
-                    <td class="py-3 px-6 text-gray-600">RCP0080</td>
-                    <td class="py-3 px-6 text-gray-800 font-medium">Anjali Mehta</td>
-                    <td class="py-3 px-6 text-right text-gray-800 font-bold">500.00</td>
-                    <td class="py-3 px-6 text-gray-600">10/05/2025</td>
-                    <td class="py-3 px-6 text-gray-600">Batch Cancelled</td>
-                    <td class="py-3 px-6"><span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded">Pending</span></td>
-                    <td class="py-3 px-6 text-center">
-                        <button class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100"><i class="fa-solid fa-eye"></i></button>
-                    </td>
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
 

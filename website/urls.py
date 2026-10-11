@@ -42,6 +42,7 @@ urlpatterns = [
     path('teachers/update/<int:teacher_id>/', views.update_teacher, name='update_teacher'),
     path('teachers/delete/<int:teacher_id>/', views.delete_teacher, name='delete_teacher'),
     path('timetable/', views.timetable_view, name='timetable'),
+    path('holidays/', views.holidays_view, name='holidays'),
     path('courses/', views.courses_batches_view, name='courses'),
     path('fees/dashboard/', views.fee_dashboard_view, name='fee_dashboard'),
     path('fees/assign/', views.assign_fees_view, name='assign_fees'),

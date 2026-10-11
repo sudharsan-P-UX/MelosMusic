@@ -198,3 +198,21 @@ class LeaveRequest(models.Model):
 
     class Meta:
         db_table = 'LeaveRequest'
+
+
+class Holiday(models.Model):
+    holiday_id = models.AutoField(primary_key=True, db_column='HolidayId')
+    holiday_name = models.CharField(max_length=255, db_column='HolidayName')
+    holiday_date = models.DateField(db_column='HolidayDate')
+    holiday_type = models.CharField(max_length=50, default='Public Holiday', db_column='HolidayType')
+    description = models.TextField(null=True, blank=True, db_column='Description')
+    is_recurring_weekly = models.BooleanField(default=False, db_column='IsRecurringWeekly')
+    day_of_week = models.CharField(max_length=50, null=True, blank=True, db_column='DayOfWeek')
+    is_active = models.BooleanField(default=True, db_column='IsActive')
+    created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
+    created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
+
+    class Meta:
+        db_table = 'Holiday'
+        ordering = ['holiday_date']
+

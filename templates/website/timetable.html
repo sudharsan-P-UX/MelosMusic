@@ -16,6 +16,10 @@
                 <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
                 <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
             </button>
+            <!-- Manage Holidays Button -->
+            <a href="{% url 'holidays' %}" class="bg-amber-50 border border-amber-300 hover:bg-amber-100 text-amber-800 px-3.5 py-2 rounded-md font-semibold shadow-sm transition flex items-center text-sm" title="Manage annual holidays and observe class schedules">
+                <i class="fa-solid fa-umbrella-beach mr-2 text-amber-600"></i> Holidays
+            </a>
             {% if menu_access.add %}
             <button type="button" onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center text-sm">
                 <i class="fa-solid fa-plus mr-2"></i> Add New Slot
@@ -92,21 +96,97 @@
         </form>
     </div>
 
+    <!-- Week Navigation & Holiday Reflection Header Bar -->
+    <div class="px-6 py-3 border-b border-gray-200 bg-white flex flex-wrap items-center justify-between gap-3">
+        <!-- Week Navigation Controls -->
+        <div class="flex items-center gap-2">
+            <a href="{% url 'timetable' %}?week_start={{ prev_week_start }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_batch %}&batch_id={{ selected_batch }}{% endif %}{% if selected_teacher %}&teacher_id={{ selected_teacher }}{% endif %}{% if selected_day %}&day={{ selected_day }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="px-2.5 py-1.5 border border-gray-300 rounded text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center shadow-xs transition">
+                <i class="fa-solid fa-chevron-left mr-1"></i> Prev Week
+            </a>
+            <div class="font-bold text-gray-800 text-xs px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded text-indigo-900 flex items-center gap-1.5 shadow-xs">
+                <i class="fa-regular fa-calendar text-indigo-600"></i>
+                <span>Week: {{ current_week_str }}</span>
+            </div>
+            <a href="{% url 'timetable' %}?week_start={{ next_week_start }}{% if selected_course %}&course_id={{ selected_course }}{% endif %}{% if selected_batch %}&batch_id={{ selected_batch }}{% endif %}{% if selected_teacher %}&teacher_id={{ selected_teacher }}{% endif %}{% if selected_day %}&day={{ selected_day }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="px-2.5 py-1.5 border border-gray-300 rounded text-xs font-semibold text-gray-700 hover:bg-gray-50 flex items-center shadow-xs transition">
+                Next Week <i class="fa-solid fa-chevron-right ml-1"></i>
+            </a>
+            <a href="{% url 'timetable' %}" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold ml-1.5">
+                Current Week
+            </a>
+        </div>
+
+        <!-- Week Stats & Schedule Reflection Pill -->
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-[11px]"></i> Active Class Days: <strong>{{ week_class_days_count }}</strong>
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold {% if week_holiday_count > 0 %}bg-amber-50 text-amber-800 border border-amber-300 shadow-xs{% else %}bg-gray-100 text-gray-600 border border-gray-200{% endif %}">
+                <i class="fa-solid fa-umbrella-beach text-amber-600 text-[11px]"></i> Holidays Observed: <strong>{{ week_holiday_count }}</strong>
+            </span>
+            <a href="{% url 'holidays' %}" class="text-xs font-semibold text-amber-700 hover:text-amber-900 hover:underline flex items-center gap-1 ml-1">
+                <i class="fa-solid fa-gear text-[10px]"></i> Configure Holidays
+            </a>
+        </div>
+    </div>
+
     <!-- Calendar View -->
     <div class="p-6 overflow-x-auto">
-        <div class="{% if schedule_data|length == 1 %}max-w-md mx-auto grid grid-cols-1{% else %}min-w-[900px] grid grid-cols-7{% endif %} gap-4">
-            {% for day, day_slots in schedule_data %}
+        <div class="{% if schedule_data|length == 1 %}max-w-md mx-auto grid grid-cols-1{% else %}min-w-[950px] grid grid-cols-7{% endif %} gap-4">
+            {% for day_item in schedule_data %}
             <div class="flex flex-col">
-                <div class="bg-indigo-600 text-white font-bold text-center py-2.5 rounded-t-lg shadow-sm uppercase text-xs tracking-wider flex items-center justify-center gap-1.5">
-                    <i class="fa-regular fa-calendar text-[11px]"></i>
-                    <span>{{ day }}</span>
-                    {% if day_slots %}
-                    <span class="ml-1 bg-indigo-800 text-indigo-100 text-[10px] font-bold px-1.5 py-0.2 rounded-full">{{ day_slots|length }}</span>
-                    {% endif %}
+                <!-- Column Header -->
+                {% if day_item.is_holiday %}
+                <div class="bg-gradient-to-r from-amber-600 to-rose-600 text-white font-bold text-center py-2 px-1 rounded-t-lg shadow-sm uppercase text-xs tracking-wider flex flex-col items-center justify-center gap-0.5">
+                    <div class="flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-umbrella-beach text-[11px]"></i>
+                        <span>{{ day_item.day }}</span>
+                    </div>
+                    <span class="text-[10px] text-amber-100 font-medium">{{ day_item.short_date }}</span>
+                    <span class="mt-0.5 bg-white/20 text-white text-[9px] font-bold px-2 py-0.2 rounded-full uppercase tracking-wider">Holiday</span>
                 </div>
+                {% else %}
+                <div class="{% if day_item.is_today %}bg-indigo-700 ring-2 ring-indigo-500 ring-offset-1{% else %}bg-indigo-600{% endif %} text-white font-bold text-center py-2 px-1 rounded-t-lg shadow-sm uppercase text-xs tracking-wider flex flex-col items-center justify-center gap-0.5">
+                    <div class="flex items-center justify-center gap-1">
+                        <i class="fa-regular fa-calendar text-[11px]"></i>
+                        <span>{{ day_item.day }}</span>
+                        {% if day_item.slots %}
+                        <span class="ml-1 bg-indigo-800 text-indigo-100 text-[10px] font-bold px-1.5 py-0.2 rounded-full">{{ day_item.slots|length }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-[10px] text-indigo-200 font-medium">{{ day_item.short_date }}</span>
+                    <span class="mt-0.5 bg-emerald-500/90 text-white text-[9px] font-bold px-2 py-0.2 rounded-full uppercase tracking-wider">Class Day</span>
+                </div>
+                {% endif %}
+
+                <!-- Column Body -->
                 <div class="bg-gray-50/70 border border-gray-200 border-t-0 rounded-b-lg flex-1 p-2.5 space-y-3 min-h-[420px]">
-                    {% for slot in day_slots %}
-                    <div class="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-indigo-300 transition duration-150 relative group">
+                    <!-- If Holiday: Show Holiday Notice Banner -->
+                    {% if day_item.is_holiday %}
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center shadow-xs">
+                        <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center text-sm mb-1.5">
+                            <i class="fa-solid fa-umbrella-beach"></i>
+                        </div>
+                        <div class="font-bold text-amber-900 text-xs leading-snug">{{ day_item.holiday.holiday_name }}</div>
+                        <div class="text-[10px] text-amber-600 font-semibold mt-0.5">{{ day_item.holiday.holiday_type|default:"Public Holiday" }}</div>
+                        {% if day_item.holiday.description %}
+                        <div class="text-[10px] text-gray-500 mt-1 italic">{{ day_item.holiday.description }}</div>
+                        {% endif %}
+                        <div class="mt-2 text-[10px] font-semibold text-amber-800 bg-amber-100/70 border border-amber-200 px-2 py-0.5 rounded-full inline-block">
+                            <i class="fa-solid fa-ban mr-1 text-[9px]"></i> Classes Paused
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Active Class Day Indicator -->
+                    <div class="bg-emerald-50/70 border border-emerald-200/60 rounded px-2 py-1 text-center">
+                        <span class="text-[10px] font-semibold text-emerald-700 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-circle-check text-[9px]"></i> Active Class Day
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Slots Rendering -->
+                    {% for slot in day_item.slots %}
+                    <div class="bg-white border {% if day_item.is_holiday %}border-gray-200 opacity-80{% else %}border-gray-200{% endif %} rounded-lg p-3 shadow-sm hover:shadow-md hover:border-indigo-300 transition duration-150 relative group">
                         
                         <!-- Course Name Allocation Badge -->
                         <div class="flex items-center justify-between gap-1 mb-1.5">
@@ -206,10 +286,12 @@
 
                     </div>
                     {% empty %}
+                    {% if not day_item.is_holiday %}
                     <div class="text-center text-gray-400 text-xs py-10 flex flex-col items-center">
                         <i class="fa-solid fa-calendar-xmark text-2xl text-gray-300 mb-2"></i>
                         <span>No classes scheduled</span>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>

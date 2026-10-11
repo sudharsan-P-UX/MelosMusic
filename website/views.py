@@ -1125,20 +1125,77 @@ def timetable_view(request):
     for s in slots:
         s.enrolled_count = batch_enrollments.get(s.batch.batch_id, 0) if s.batch else 0
 
-    # Organize slots by day
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    display_days = [d for d in days if d.lower() == day_filter.lower()] if day_filter else days
-    schedule = {day: [] for day in display_days}
-    for slot in slots:
-        if slot.day_of_week in schedule:
-            schedule[slot.day_of_week].append(slot)
-            
-    schedule_data = [(day, schedule[day]) for day in display_days]
-            
+    from academics.models import Holiday
+    from datetime import date, timedelta
+    import calendar
+
+    # Calculate week dates
+    today = date.today()
+    week_start_str = request.GET.get('week_start', '').strip()
+    if week_start_str:
+        try:
+            current_monday = date.fromisoformat(week_start_str)
+            current_monday = current_monday - timedelta(days=current_monday.weekday())
+        except:
+            current_monday = today - timedelta(days=today.weekday())
+    else:
+        current_monday = today - timedelta(days=today.weekday())
+
+    prev_week_start = (current_monday - timedelta(days=7)).isoformat()
+    next_week_start = (current_monday + timedelta(days=7)).isoformat()
+    current_week_str = f"{current_monday.strftime('%d %b %Y')} - {(current_monday + timedelta(days=6)).strftime('%d %b %Y')}"
+
+    # Query holidays for this week or recurring weekly
+    week_dates = [current_monday + timedelta(days=i) for i in range(7)]
+    week_holidays = Holiday.objects.filter(is_active=True).filter(
+        Q(holiday_date__in=week_dates) | Q(is_recurring_weekly=True)
+    )
+
+    holiday_by_date = {}
+    holiday_by_dayname = {}
+    for h in week_holidays:
+        if h.holiday_date in week_dates:
+            holiday_by_date[h.holiday_date] = h
+        if h.is_recurring_weekly and h.day_of_week:
+            holiday_by_dayname[h.day_of_week.lower()] = h
+
+    days_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    display_days = [d for d in days_order if d.lower() == day_filter.lower()] if day_filter else days_order
+
+    schedule_data = []
+    week_holiday_count = 0
+    week_class_days_count = 0
+
+    for day in display_days:
+        idx = days_order.index(day)
+        d_date = current_monday + timedelta(days=idx)
+
+        # Check if holiday by date or by recurring weekly day
+        holiday_obj = holiday_by_date.get(d_date) or holiday_by_dayname.get(day.lower())
+        is_holiday = (holiday_obj is not None)
+        if is_holiday:
+            week_holiday_count += 1
+        else:
+            week_class_days_count += 1
+
+        day_slots = [s for s in slots if s.day_of_week.lower() == day.lower()]
+
+        schedule_data.append({
+            'day': day,
+            'date': d_date,
+            'date_str': d_date.strftime('%d %b %Y'),
+            'short_date': d_date.strftime('%d %b'),
+            'is_today': (d_date == today),
+            'is_holiday': is_holiday,
+            'holiday': holiday_obj,
+            'slots': day_slots,
+            'slot_count': len(day_slots)
+        })
+
     return render(request, 'website/timetable.html', {
         'user': user,
         'schedule_data': schedule_data,
-        'days': days,
+        'days': days_order,
         'batches': batches,
         'teachers': teachers,
         'courses': courses,
@@ -1146,8 +1203,302 @@ def timetable_view(request):
         'selected_batch': batch_filter,
         'selected_teacher': teacher_filter,
         'selected_day': day_filter,
-        'page_title': 'Class Schedule'
+        'current_monday': current_monday.isoformat(),
+        'prev_week_start': prev_week_start,
+        'next_week_start': next_week_start,
+        'current_week_str': current_week_str,
+        'week_holiday_count': week_holiday_count,
+        'week_class_days_count': week_class_days_count,
+        'today_iso': today.isoformat(),
+        'page_title': 'Class Schedule & Timetable'
     })
+
+
+def get_default_holidays(year):
+    fixed = [
+        (f"{year}-01-01", "New Year's Day", "Public Holiday", "New Year celebration"),
+        (f"{year}-01-14", "Pongal / Makar Sankranti", "Festival", "Harvest festival"),
+        (f"{year}-01-26", "Republic Day", "National Holiday", "Celebration of the Constitution of India"),
+        (f"{year}-04-14", "Tamil New Year / Ambedkar Jayanti", "Public Holiday", "State and national celebration"),
+        (f"{year}-05-01", "May Day / Labour Day", "Public Holiday", "International Workers' Day"),
+        (f"{year}-08-15", "Independence Day", "National Holiday", "Commemoration of Indian independence"),
+        (f"{year}-10-02", "Gandhi Jayanti", "National Holiday", "Birth anniversary of Mahatma Gandhi"),
+        (f"{year}-12-25", "Christmas", "Public Holiday", "Christmas celebration"),
+    ]
+    variable = {
+        2026: [
+            ("2026-03-03", "Holi", "Festival", "Festival of colors"),
+            ("2026-03-20", "Eid-ul-Fitr", "Festival", "Islamic festival of breaking the fast"),
+            ("2026-04-03", "Good Friday", "Public Holiday", "Christian holiday commemorating the crucifixion"),
+            ("2026-09-04", "Krishna Janmashtami", "Festival", "Celebration of the birth of Lord Krishna"),
+            ("2026-09-14", "Ganesh Chaturthi", "Festival", "Celebration of the birth of Lord Ganesha"),
+            ("2026-10-20", "Ayudha Puja / Vijaya Dashami", "Festival", "Worship of tools and victory celebration"),
+            ("2026-11-08", "Deepavali", "Festival", "Festival of lights"),
+        ],
+        2025: [
+            ("2025-03-14", "Holi", "Festival", "Festival of colors"),
+            ("2025-03-31", "Eid-ul-Fitr", "Festival", "Festival of breaking the fast"),
+            ("2025-04-18", "Good Friday", "Public Holiday", "Christian holiday"),
+            ("2025-08-16", "Krishna Janmashtami", "Festival", "Celebration of Lord Krishna"),
+            ("2025-08-27", "Ganesh Chaturthi", "Festival", "Celebration of Lord Ganesha"),
+            ("2025-10-02", "Dussehra", "Festival", "Victory of good over evil"),
+            ("2025-10-20", "Deepavali", "Festival", "Festival of lights"),
+        ],
+        2027: [
+            ("2027-03-22", "Holi", "Festival", "Festival of colors"),
+            ("2027-03-10", "Eid-ul-Fitr", "Festival", "Islamic festival"),
+            ("2027-03-26", "Good Friday", "Public Holiday", "Christian holiday"),
+            ("2027-08-25", "Krishna Janmashtami", "Festival", "Celebration of Lord Krishna"),
+            ("2027-09-04", "Ganesh Chaturthi", "Festival", "Celebration of Lord Ganesha"),
+            ("2027-10-09", "Dussehra", "Festival", "Festival celebration"),
+            ("2027-10-29", "Deepavali", "Festival", "Festival of lights"),
+        ]
+    }
+    holidays = list(fixed)
+    if year in variable:
+        holidays.extend(variable[year])
+    else:
+        holidays.extend([
+            (f"{year}-03-15", "Holi", "Festival", "Festival of colors"),
+            (f"{year}-04-05", "Good Friday", "Public Holiday", "Good Friday"),
+            (f"{year}-10-25", "Deepavali", "Festival", "Festival of lights"),
+        ])
+    return holidays
+
+
+def holidays_view(request):
+    if 'user_id' not in request.session:
+        return redirect('login')
+
+    try:
+        user = User.objects.get(user_id=request.session['user_id'])
+    except User.DoesNotExist:
+        request.session.flush()
+        return redirect('login')
+
+    from academics.models import Holiday
+    from django.db.models import Q
+    from datetime import date, timedelta
+    import calendar
+
+    today = date.today()
+    try:
+        selected_year = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        selected_year = today.year
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'add_holiday':
+            name = request.POST.get('holiday_name', '').strip()
+            date_from_str = request.POST.get('holiday_date', '').strip()
+            date_to_str = request.POST.get('end_date', '').strip()
+            htype = request.POST.get('holiday_type', 'Public Holiday').strip()
+            desc = request.POST.get('description', '').strip()
+            is_weekly = request.POST.get('is_recurring_weekly') == '1'
+            day_of_week = request.POST.get('day_of_week', '').strip()
+
+            if not name or not date_from_str:
+                messages.error(request, 'Holiday name and start date are required.')
+                return redirect(f"/holidays/?year={selected_year}")
+
+            try:
+                start_dt = date.fromisoformat(date_from_str)
+                end_dt = date.fromisoformat(date_to_str) if date_to_str else start_dt
+                if end_dt < start_dt:
+                    end_dt = start_dt
+
+                curr = start_dt
+                created_count = 0
+                while curr <= end_dt:
+                    d_day = curr.strftime('%A')
+                    Holiday.objects.update_or_create(
+                        holiday_date=curr,
+                        defaults={
+                            'holiday_name': name,
+                            'holiday_type': htype,
+                            'description': desc,
+                            'is_recurring_weekly': is_weekly,
+                            'day_of_week': day_of_week or d_day,
+                            'is_active': True,
+                            'created_by': user.user_id
+                        }
+                    )
+                    created_count += 1
+                    curr += timedelta(days=1)
+
+                messages.success(request, f"Successfully set {created_count} holiday day(s): {name}")
+            except Exception as e:
+                messages.error(request, f"Error saving holiday: {str(e)}")
+            return redirect(f"/holidays/?year={selected_year}")
+
+        elif action == 'edit_holiday':
+            holiday_id = request.POST.get('holiday_id')
+            name = request.POST.get('holiday_name', '').strip()
+            date_str = request.POST.get('holiday_date', '').strip()
+            htype = request.POST.get('holiday_type', 'Public Holiday').strip()
+            desc = request.POST.get('description', '').strip()
+            try:
+                h = Holiday.objects.get(holiday_id=holiday_id)
+                h.holiday_name = name
+                if date_str:
+                    h.holiday_date = date.fromisoformat(date_str)
+                    h.day_of_week = h.holiday_date.strftime('%A')
+                h.holiday_type = htype
+                h.description = desc
+                h.save()
+                messages.success(request, f"Holiday '{name}' updated successfully.")
+            except Exception as e:
+                messages.error(request, f"Error updating holiday: {str(e)}")
+            return redirect(f"/holidays/?year={selected_year}")
+
+        elif action == 'delete_holiday':
+            holiday_id = request.POST.get('holiday_id')
+            try:
+                Holiday.objects.filter(holiday_id=holiday_id).delete()
+                messages.success(request, "Holiday deleted successfully.")
+            except Exception as e:
+                messages.error(request, f"Error deleting holiday: {str(e)}")
+            return redirect(f"/holidays/?year={selected_year}")
+
+        elif action == 'populate_defaults':
+            year = int(request.POST.get('year', selected_year))
+            defaults = get_default_holidays(year)
+            added = 0
+            for dt_str, h_name, h_type, h_desc in defaults:
+                dt = date.fromisoformat(dt_str)
+                d_day = dt.strftime('%A')
+                obj, created = Holiday.objects.get_or_create(
+                    holiday_date=dt,
+                    defaults={
+                        'holiday_name': h_name,
+                        'holiday_type': h_type,
+                        'description': h_desc,
+                        'day_of_week': d_day,
+                        'is_active': True,
+                        'created_by': user.user_id
+                    }
+                )
+                if created:
+                    added += 1
+            messages.success(request, f"Populated {added} standard holidays for {year}!")
+            return redirect(f"/holidays/?year={year}")
+
+        elif action == 'bulk_weekly_off':
+            year = int(request.POST.get('year', selected_year))
+            target_day = request.POST.get('day_to_mark', 'Sunday')
+            days_to_add = ['Sunday'] if target_day == 'Sunday' else (['Saturday'] if target_day == 'Saturday' else ['Saturday', 'Sunday'])
+
+            curr = date(year, 1, 1)
+            end = date(year, 12, 31)
+            added = 0
+            while curr <= end:
+                d_name = curr.strftime('%A')
+                if d_name in days_to_add:
+                    obj, created = Holiday.objects.get_or_create(
+                        holiday_date=curr,
+                        defaults={
+                            'holiday_name': f"{d_name} Weekly Off",
+                            'holiday_type': 'Weekly Off',
+                            'description': f"Regular weekly off ({d_name})",
+                            'day_of_week': d_name,
+                            'is_recurring_weekly': True,
+                            'is_active': True,
+                            'created_by': user.user_id
+                        }
+                    )
+                    if created:
+                        added += 1
+                curr += timedelta(days=1)
+            messages.success(request, f"Added {added} {target_day} weekly off days for {year}!")
+            return redirect(f"/holidays/?year={year}")
+
+        elif action == 'clear_year':
+            year = int(request.POST.get('year', selected_year))
+            deleted_count, _ = Holiday.objects.filter(holiday_date__year=year).delete()
+            messages.success(request, f"Cleared {deleted_count} holidays for {year}.")
+            return redirect(f"/holidays/?year={year}")
+
+    holidays_qs = Holiday.objects.filter(is_active=True, holiday_date__year=selected_year).order_by('holiday_date')
+
+    search = request.GET.get('search', '').strip()
+    month_filter = request.GET.get('month', '').strip()
+    type_filter = request.GET.get('type', '').strip()
+
+    filtered_holidays = holidays_qs
+    if search:
+        filtered_holidays = filtered_holidays.filter(
+            Q(holiday_name__icontains=search) | Q(description__icontains=search)
+        )
+    if month_filter:
+        try:
+            m_int = int(month_filter)
+            filtered_holidays = filtered_holidays.filter(holiday_date__month=m_int)
+        except ValueError:
+            pass
+    if type_filter:
+        filtered_holidays = filtered_holidays.filter(holiday_type__iexact=type_filter)
+
+    total_days_in_year = 366 if calendar.isleap(selected_year) else 365
+    total_holidays_count = holidays_qs.count()
+    class_days_count = max(0, total_days_in_year - total_holidays_count)
+    public_holidays_count = holidays_qs.exclude(holiday_type='Weekly Off').count()
+    weekly_offs_count = holidays_qs.filter(holiday_type='Weekly Off').count()
+
+    upcoming_holidays = Holiday.objects.filter(is_active=True, holiday_date__gte=today).order_by('holiday_date')[:5]
+
+    months_data = []
+    holidays_by_date = {h.holiday_date: h for h in holidays_qs}
+    for m in range(1, 13):
+        m_name = calendar.month_name[m]
+        _, num_days = calendar.monthrange(selected_year, m)
+        m_holidays = [h for h in holidays_qs if h.holiday_date.month == m]
+        days_in_m = []
+        for d in range(1, num_days + 1):
+            dt = date(selected_year, m, d)
+            h_entry = holidays_by_date.get(dt)
+            days_in_m.append({
+                'day': d,
+                'date': dt,
+                'day_name': dt.strftime('%a'),
+                'is_holiday': (h_entry is not None),
+                'holiday': h_entry,
+                'is_today': (dt == today)
+            })
+        months_data.append({
+            'month_num': m,
+            'month_name': m_name,
+            'holidays_count': len(m_holidays),
+            'class_days_count': num_days - len(m_holidays),
+            'days': days_in_m
+        })
+
+    years = [selected_year - 1, selected_year, selected_year + 1, selected_year + 2]
+    months_list = [(i, calendar.month_name[i]) for i in range(1, 13)]
+    holiday_types = ['Public Holiday', 'National Holiday', 'Festival', 'Academy Off', 'Weekly Off', 'Emergency']
+
+    return render(request, 'website/holidays.html', {
+        'user': user,
+        'holidays': filtered_holidays,
+        'all_year_holidays': holidays_qs,
+        'selected_year': selected_year,
+        'years': years,
+        'months_list': months_list,
+        'selected_month': month_filter,
+        'selected_type': type_filter,
+        'search': search,
+        'holiday_types': holiday_types,
+        'total_holidays_count': total_holidays_count,
+        'class_days_count': class_days_count,
+        'public_holidays_count': public_holidays_count,
+        'weekly_offs_count': weekly_offs_count,
+        'total_days_in_year': total_days_in_year,
+        'upcoming_holidays': upcoming_holidays,
+        'months_data': months_data,
+        'page_title': 'Holiday Management'
+    })
+
 
 
 def get_security_settings():

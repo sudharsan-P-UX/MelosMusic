@@ -925,6 +925,18 @@ def create_event_view(request):
     return redirect('/events/?tab=create')
 
 def generic_page(request, page_name):
+    redirect_map = {
+        'courses': 'courses',
+        'fees': 'pending_fees',
+        'students': 'students',
+        'teachers': 'teachers',
+        'timetable': 'timetable',
+        'events': 'events_dashboard',
+        'attendance': 'student_attendance',
+    }
+    if page_name in redirect_map:
+        return redirect(redirect_map[page_name])
+
     if 'user_id' not in request.session:
         return redirect('login')
         

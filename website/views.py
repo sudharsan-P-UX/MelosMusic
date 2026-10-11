@@ -1238,10 +1238,10 @@ def timetable_view(request):
         is_holiday = (holiday_obj is not None)
         if is_holiday:
             week_holiday_count += 1
+            day_slots = []
         else:
             week_class_days_count += 1
-
-        day_slots = [s for s in slots if s.day_of_week.lower() == day.lower()]
+            day_slots = [s for s in slots if s.day_of_week.lower() == day.lower()]
 
         # Decorate slots with time period & status for d_date
         for s in day_slots:

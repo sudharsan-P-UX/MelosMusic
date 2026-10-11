@@ -382,7 +382,7 @@ function feeDashboardComponent() {
                             </td>
                             <td class="py-3 px-4 text-center">
                                 <div class="flex items-center justify-center gap-1.5">
-                                    <a :href="'{% url 'fee_collection' %}?student=' + encodeURIComponent(item.student_name)" 
+                                    <a :href="'{% url 'fee_collection' %}?student_id=' + (item.student_id || '') + '&student=' + encodeURIComponent(item.student_name)" 
                                        class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded transition"
                                        title="Collect Fee">
                                         <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
@@ -434,7 +434,7 @@ function feeDashboardComponent() {
                             </td>
                             <td class="py-3 px-4 text-center">
                                 <div class="flex items-center justify-center gap-1.5">
-                                    <a :href="'{% url 'fee_collection' %}?student=' + encodeURIComponent(item.student_name)" 
+                                    <a :href="'{% url 'fee_collection' %}?student_id=' + (item.student_id || '') + '&student=' + encodeURIComponent(item.student_name)" 
                                        class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded transition"
                                        title="Collect Overdue Fee">
                                         <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
@@ -536,7 +536,7 @@ function feeDashboardComponent() {
                             </td>
                             <td class="py-3 px-4 text-center">
                                 <div class="flex items-center justify-center gap-1.5">
-                                    <a :href="'{% url 'fee_collection' %}?student=' + encodeURIComponent(item.student_name)" 
+                                    <a :href="'{% url 'fee_collection' %}?student_id=' + (item.student_id || '') + '&student=' + encodeURIComponent(item.student_name)" 
                                        class="text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 p-1.5 rounded transition"
                                        title="Collect Fee">
                                         <i class="fa-solid fa-file-invoice-dollar text-xs"></i>

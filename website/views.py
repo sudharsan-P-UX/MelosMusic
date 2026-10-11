@@ -1441,6 +1441,33 @@ def teacher_attendance_view(request):
     })
 
 
+def sync_enrollment_fees(created_by_id=None):
+    try:
+        from academics.models import StudentEnrollment
+        from finance.models import StudentFee
+        for enrollment in StudentEnrollment.objects.select_related('student', 'course', 'batch').all():
+            if enrollment.course and enrollment.student:
+                fee_amt = enrollment.course.fee_amount or 0
+                sf, created = StudentFee.objects.get_or_create(
+                    student=enrollment.student,
+                    course=enrollment.course,
+                    defaults={
+                        'batch': enrollment.batch,
+                        'total_amount': fee_amt,
+                        'discount_amount': 0,
+                        'final_amount': fee_amt,
+                        'due_date': (enrollment.batch.end_date if enrollment.batch else None) or (enrollment.batch.start_date if enrollment.batch else None),
+                        'status': 1,
+                        'created_by': created_by_id
+                    }
+                )
+                if not created and sf.batch != enrollment.batch:
+                    sf.batch = enrollment.batch
+                    sf.save()
+    except Exception as e:
+        print(f"Error in sync_enrollment_fees: {e}")
+
+
 def fee_dashboard_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
@@ -1455,6 +1482,8 @@ def fee_dashboard_view(request):
     from django.utils import timezone
     from django.db.models import Sum, F
     from finance.models import StudentFee, FeePayment, FeeReceipt
+
+    sync_enrollment_fees(user.user_id)
 
     today = timezone.now().date()
     today_str = today.strftime('%d-%m-%Y')
@@ -1492,6 +1521,7 @@ def fee_dashboard_view(request):
         stu = p.student_fee.student if p.student_fee else None
         todays_details.append({
             'receipt_no': p.receipt_no or f"RCP-{p.fee_payment_id:04d}",
+            'student_id': stu.user_id if stu else '',
             'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
             'phone': stu.phone if stu else '-',
             'email': stu.email if stu else '-',
@@ -1510,6 +1540,7 @@ def fee_dashboard_view(request):
         stu = p.student_fee.student if p.student_fee else None
         monthly_details.append({
             'receipt_no': p.receipt_no or f"RCP-{p.fee_payment_id:04d}",
+            'student_id': stu.user_id if stu else '',
             'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
             'phone': stu.phone if stu else '-',
             'email': stu.email if stu else '-',
@@ -1529,6 +1560,7 @@ def fee_dashboard_view(request):
         pend_amt = max(0, sf.final_amount - paid_amt)
         is_overdue = sf.due_date and sf.due_date < today
         pending_details.append({
+            'student_id': stu.user_id if stu else '',
             'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
             'phone': stu.phone if stu else '-',
             'email': stu.email if stu else '-',
@@ -1548,6 +1580,7 @@ def fee_dashboard_view(request):
         pend_amt = max(0, sf.final_amount - paid_amt)
         days_ovd = (today - sf.due_date).days if sf.due_date else 0
         overdue_details.append({
+            'student_id': stu.user_id if stu else '',
             'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
             'phone': stu.phone if stu else '-',
             'email': stu.email if stu else '-',
@@ -1566,6 +1599,7 @@ def fee_dashboard_view(request):
         stu = sf.student
         last_payment = FeePayment.objects.filter(student_fee=sf).order_by('-payment_date').first()
         students_paid_details.append({
+            'student_id': stu.user_id if stu else '',
             'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
             'phone': stu.phone if stu else '-',
             'email': stu.email if stu else '-',
@@ -1609,16 +1643,93 @@ def fee_collection_view(request):
         return redirect('login')
     
     from academics.models import Course, Batch
-    from finance.models import FeePayment, StudentFee
+    from finance.models import FeePayment, StudentFee, FeeReceipt
+    from django.db.models import Sum
+    from django.utils import timezone
+    import random
+    from decimal import Decimal
     
+    sync_enrollment_fees(user.user_id)
+    
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id')
+        course_id = request.POST.get('course_id')
+        batch_id = request.POST.get('batch_id')
+        payment_mode = request.POST.get('payment_mode') or 2
+        transaction_no = request.POST.get('transaction_no') or ''
+        amount_paid_str = request.POST.get('amount_paid') or '0'
+        
+        try:
+            paid_amt = Decimal(str(amount_paid_str).strip() or '0')
+            student = User.objects.get(user_id=student_id)
+            course = Course.objects.filter(course_id=course_id).first() if course_id else None
+            batch = Batch.objects.filter(batch_id=batch_id).first() if batch_id else None
+            
+            sf = StudentFee.objects.filter(student=student, course=course).order_by('-student_fee_id').first()
+            if not sf:
+                fee_amt = course.fee_amount if (course and course.fee_amount) else paid_amt
+                sf = StudentFee.objects.create(
+                    student=student,
+                    course=course,
+                    batch=batch,
+                    total_amount=fee_amt,
+                    discount_amount=0,
+                    final_amount=fee_amt,
+                    due_date=batch.end_date if batch else None,
+                    status=1,
+                    created_by=user.user_id
+                )
+            elif batch and not sf.batch:
+                sf.batch = batch
+                sf.save()
+                
+            receipt_num = f"RCP-{timezone.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
+            
+            fp = FeePayment.objects.create(
+                student_fee=sf,
+                receipt_no=receipt_num,
+                paid_amount=paid_amt,
+                payment_mode=int(payment_mode),
+                transaction_no=transaction_no,
+                remarks='Fee collected via web portal',
+                created_by=user.user_id
+            )
+            
+            FeeReceipt.objects.create(
+                receipt_no=receipt_num,
+                student=student,
+                fee_payment=fp,
+                total_amount=paid_amt,
+                generated_by=user.user_id
+            )
+            
+            total_paid = FeePayment.objects.filter(student_fee=sf).aggregate(total=Sum('paid_amount'))['total'] or 0
+            if total_paid >= sf.final_amount:
+                sf.status = 3
+            elif total_paid > 0:
+                sf.status = 2
+            else:
+                sf.status = 1
+            sf.save()
+            
+            messages.success(request, f'Fee payment of ₹{paid_amt:,.2f} collected successfully! Receipt {receipt_num} generated.')
+            return redirect('fee_collection')
+        except Exception as e:
+            messages.error(request, f'Error collecting fee: {str(e)}')
+            return redirect('fee_collection')
+            
     students = User.objects.filter(role__role_name='Student', is_active=True).order_by('first_name', 'last_name')
     courses = Course.objects.filter(is_active=True).order_by('course_name')
     batches = Batch.objects.filter(is_active=True).order_by('batch_name')
     
-    if request.method == 'POST':
-        messages.success(request, 'Fee payment collected successfully! Receipt generated.')
-        return redirect('fee_collection')
-        
+    selected_student_id = request.GET.get('student_id', '')
+    selected_student_name = request.GET.get('student', '')
+    if not selected_student_id and selected_student_name:
+        st_match = students.filter(display_name__iexact=selected_student_name).first() or \
+                   students.filter(first_name__iexact=selected_student_name).first()
+        if st_match:
+            selected_student_id = str(st_match.user_id)
+            
     payment_mode_map = {1: 'Cash', 2: 'UPI', 3: 'Credit Card', 4: 'Debit Card', 5: 'Net Banking'}
     recent_payments = FeePayment.objects.select_related(
         'student_fee', 'student_fee__student', 'student_fee__course', 'student_fee__batch'
@@ -1633,7 +1744,7 @@ def fee_collection_view(request):
             'student_name': stu.display_name or f"{stu.first_name} {stu.last_name}".strip() if stu else '-',
             'amount': f"{p.paid_amount:,.2f}",
             'mode': payment_mode_map.get(p.payment_mode, 'Other'),
-            'status': 'Paid' if p.student_fee and p.student_fee.status == 3 else 'Partial'
+            'status': 'Paid' if (p.student_fee and p.student_fee.status == 3) else 'Partial'
         })
         
     return render(request, 'website/fee_collection.html', {
@@ -1642,7 +1753,8 @@ def fee_collection_view(request):
         'students': students,
         'courses': courses,
         'batches': batches,
-        'recent_payments': formatted_payments
+        'recent_payments': formatted_payments,
+        'selected_student_id': selected_student_id,
     })
 
 
@@ -1655,18 +1767,69 @@ def assign_fees_view(request):
         request.session.flush()
         return redirect('login')
     
-    from academics.models import Course, Batch
+    from academics.models import Course, Batch, StudentEnrollment
     from finance.models import StudentFee, FeeType
+    from decimal import Decimal
     
+    sync_enrollment_fees(user.user_id)
+    
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id')
+        course_id = request.POST.get('course_id')
+        batch_id = request.POST.get('batch_id')
+        due_date_str = request.POST.get('due_date')
+        remarks = request.POST.get('remarks')
+        
+        reg_fee = Decimal(request.POST.get('reg_fee') or '0')
+        reg_disc = Decimal(request.POST.get('reg_disc') or '0')
+        course_fee = Decimal(request.POST.get('course_fee') or '0')
+        course_disc = Decimal(request.POST.get('course_disc') or '0')
+        mat_fee = Decimal(request.POST.get('mat_fee') or '0')
+        mat_disc = Decimal(request.POST.get('mat_disc') or '0')
+        
+        total_amt = reg_fee + course_fee + mat_fee
+        total_disc = reg_disc + course_disc + mat_disc
+        final_amt = max(Decimal('0'), total_amt - total_disc)
+        
+        try:
+            student = User.objects.get(user_id=student_id)
+            course = Course.objects.filter(course_id=course_id).first() if course_id else None
+            batch = Batch.objects.filter(batch_id=batch_id).first() if batch_id else None
+            
+            sf, created = StudentFee.objects.update_or_create(
+                student=student,
+                course=course,
+                defaults={
+                    'batch': batch,
+                    'total_amount': total_amt,
+                    'discount_amount': total_disc,
+                    'final_amount': final_amt,
+                    'due_date': due_date_str or (batch.end_date if batch else None),
+                    'status': 1,
+                    'created_by': user.user_id
+                }
+            )
+            if course:
+                StudentEnrollment.objects.get_or_create(
+                    student=student,
+                    course=course,
+                    defaults={
+                        'batch': batch,
+                        'joining_date': batch.start_date if batch else None,
+                        'status': 1
+                    }
+                )
+            messages.success(request, f'Fees of ₹{final_amt:,.2f} assigned successfully to {student.display_name or student.first_name}!')
+            return redirect('pending_fees')
+        except Exception as e:
+            messages.error(request, f'Error assigning fees: {str(e)}')
+            return redirect('assign_fees')
+        
     students = User.objects.filter(role__role_name='Student', is_active=True).order_by('first_name', 'last_name')
     courses = Course.objects.filter(is_active=True).order_by('course_name')
     batches = Batch.objects.filter(is_active=True).order_by('batch_name')
     fee_types = FeeType.objects.filter(is_active=True).order_by('fee_type_name')
     
-    if request.method == 'POST':
-        messages.success(request, 'Fees assigned successfully!')
-        return redirect('assign_fees')
-        
     return render(request, 'website/assign_fees.html', {
         'user': user,
         'page_title': 'Assign Fees',
@@ -1690,6 +1853,8 @@ def pending_fees_view(request):
     from finance.models import StudentFee, FeePayment
     from datetime import date
     from django.db.models import Sum
+    
+    sync_enrollment_fees(user.user_id)
     
     courses = Course.objects.filter(is_active=True).order_by('course_name')
     batches = Batch.objects.filter(is_active=True).order_by('batch_name')
@@ -1726,6 +1891,7 @@ def pending_fees_view(request):
         
         pending_list.append({
             'index': idx,
+            'student_id': stu.user_id if stu else '',
             'student_fee_id': sf.student_fee_id,
             'student_name': stu_name,
             'course_name': sf.course.course_name if sf.course else '-',
@@ -1844,6 +2010,8 @@ def reports_view(request):
     from finance.models import FeePayment, StudentFee, FeeReceipt
     from datetime import date
     from django.db.models import Sum, Q
+    
+    sync_enrollment_fees(user.user_id)
     
     students = User.objects.filter(role__role_name='Student', is_active=True).order_by('first_name', 'last_name')
     courses = Course.objects.filter(is_active=True).order_by('course_name')
@@ -2501,6 +2669,32 @@ def student_course_view(request):
                     enrollment.batch = batch
                     enrollment.course = batch.course
                 enrollment.save()
+                
+                # Sync fee
+                if enrollment.course and enrollment.student:
+                    from finance.models import StudentFee
+                    fee_amt = enrollment.course.fee_amount or 0
+                    sf, sf_created = StudentFee.objects.get_or_create(
+                        student=enrollment.student,
+                        course=enrollment.course,
+                        defaults={
+                            'batch': enrollment.batch,
+                            'total_amount': fee_amt,
+                            'discount_amount': 0,
+                            'final_amount': fee_amt,
+                            'due_date': (enrollment.batch.end_date if enrollment.batch else None) or (enrollment.batch.start_date if enrollment.batch else None),
+                            'status': 1,
+                            'created_by': user.user_id
+                        }
+                    )
+                    if not sf_created:
+                        sf.batch = enrollment.batch
+                        if (sf.total_amount == 0 or sf.final_amount == 0) and fee_amt > 0:
+                            sf.total_amount = fee_amt
+                            sf.final_amount = fee_amt - (sf.discount_amount or 0)
+                        if not sf.due_date and enrollment.batch and enrollment.batch.end_date:
+                            sf.due_date = enrollment.batch.end_date
+                        sf.save()
                 messages.success(request, 'Student allocation updated successfully.')
             except Exception as e:
                 messages.error(request, f'Error updating student allocation: {str(e)}')
@@ -2508,7 +2702,13 @@ def student_course_view(request):
         elif action == 'delete_student_allocation':
             enrollment_id = request.POST.get('enrollment_id')
             try:
-                StudentEnrollment.objects.filter(enrollment_id=enrollment_id).delete()
+                enrollment = StudentEnrollment.objects.filter(enrollment_id=enrollment_id).first()
+                if enrollment:
+                    from finance.models import StudentFee, FeePayment
+                    sf = StudentFee.objects.filter(student=enrollment.student, course=enrollment.course).first()
+                    if sf and not FeePayment.objects.filter(student_fee=sf).exists():
+                        sf.delete()
+                    enrollment.delete()
                 messages.success(request, 'Student allocation deleted successfully.')
             except Exception as e:
                 messages.error(request, f'Error deleting student allocation: {str(e)}')
@@ -2552,17 +2752,9 @@ def student_allocation_view(request):
         return redirect('login')
         
     try:
-
-        
         user = User.objects.get(user_id=request.session['user_id'])
-
-        
     except User.DoesNotExist:
-
-        
         request.session.flush()
-
-        
         return redirect('login')
     from academics.models import Course, StudentEnrollment, Batch
     from django.db.models import Q
@@ -2594,6 +2786,31 @@ def student_allocation_view(request):
                         status=1
                     )
                     messages.success(request, 'Student allocated successfully.')
+                
+                # Sync fee
+                from finance.models import StudentFee
+                fee_amt = batch.course.fee_amount or 0
+                sf, sf_created = StudentFee.objects.get_or_create(
+                    student=student,
+                    course=batch.course,
+                    defaults={
+                        'batch': batch,
+                        'total_amount': fee_amt,
+                        'discount_amount': 0,
+                        'final_amount': fee_amt,
+                        'due_date': batch.end_date or batch.start_date,
+                        'status': 1,
+                        'created_by': user.user_id
+                    }
+                )
+                if not sf_created:
+                    sf.batch = batch
+                    if (sf.total_amount == 0 or sf.final_amount == 0) and fee_amt > 0:
+                        sf.total_amount = fee_amt
+                        sf.final_amount = fee_amt - (sf.discount_amount or 0)
+                    if not sf.due_date and batch.end_date:
+                        sf.due_date = batch.end_date
+                    sf.save()
             except Exception as e:
                 messages.error(request, f'Error allocating student: {str(e)}')
             return redirect('student_allocation')
@@ -2610,6 +2827,32 @@ def student_allocation_view(request):
                     enrollment.batch = batch
                     enrollment.course = batch.course
                 enrollment.save()
+                
+                # Sync fee
+                if enrollment.course and enrollment.student:
+                    from finance.models import StudentFee
+                    fee_amt = enrollment.course.fee_amount or 0
+                    sf, sf_created = StudentFee.objects.get_or_create(
+                        student=enrollment.student,
+                        course=enrollment.course,
+                        defaults={
+                            'batch': enrollment.batch,
+                            'total_amount': fee_amt,
+                            'discount_amount': 0,
+                            'final_amount': fee_amt,
+                            'due_date': (enrollment.batch.end_date if enrollment.batch else None) or (enrollment.batch.start_date if enrollment.batch else None),
+                            'status': 1,
+                            'created_by': user.user_id
+                        }
+                    )
+                    if not sf_created:
+                        sf.batch = enrollment.batch
+                        if (sf.total_amount == 0 or sf.final_amount == 0) and fee_amt > 0:
+                            sf.total_amount = fee_amt
+                            sf.final_amount = fee_amt - (sf.discount_amount or 0)
+                        if not sf.due_date and enrollment.batch and enrollment.batch.end_date:
+                            sf.due_date = enrollment.batch.end_date
+                        sf.save()
                 messages.success(request, 'Student allocation updated successfully.')
             except Exception as e:
                 messages.error(request, f'Error updating student allocation: {str(e)}')
@@ -2617,7 +2860,13 @@ def student_allocation_view(request):
         elif action == 'delete_student_allocation':
             enrollment_id = request.POST.get('enrollment_id')
             try:
-                StudentEnrollment.objects.filter(enrollment_id=enrollment_id).delete()
+                enrollment = StudentEnrollment.objects.filter(enrollment_id=enrollment_id).first()
+                if enrollment:
+                    from finance.models import StudentFee, FeePayment
+                    sf = StudentFee.objects.filter(student=enrollment.student, course=enrollment.course).first()
+                    if sf and not FeePayment.objects.filter(student_fee=sf).exists():
+                        sf.delete()
+                    enrollment.delete()
                 messages.success(request, 'Student allocation deleted successfully.')
             except Exception as e:
                 messages.error(request, f'Error deleting student allocation: {str(e)}')
@@ -2683,6 +2932,84 @@ def api_get_student_details(request):
         })
     except:
         return JsonResponse({'success': False})
+
+def api_get_student_fee_details(request):
+    user_id = request.GET.get('id') or request.GET.get('student_id')
+    course_id = request.GET.get('course_id')
+    try:
+        from users.models import User
+        from academics.models import StudentEnrollment, Course, Batch
+        from finance.models import StudentFee, FeePayment
+        from django.db.models import Sum
+
+        if not user_id:
+            return JsonResponse({'success': False, 'error': 'Student ID is required'})
+
+        student = User.objects.get(user_id=user_id)
+        sync_enrollment_fees(request.session.get('user_id'))
+
+        sf_qs = StudentFee.objects.filter(student=student)
+        if course_id:
+            sf_qs = sf_qs.filter(course_id=course_id)
+        sf = sf_qs.order_by('-student_fee_id').first()
+
+        if sf:
+            paid = FeePayment.objects.filter(student_fee=sf).aggregate(total=Sum('paid_amount'))['total'] or 0
+            pending = max(0, float(sf.final_amount) - float(paid))
+            return JsonResponse({
+                'success': True,
+                'student_id': student.user_id,
+                'student_name': student.display_name or f"{student.first_name} {student.last_name}".strip(),
+                'student_fee_id': sf.student_fee_id,
+                'course_id': sf.course.course_id if sf.course else '',
+                'course_name': sf.course.course_name if sf.course else '',
+                'batch_id': sf.batch.batch_id if sf.batch else '',
+                'batch_name': sf.batch.batch_name if sf.batch else '',
+                'course_fee': float(sf.total_amount),
+                'reg_fee': 0.0,
+                'total_amount': float(sf.total_amount),
+                'discount_amount': float(sf.discount_amount or 0),
+                'paid_amount': float(paid),
+                'payable_amount': float(pending)
+            })
+        else:
+            enrollment = StudentEnrollment.objects.filter(student=student).order_by('-enrollment_id').first()
+            if enrollment and enrollment.course:
+                fee_amt = float(enrollment.course.fee_amount or 0)
+                return JsonResponse({
+                    'success': True,
+                    'student_id': student.user_id,
+                    'student_name': student.display_name or f"{student.first_name} {student.last_name}".strip(),
+                    'student_fee_id': '',
+                    'course_id': enrollment.course.course_id,
+                    'course_name': enrollment.course.course_name,
+                    'batch_id': enrollment.batch.batch_id if enrollment.batch else '',
+                    'batch_name': enrollment.batch.batch_name if enrollment.batch else '',
+                    'course_fee': fee_amt,
+                    'reg_fee': 0.0,
+                    'total_amount': fee_amt,
+                    'discount_amount': 0.0,
+                    'paid_amount': 0.0,
+                    'payable_amount': fee_amt
+                })
+            return JsonResponse({
+                'success': True,
+                'student_id': student.user_id,
+                'student_name': student.display_name or f"{student.first_name} {student.last_name}".strip(),
+                'student_fee_id': '',
+                'course_id': '',
+                'course_name': '',
+                'batch_id': '',
+                'batch_name': '',
+                'course_fee': 0.0,
+                'reg_fee': 0.0,
+                'total_amount': 0.0,
+                'discount_amount': 0.0,
+                'paid_amount': 0.0,
+                'payable_amount': 0.0
+            })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 from django.http import JsonResponse
 def api_get_batch_details(request):

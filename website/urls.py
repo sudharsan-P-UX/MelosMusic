@@ -15,6 +15,7 @@ urlpatterns = [
     path('attendance-approval/', views.attendance_approval_view, name='attendance_approval'),
     path('api/get-teacher/', views.api_get_teacher_details, name='api_get_teacher'),
     path('api/get-student/', views.api_get_student_details, name='api_get_student'),
+    path('api/get-student-fee/', views.api_get_student_fee_details, name='api_get_student_fee'),
     path('api/mobile-login/', views.mobile_login_api, name='mobile_login_api'),
     path('api/mobile-students/', views.mobile_students_api, name='mobile_students_api'),
     path('api/mobile-teachers/', views.mobile_teachers_api, name='mobile_teachers_api'),

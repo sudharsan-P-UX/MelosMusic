@@ -20,36 +20,36 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Student Name <span class="text-red-500">*</span></label>
-                <select name="student_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <select name="student_id" id="student_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     <option value="">-- Select Student --</option>
                     {% for student in students %}
-                    <option value="{{ student.user_id }}">{{ student.display_name }}</option>
+                    <option value="{{ student.user_id }}" {% if selected_student_id == student.user_id|stringformat:"s" %}selected{% endif %}>{{ student.display_name }}</option>
                     {% endfor %}
                 </select>
             </div>
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                <select name="course_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <select name="course_id" id="course_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     <option value="">-- Select Course --</option>
                     {% for course in courses %}
-                    <option value="{{ course.course_id }}">{{ course.course_name }}</option>
+                    <option value="{{ course.course_id }}" data-fee="{{ course.fee_amount|default:0 }}">{{ course.course_name }}</option>
                     {% endfor %}
                 </select>
             </div>
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Batch <span class="text-red-500">*</span></label>
-                <select name="batch_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <select name="batch_id" id="batch_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     <option value="">-- Select Batch --</option>
                     {% for batch in batches %}
-                    <option value="{{ batch.batch_id }}">{{ batch.batch_name }}</option>
+                    <option value="{{ batch.batch_id }}" data-course="{{ batch.course_id }}">{{ batch.batch_name }}</option>
                     {% endfor %}
                 </select>
             </div>
             
             <div class="pt-2">
-                <button type="button" class="w-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-medium py-2 px-4 rounded-md transition shadow-sm">
+                <button type="button" id="load_fees_btn" class="w-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-medium py-2 px-4 rounded-md transition shadow-sm">
                     Load Fees
                 </button>
             </div>
@@ -192,7 +192,80 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelector('input[name="payment_date"]').valueAsDate = new Date();
+        const payDateInput = document.querySelector('input[name="payment_date"]');
+        if (payDateInput) payDateInput.valueAsDate = new Date();
+
+        const studentSelect = document.getElementById('student_select');
+        const courseSelect = document.getElementById('course_select');
+        const batchSelect = document.getElementById('batch_select');
+        const loadBtn = document.getElementById('load_fees_btn');
+        const amountPaidInput = document.querySelector('input[name="amount_paid"]');
+
+        function loadStudentFee() {
+            const studentId = studentSelect ? studentSelect.value : '';
+            if (!studentId) return;
+
+            const courseId = courseSelect ? courseSelect.value : '';
+            let url = `/api/get-student-fee/?id=${encodeURIComponent(studentId)}`;
+            if (courseId) {
+                url += `&course_id=${encodeURIComponent(courseId)}`;
+            }
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.course_id && courseSelect) {
+                            courseSelect.value = data.course_id;
+                        }
+                        if (data.batch_id && batchSelect) {
+                            batchSelect.value = data.batch_id;
+                        }
+                        
+                        const fmt = val => parseFloat(val || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                        const elCourseFee = document.getElementById('detail_course_fee');
+                        const elRegFee = document.getElementById('detail_reg_fee');
+                        const elTotal = document.getElementById('detail_total');
+                        const elDiscount = document.getElementById('detail_discount');
+                        const elPayable = document.getElementById('detail_payable');
+
+                        if (elCourseFee) elCourseFee.textContent = fmt(data.course_fee);
+                        if (elRegFee) elRegFee.textContent = fmt(data.reg_fee);
+                        if (elTotal) elTotal.textContent = fmt(data.total_amount);
+                        if (elDiscount) elDiscount.textContent = fmt(data.discount_amount);
+                        if (elPayable) elPayable.textContent = fmt(data.payable_amount);
+
+                        if (amountPaidInput && (parseFloat(amountPaidInput.value) === 0 || !amountPaidInput.value)) {
+                            amountPaidInput.value = parseFloat(data.payable_amount || 0).toFixed(2);
+                        }
+                    }
+                })
+                .catch(err => console.error('Error loading fee details:', err));
+        }
+
+        if (studentSelect) {
+            studentSelect.addEventListener('change', function() {
+                if (amountPaidInput) amountPaidInput.value = '0.00';
+                loadStudentFee();
+            });
+        }
+        if (loadBtn) {
+            loadBtn.addEventListener('click', loadStudentFee);
+        }
+        if (courseSelect) {
+            courseSelect.addEventListener('change', function() {
+                // If student is already selected, re-load fee for this course
+                if (studentSelect && studentSelect.value) {
+                    loadStudentFee();
+                }
+            });
+        }
+
+        // If a student is pre-selected (via query param), load fees immediately
+        if (studentSelect && studentSelect.value) {
+            loadStudentFee();
+        }
     });
 </script>
 {% endblock %}

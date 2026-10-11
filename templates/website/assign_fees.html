@@ -14,7 +14,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Student <span class="text-red-500">*</span></label>
-            <select name="student_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            <select name="student_id" id="student_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 <option value="">-- Select Student --</option>
                 {% for student in students %}
                 <option value="{{ student.user_id }}">{{ student.display_name }}</option>
@@ -24,20 +24,20 @@
         
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-            <select name="course_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            <select name="course_id" id="course_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 <option value="">-- Select Course --</option>
                 {% for course in courses %}
-                <option value="{{ course.course_id }}">{{ course.course_name }}</option>
+                <option value="{{ course.course_id }}" data-fee="{{ course.fee_amount|default:0 }}">{{ course.course_name }}</option>
                 {% endfor %}
             </select>
         </div>
         
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Batch <span class="text-red-500">*</span></label>
-            <select name="batch_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+            <select name="batch_id" id="batch_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                 <option value="">-- Select Batch --</option>
                 {% for batch in batches %}
-                <option value="{{ batch.batch_id }}">{{ batch.batch_name }}</option>
+                <option value="{{ batch.batch_id }}" data-course="{{ batch.course_id }}" data-end="{{ batch.end_date|date:'Y-m-d' }}">{{ batch.batch_name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -66,22 +66,22 @@
                 <!-- Registration Fee -->
                 <tr>
                     <td class="py-3 px-6 text-gray-700 font-medium">Registration Fee</td>
-                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" value="0.00" class="fee-amt w-full text-right outline-none text-gray-700 bg-transparent border-b border-gray-300 focus:border-indigo-500 px-1 py-0.5"></td>
-                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" value="0.00" class="fee-disc w-full text-right border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 bg-white"></td>
+                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" name="reg_fee" id="reg_fee" value="0.00" class="fee-amt w-full text-right outline-none text-gray-700 bg-transparent border-b border-gray-300 focus:border-indigo-500 px-1 py-0.5"></td>
+                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" name="reg_disc" id="reg_disc" value="0.00" class="fee-disc w-full text-right border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 bg-white"></td>
                     <td class="py-3 px-6 text-right font-medium text-gray-800 fee-total">0.00</td>
                 </tr>
                 <!-- Course Fee -->
                 <tr>
                     <td class="py-3 px-6 text-gray-700 font-medium">Course Fee</td>
-                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" value="0.00" class="fee-amt w-full text-right outline-none text-gray-700 bg-transparent border-b border-gray-300 focus:border-indigo-500 px-1 py-0.5"></td>
-                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" value="0.00" class="fee-disc w-full text-right border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 bg-white"></td>
+                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" name="course_fee" id="course_fee" value="0.00" class="fee-amt w-full text-right outline-none text-gray-700 bg-transparent border-b border-gray-300 focus:border-indigo-500 px-1 py-0.5"></td>
+                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" name="course_disc" id="course_disc" value="0.00" class="fee-disc w-full text-right border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 bg-white"></td>
                     <td class="py-3 px-6 text-right font-medium text-gray-800 fee-total">0.00</td>
                 </tr>
                 <!-- Material Fee -->
                 <tr>
                     <td class="py-3 px-6 text-gray-700 font-medium">Material Fee</td>
-                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" value="0.00" class="fee-amt w-full text-right outline-none text-gray-700 bg-transparent border-b border-gray-300 focus:border-indigo-500 px-1 py-0.5"></td>
-                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" value="0.00" class="fee-disc w-full text-right border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 bg-white"></td>
+                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" name="mat_fee" id="mat_fee" value="0.00" class="fee-amt w-full text-right outline-none text-gray-700 bg-transparent border-b border-gray-300 focus:border-indigo-500 px-1 py-0.5"></td>
+                    <td class="py-3 px-6 text-right"><input type="number" step="0.01" name="mat_disc" id="mat_disc" value="0.00" class="fee-disc w-full text-right border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 text-gray-700 bg-white"></td>
                     <td class="py-3 px-6 text-right font-medium text-gray-800 fee-total">0.00</td>
                 </tr>
             </tbody>
@@ -120,6 +120,11 @@
         const assignInput = document.querySelector('input[name="assign_date"]');
         if (assignInput) assignInput.valueAsDate = new Date();
 
+        const courseSelect = document.getElementById('course_select');
+        const batchSelect = document.getElementById('batch_select');
+        const dueDateInput = document.querySelector('input[name="due_date"]');
+        const courseFeeInput = document.getElementById('course_fee');
+
         function recalculate() {
             let grandAmt = 0;
             let grandDisc = 0;
@@ -152,9 +157,32 @@
             if (elTot) elTot.textContent = grandTot.toFixed(2);
         }
 
+        if (courseSelect) {
+            courseSelect.addEventListener('change', function() {
+                const opt = this.options[this.selectedIndex];
+                const fee = opt ? opt.getAttribute('data-fee') : null;
+                if (fee && courseFeeInput) {
+                    courseFeeInput.value = parseFloat(fee).toFixed(2);
+                    recalculate();
+                }
+            });
+        }
+
+        if (batchSelect) {
+            batchSelect.addEventListener('change', function() {
+                const opt = this.options[this.selectedIndex];
+                const end = opt ? opt.getAttribute('data-end') : null;
+                if (end && dueDateInput && !dueDateInput.value) {
+                    dueDateInput.value = end;
+                }
+            });
+        }
+
         document.querySelectorAll('.fee-amt, .fee-disc').forEach(function(input) {
             input.addEventListener('input', recalculate);
         });
+
+        recalculate();
     });
 </script>
 {% endblock %}

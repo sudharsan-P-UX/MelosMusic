@@ -90,7 +90,7 @@
                         {{ item.days_overdue }}
                     </td>
                     <td class="py-3 px-4 text-center">
-                        <a href="{% url 'fee_collection' %}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100" title="Collect Fee">
+                        <a href="{% url 'fee_collection' %}?student_id={{ item.student_id }}" class="text-indigo-600 bg-indigo-50 p-1.5 rounded hover:bg-indigo-100" title="Collect Fee">
                             <i class="fa-solid fa-file-invoice-dollar"></i>
                         </a>
                     </td>

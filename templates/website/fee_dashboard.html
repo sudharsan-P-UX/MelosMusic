@@ -2,65 +2,71 @@
 {% load static %}
 
 {% block content %}
-<div x-data="{
-    activeTab: 'today',
-    searchQuery: '',
-    selectedBatch: '',
-    showModal: false,
-    selectedItem: null,
-    detailsData: {
-        today: {{ todays_details_json|safe }},
-        monthly: {{ monthly_details_json|safe }},
-        pending: {{ pending_details_json|safe }},
-        overdue: {{ overdue_details_json|safe }},
-        paid: {{ students_paid_details_json|safe }},
-        unpaid: {{ students_pending_details_json|safe }}
-    },
-    get currentList() {
-        let list = this.detailsData[this.activeTab] || [];
-        if (this.selectedBatch) {
-            list = list.filter(item => item.batch === this.selectedBatch);
+<script>
+function feeDashboardComponent() {
+    return {
+        activeTab: 'today',
+        searchQuery: '',
+        selectedBatch: '',
+        showModal: false,
+        selectedItem: null,
+        detailsData: {
+            today: {{ todays_details_json|safe }},
+            monthly: {{ monthly_details_json|safe }},
+            pending: {{ pending_details_json|safe }},
+            overdue: {{ overdue_details_json|safe }},
+            paid: {{ students_paid_details_json|safe }},
+            unpaid: {{ students_pending_details_json|safe }}
+        },
+        get currentList() {
+            let list = this.detailsData[this.activeTab] || [];
+            if (this.selectedBatch) {
+                list = list.filter(item => item.batch === this.selectedBatch);
+            }
+            if (!this.searchQuery.trim()) return list;
+            const q = this.searchQuery.toLowerCase();
+            return list.filter(item => {
+                return (item.student_name && item.student_name.toLowerCase().includes(q)) ||
+                       (item.receipt_no && item.receipt_no.toLowerCase().includes(q)) ||
+                       (item.course && item.course.toLowerCase().includes(q)) ||
+                       (item.batch && item.batch.toLowerCase().includes(q)) ||
+                       (item.phone && item.phone.toLowerCase().includes(q)) ||
+                       (item.mode && item.mode.toLowerCase().includes(q)) ||
+                       (item.txn_id && item.txn_id.toLowerCase().includes(q)) ||
+                       (item.status && item.status.toLowerCase().includes(q));
+            });
+        },
+        openModal(item) {
+            this.selectedItem = item;
+            this.showModal = true;
+        },
+        get tabTitle() {
+            const titles = {
+                'today': "Today's Collection Details",
+                'monthly': "Monthly Collection Details",
+                'pending': "Pending Fees Details",
+                'overdue': "Overdue Fees Details",
+                'paid': "Students Paid Details",
+                'unpaid': "Students Pending Fees Details"
+            };
+            return titles[this.activeTab] || 'Fee Details';
+        },
+        get tabBadge() {
+            const badges = {
+                'today': 'Total ₹ {{ todays_collection }}',
+                'monthly': 'Total ₹ {{ monthly_collection }}',
+                'pending': 'Total ₹ {{ pending_fees }}',
+                'overdue': 'Total ₹ {{ overdue_fees }}',
+                'paid': '{{ students_paid }} Students Paid',
+                'unpaid': '{{ students_pending }} Students Pending'
+            };
+            return badges[this.activeTab] || '';
         }
-        if (!this.searchQuery.trim()) return list;
-        const q = this.searchQuery.toLowerCase();
-        return list.filter(item => {
-            return (item.student_name && item.student_name.toLowerCase().includes(q)) ||
-                   (item.receipt_no && item.receipt_no.toLowerCase().includes(q)) ||
-                   (item.course && item.course.toLowerCase().includes(q)) ||
-                   (item.batch && item.batch.toLowerCase().includes(q)) ||
-                   (item.phone && item.phone.toLowerCase().includes(q)) ||
-                   (item.mode && item.mode.toLowerCase().includes(q)) ||
-                   (item.txn_id && item.txn_id.toLowerCase().includes(q)) ||
-                   (item.status && item.status.toLowerCase().includes(q));
-        });
-    },
-    openModal(item) {
-        this.selectedItem = item;
-        this.showModal = true;
-    },
-    get tabTitle() {
-        const titles = {
-            'today': "Today's Collection Details",
-            'monthly': "Monthly Collection Details",
-            'pending': "Pending Fees Details",
-            'overdue': "Overdue Fees Details",
-            'paid': "Students Paid Details",
-            'unpaid': "Students Pending Fees Details"
-        };
-        return titles[this.activeTab] || 'Fee Details';
-    },
-    get tabBadge() {
-        const badges = {
-            'today': 'Total ₹ {{ todays_collection }}',
-            'monthly': 'Total ₹ {{ monthly_collection }}',
-            'pending': 'Total ₹ {{ pending_fees }}',
-            'overdue': 'Total ₹ {{ overdue_fees }}',
-            'paid': '{{ students_paid }} Students Paid',
-            'unpaid': '{{ students_pending }} Students Pending'
-        };
-        return badges[this.activeTab] || '';
-    }
-}">
+    };
+}
+</script>
+
+<div x-data="feeDashboardComponent()">
     <!-- Header -->
     <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

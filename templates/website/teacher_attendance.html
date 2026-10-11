@@ -7,7 +7,7 @@
     <div class="px-4 py-4 md:px-6 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <h2 class="text-xl font-bold text-gray-800">Teacher Attendance</h2>
-            <p class="text-xs text-gray-500 mt-0.5">Manage daily teacher attendance and leave requests</p>
+            <p class="text-xs text-gray-500 mt-0.5">Manage daily teacher attendance records</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <!-- Mobile Filter Toggle Button -->
@@ -15,9 +15,6 @@
                 <i class="fa-solid fa-filter text-xs"></i>
                 <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
                 <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
-            </button>
-            <button onclick="openLeaveModal()" class="flex-1 sm:flex-none justify-center bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 rounded-md font-medium text-xs sm:text-sm shadow-sm transition flex items-center">
-                <i class="fa-solid fa-calendar-minus mr-1.5"></i> Attendance Request
             </button>
             <button onclick="openModal()" class="flex-1 sm:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-md font-medium text-xs sm:text-sm shadow-sm transition flex items-center">
                 <i class="fa-solid fa-plus mr-1.5"></i> Add Attendance
@@ -37,6 +34,14 @@
         </div>
         <div class="w-full md:w-48">
             <input type="date" name="date" value="{{ selected_date }}" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+        </div>
+        <div class="w-full md:w-40">
+            <select name="approval_status" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+                <option value="">All Approvals</option>
+                <option value="Approved" {% if selected_approval_status == 'Approved' %}selected{% endif %}>Approved</option>
+                <option value="Pending" {% if selected_approval_status == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Rejected" {% if selected_approval_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+            </select>
         </div>
         <div class="flex items-center gap-2">
             <button type="submit" class="flex-1 md:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-md font-medium text-sm transition flex items-center shadow-sm">
@@ -64,6 +69,7 @@
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Date</th>
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Teacher Name</th>
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Status</th>
+                    <th class="py-3 px-6 text-center font-bold text-gray-700 text-sm">Approved Status</th>
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Check In</th>
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Check Out</th>
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-sm">Remarks</th>
@@ -83,29 +89,72 @@
                             <span class="px-3 py-1 rounded bg-red-100 text-red-700 text-xs font-semibold">Absent</span>
                         {% elif detail.attendance_status == 3 %}
                             <span class="px-3 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-semibold">Late</span>
+                        {% elif detail.attendance_status == 4 %}
+                            <span class="px-3 py-1 rounded bg-purple-100 text-purple-700 text-xs font-semibold">Leave</span>
+                        {% elif detail.attendance_status == 5 %}
+                            <span class="px-3 py-1 rounded bg-blue-100 text-blue-700 text-xs font-semibold">On Duty</span>
+                        {% elif detail.attendance_status == 6 %}
+                            <span class="px-3 py-1 rounded bg-teal-100 text-teal-700 text-xs font-semibold">Permission</span>
+                        {% elif detail.attendance_status == 7 %}
+                            <span class="px-3 py-1 rounded bg-sky-100 text-sky-700 text-xs font-semibold">Work From Home</span>
+                        {% elif detail.attendance_status == 8 %}
+                            <span class="px-3 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">Approved</span>
                         {% else %}
-                            <span class="px-3 py-1 rounded bg-gray-100 text-gray-700 text-xs font-semibold">Leave</span>
+                            <span class="px-3 py-1 rounded bg-gray-100 text-gray-700 text-xs font-semibold">Other</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-6 text-center">
+                        {% if detail.approval_status == 'Approved' %}
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">Approved</span>
+                        {% elif detail.approval_status == 'Rejected' %}
+                            <span class="px-2.5 py-1 rounded-full bg-red-100 text-red-800 text-xs font-semibold">Rejected</span>
+                        {% else %}
+                            <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">Pending</span>
                         {% endif %}
                     </td>
                     <td class="py-3 px-6 text-gray-600">{{ detail.check_in_time|time:"h:i A"|default:"-" }}</td>
                     <td class="py-3 px-6 text-gray-600">{{ detail.check_out_time|time:"h:i A"|default:"-" }}</td>
                     <td class="py-3 px-6 text-gray-500">{{ detail.remarks|default:"-" }}</td>
-                    <td class="py-3 px-6 text-center space-x-2">
-                        <button class="text-indigo-400 hover:text-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded transition"><i class="fa-solid fa-pen"></i></button>
-                        <button class="text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded transition"><i class="fa-solid fa-trash-can"></i></button>
+                    <td class="py-3 px-6 text-center space-x-1">
+                        {% if detail.approval_status == 'Pending' %}
+                        <form method="POST" action="{% url 'teacher_attendance' %}" class="inline-block" title="Approve">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="approve_teacher_attendance">
+                            <input type="hidden" name="detail_id" value="{{ detail.teacher_attendance_detail_id }}">
+                            <button type="submit" class="text-emerald-500 hover:text-emerald-700 p-1.5 rounded hover:bg-emerald-50 transition">
+                                <i class="fa-solid fa-check"></i>
+                            </button>
+                        </form>
+                        <form method="POST" action="{% url 'teacher_attendance' %}" class="inline-block" title="Reject">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reject_teacher_attendance">
+                            <input type="hidden" name="detail_id" value="{{ detail.teacher_attendance_detail_id }}">
+                            <button type="submit" class="text-amber-500 hover:text-amber-700 p-1.5 rounded hover:bg-amber-50 transition">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{% url 'teacher_attendance' %}" class="inline-block" onsubmit="return confirm('Delete this attendance entry?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_teacher_attendance">
+                            <input type="hidden" name="detail_id" value="{{ detail.teacher_attendance_detail_id }}">
+                            <button type="submit" class="text-red-400 hover:text-red-600 p-1.5 rounded hover:bg-red-50 transition" title="Delete">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="py-8 text-center text-gray-500">
-                        No attendance records found. Click "Attendance Request" to submit a new request.
+                    <td colspan="9" class="py-12 text-center text-gray-400">
+                        <i class="fa-solid fa-clipboard-user text-4xl mb-2 text-gray-300 block"></i>
+                        No attendance records found. Click "Add Attendance" to record teacher attendance.
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-
-   </div> </div>
+    </div> </div>
     
     <!-- Footer Pagination -->
     <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center text-sm text-gray-600">
@@ -125,90 +174,9 @@
 </div>
 
 
-<!-- Attendance Request Modal -->
-<div id="applyLeaveModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[90vh]">
-        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
-            <h3 class="text-lg font-bold text-gray-800">Submit Attendance Request</h3>
-            <button type="button" onclick="closeLeaveModal()" class="text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-        </div>
-        <form method="POST" action="" class="flex flex-col flex-1 overflow-hidden">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="apply_leave">
-            <div class="p-6 overflow-y-auto space-y-4 flex-1">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                    <select name="teacher_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500">
-                        <option value="">-- Select Teacher --</option>
-                        {% for t in teachers %}
-                        <option value="{{ t.user_id }}" {% if user.user_id == t.user_id %}selected{% endif %}>{{ t.display_name|default:t.first_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Request Type</label>
-                    <select name="request_type" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500">
-                        <option value="On Duty">On Duty</option>
-                        <option value="Permission">Permission</option>
-                        <option value="Work From Home">Work From Home</option>
-                        <option value="Work From Office">Work From Office</option>
-                        <option value="Leave">Leave</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                        <input type="date" name="from_date" id="t_leave_from" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500" onchange="calcTDays()">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                        <input type="date" name="to_date" id="t_leave_to" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500" onchange="calcTDays()">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">No. of Days</label>
-                    <input type="number" name="no_of_days" id="t_leave_days" readonly class="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 text-gray-500">
-                </div>
-            </div>
-            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
-                <button type="button" onclick="closeLeaveModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 font-medium transition">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-medium transition shadow-sm">Submit Request</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-    function openLeaveModal() {
-        document.getElementById('applyLeaveModal').classList.remove('hidden');
-        document.getElementById('applyLeaveModal').classList.add('flex');
-    }
-    function closeLeaveModal() {
-        document.getElementById('applyLeaveModal').classList.add('hidden');
-        document.getElementById('applyLeaveModal').classList.remove('flex');
-    }
-    function calcTDays() {
-        const fromDate = document.getElementById('t_leave_from').value;
-        const toDate = document.getElementById('t_leave_to').value;
-        if(fromDate && toDate) {
-            const start = new Date(fromDate);
-            const end = new Date(toDate);
-            if(end >= start) {
-                const diffTime = Math.abs(end - start);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                document.getElementById('t_leave_days').value = diffDays;
-            } else {
-                document.getElementById('t_leave_days').value = 0;
-            }
-        }
-    }
-</script>
-
 <!-- Add Attendance Modal -->
-<div id="addAttendanceModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden flex flex-col max-h-[90vh]">
+<div id="addAttendanceModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4 transition-opacity">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto overflow-hidden flex flex-col max-h-[90vh]">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
             <h3 class="text-lg font-bold text-gray-800">Mark Teacher Attendance</h3>
             <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
@@ -218,47 +186,63 @@
         
         <form method="POST" action="{% url 'teacher_attendance' %}" class="flex flex-col flex-1 overflow-hidden" autocomplete="off">
             {% csrf_token %}
-            <div class="p-6 overflow-y-auto space-y-4 flex-1">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <input type="date" name="attendance_date" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+            <input type="hidden" name="action" value="mark_teacher_attendance">
+            <div class="p-6 overflow-y-auto space-y-4 flex-1 text-sm">
+                {% if security_settings.attendance_from_date or security_settings.attendance_to_date %}
+                <div class="p-2.5 rounded text-xs bg-indigo-50 border border-indigo-200 text-indigo-800 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>
+                    <span>Attendance Period: <strong>{{ security_settings.attendance_from_date|default:"" }}</strong> to <strong>{{ security_settings.attendance_to_date|default:"" }}</strong> (Requests accepted until period end date)</span>
+                </div>
+                {% endif %}
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">From Date <span class="text-red-500">*</span></label>
+                        <input type="date" name="from_date" id="t_from_date" required onchange="checkTFromDate(this)" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">To Date <span class="text-red-500">*</span></label>
+                        <input type="date" name="to_date" id="t_to_date" required onchange="checkTToDate(this)" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                    <select name="teacher_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block font-medium text-gray-700 mb-1">Teacher <span class="text-red-500">*</span></label>
+                    <select name="teacher_id" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                         <option value="">-- Select Teacher --</option>
                         {% for teacher in teachers %}
-                        <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
+                        <option value="{{ teacher.user_id }}" {% if user.user_id == teacher.user_id %}selected{% endif %}>{{ teacher.display_name|default:teacher.first_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select name="status" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
+                    <select name="status" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                         <option value="1">Present</option>
                         <option value="2">Absent</option>
                         <option value="3">Late</option>
                         <option value="4">Leave</option>
+                        <option value="5">On Duty</option>
+                        <option value="6">Permission</option>
+                        <option value="7">Work From Home</option>
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Check In</label>
+                        <label class="block font-medium text-gray-700 mb-1">Check In</label>
                         <input type="time" name="check_in_time" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Check Out</label>
+                        <label class="block font-medium text-gray-700 mb-1">Check Out</label>
                         <input type="time" name="check_out_time" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
-                    <input type="text" name="remarks" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Late due to traffic">
+                    <label class="block font-medium text-gray-700 mb-1">Remarks</label>
+                    <input type="text" name="remarks" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. On-duty event, traffic delay">
                 </div>
             </div>
-            <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow transition">Save</button>
+            <div class="px-6 py-4 border-t bg-gray-50 grid grid-cols-2 gap-3 sm:flex sm:justify-end flex-shrink-0">
+                <button type="button" onclick="closeModal()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition">Cancel</button>
+                <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium shadow transition">Save Attendance</button>
             </div>
         </form>
     </div>
@@ -266,13 +250,106 @@
 
 <script>
     const modal = document.getElementById('addAttendanceModal');
-    
+
+    function checkPeriodCutoff(dateStr) {
+        if (!dateStr) return { valid: true };
+        const cfgFromStr = "{{ security_settings.attendance_from_date|default:'' }}";
+        const cfgToStr = "{{ security_settings.attendance_to_date|default:'' }}";
+        if (!cfgFromStr || !cfgToStr) return { valid: true };
+
+        const d = new Date(dateStr + "T00:00:00");
+        const cfgFrom = new Date(cfgFromStr + "T00:00:00");
+        const cfgTo = new Date(cfgToStr + "T00:00:00");
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let pEnd = cfgTo;
+        let pName = "";
+
+        if (d >= cfgFrom && d <= cfgTo) {
+            pEnd = cfgTo;
+            pName = cfgFrom.toLocaleString('default', { month: 'long', year: 'numeric' });
+        } else {
+            const fromDay = cfgFrom.getDate();
+            const toDay = cfgTo.getDate();
+            if (fromDay === toDay) {
+                let sYear = d.getFullYear();
+                let sMonth = d.getMonth();
+                if (d.getDate() < fromDay) {
+                    sMonth -= 1;
+                    if (sMonth < 0) { sMonth = 11; sYear -= 1; }
+                }
+                let eMonth = sMonth + 1;
+                let eYear = sYear;
+                if (eMonth > 11) { eMonth = 0; eYear += 1; }
+                pEnd = new Date(eYear, eMonth, toDay, 0, 0, 0);
+                pName = new Date(sYear, sMonth, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+            }
+        }
+
+        if (today > pEnd) {
+            const endD = String(pEnd.getDate()).padStart(2, '0') + '-' + String(pEnd.getMonth() + 1).padStart(2, '0') + '-' + pEnd.getFullYear();
+            return {
+                valid: false,
+                message: "The " + (pName ? pName + " " : "") + "attendance period ended on " + endD + ". Once the period end date has passed, new attendance requests cannot be applied for this period."
+            };
+        }
+        return { valid: true };
+    }
+
+    function checkTFromDate(input) {
+        if (!input.value) return;
+        const res = checkPeriodCutoff(input.value);
+        if (!res.valid) {
+            alert(res.message);
+            input.value = '';
+            return;
+        }
+        const toInput = document.getElementById('t_to_date');
+        if (toInput && (!toInput.value || toInput.value < input.value)) {
+            toInput.value = input.value;
+        }
+    }
+
+    function checkTToDate(input) {
+        if (!input.value) return;
+        const res = checkPeriodCutoff(input.value);
+        if (!res.valid) {
+            alert(res.message);
+            input.value = '';
+            return;
+        }
+        const fromInput = document.getElementById('t_from_date');
+        if (fromInput && fromInput.value && input.value < fromInput.value) {
+            alert('To Date cannot be earlier than From Date');
+            input.value = fromInput.value;
+        }
+    }
+
+    function checkAttendanceDate(input) {
+        if (!input.value) return;
+        const res = checkPeriodCutoff(input.value);
+        if (!res.valid) {
+            alert(res.message);
+            input.value = '';
+        }
+    }
+
     function openModal() {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         
-        // Auto-fill today's date
-        document.querySelector('input[name="attendance_date"]').valueAsDate = new Date();
+        const f = document.getElementById('t_from_date');
+        const t = document.getElementById('t_to_date');
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (f && !f.value) {
+            f.value = todayStr;
+            checkAttendanceDate(f);
+        }
+        if (t && !t.value) {
+            t.value = todayStr;
+            checkAttendanceDate(t);
+        }
     }
     
     function closeModal() {

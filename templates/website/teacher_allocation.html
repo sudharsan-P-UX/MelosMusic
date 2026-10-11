@@ -55,25 +55,69 @@
                     <th class="py-3 px-4 font-semibold">Batch Start</th>
                     <th class="py-3 px-4 font-semibold">Batch End</th>
                     <th class="py-3 px-4 font-semibold">Created Date</th>
+                    <th class="py-3 px-4 font-semibold text-center">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-gray-700 text-sm">
                 {% for alloc in allocations %}
                 <tr class="border-b hover:bg-gray-50 transition">
                     <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.teacher.user_code|default:"-" }}</td>
-                    <td class="py-3 px-4">{{ alloc.teacher.display_name }}</td>
+                    <td class="py-3 px-4 font-medium">{{ alloc.teacher.display_name }}</td>
                     <td class="py-3 px-4">{{ alloc.teacher.phone|default:"-" }}</td>
-                    <td class="py-3 px-4 font-medium">{{ alloc.course.course_id }}</td>
-                    <td class="py-3 px-4 font-medium">{{ alloc.course.course_name }}</td>
+                    <td class="py-3 px-4">{{ alloc.course.course_id }}</td>
+                    <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.course.course_name }}</td>
                     <td class="py-3 px-4">{{ alloc.batch_code|default:"-" }}</td>
                     <td class="py-3 px-4">{{ alloc.start_time|time:"H:i" }} - {{ alloc.end_time|time:"H:i" }}</td>
                     <td class="py-3 px-4 text-gray-500">{{ alloc.start_date|date:"d M Y"|default:"-" }}</td>
                     <td class="py-3 px-4 text-gray-500">{{ alloc.end_date|date:"d M Y"|default:"-" }}</td>
                     <td class="py-3 px-4 text-gray-500">{{ alloc.created_date|date:"d M Y H:i" }}</td>
+                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                        <div class="inline-flex items-center space-x-1.5">
+                            <button type="button" @click="openView({
+                                teacher_code: '{{ alloc.teacher.user_code|default:"-"|escapejs }}',
+                                teacher_name: '{{ alloc.teacher.display_name|escapejs }}',
+                                teacher_phone: '{{ alloc.teacher.phone|default:"-"|escapejs }}',
+                                teacher_email: '{{ alloc.teacher.email|default:"-"|escapejs }}',
+                                course_id: '{{ alloc.course.course_id|escapejs }}',
+                                course_name: '{{ alloc.course.course_name|escapejs }}',
+                                batch_id: '{{ alloc.batch_id }}',
+                                batch_code: '{{ alloc.batch_code|default:"-"|escapejs }}',
+                                batch_name: '{{ alloc.batch_name|escapejs }}',
+                                timing: '{{ alloc.start_time|time:"H:i" }} - {{ alloc.end_time|time:"H:i" }}',
+                                start_date: '{{ alloc.start_date|date:"d M Y"|default:"-"|escapejs }}',
+                                end_date: '{{ alloc.end_date|date:"d M Y"|default:"-"|escapejs }}',
+                                capacity: '{{ alloc.capacity|default:"-" }}',
+                                created_date: '{{ alloc.created_date|date:"d M Y H:i"|escapejs }}'
+                            })" class="w-7 h-7 flex items-center justify-center rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition" title="View Allocation">
+                                <i class="fa-solid fa-eye text-sm"></i>
+                            </button>
+                            <button type="button" @click="openEdit({
+                                batch_id: '{{ alloc.batch_id }}',
+                                teacher_id: '{{ alloc.teacher.user_id }}',
+                                teacher_code: '{{ alloc.teacher.user_code|default:"-"|escapejs }}',
+                                teacher_name: '{{ alloc.teacher.display_name|escapejs }}',
+                                teacher_phone: '{{ alloc.teacher.phone|default:"-"|escapejs }}',
+                                course_name: '{{ alloc.course.course_name|escapejs }}',
+                                batch_code: '{{ alloc.batch_code|default:"-"|escapejs }}',
+                                batch_name: '{{ alloc.batch_name|escapejs }}',
+                                timing: '{{ alloc.start_time|time:"H:i" }} - {{ alloc.end_time|time:"H:i" }}'
+                            })" class="w-7 h-7 flex items-center justify-center rounded text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition" title="Edit Allocation">
+                                <i class="fa-solid fa-pen-to-square text-sm"></i>
+                            </button>
+                            <button type="button" @click="openDelete({
+                                batch_id: '{{ alloc.batch_id }}',
+                                teacher_name: '{{ alloc.teacher.display_name|escapejs }}',
+                                batch_name: '{{ alloc.batch_name|escapejs }}',
+                                course_name: '{{ alloc.course.course_name|escapejs }}'
+                            })" class="w-7 h-7 flex items-center justify-center rounded text-red-600 hover:text-red-800 hover:bg-red-50 transition" title="Delete Allocation">
+                                <i class="fa-solid fa-trash-can text-sm"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="10" class="py-8 text-center text-gray-500">
+                    <td colspan="11" class="py-8 text-center text-gray-500">
                         No teacher allocations found.
                     </td>
                 </tr>
@@ -83,7 +127,7 @@
 
    </div> </div>
 
-    <!-- Allocation Modal -->
+    <!-- Add Allocation Modal -->
     <div x-show="showModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div @click.away="showModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
             <form method="POST" action="{% url 'teacher_allocation' %}" class="flex flex-col flex-1 overflow-hidden">
@@ -153,6 +197,148 @@
             </form>
         </div>
     </div>
+
+    <!-- View Teacher Allocation Modal -->
+    <div x-show="showViewModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showViewModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-eye text-blue-600"></i> Teacher Allocation Details
+                </h3>
+                <button type="button" @click="showViewModal = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 text-sm flex-1">
+                <!-- Teacher Card -->
+                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                    <div class="font-semibold text-indigo-900 border-b border-indigo-200 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Teacher Information
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><span class="text-xs text-gray-500 block">Teacher ID</span><span class="font-medium text-gray-900" x-text="viewData.teacher_code"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Teacher Name</span><span class="font-medium text-gray-900" x-text="viewData.teacher_name"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Phone</span><span class="font-medium text-gray-900" x-text="viewData.teacher_phone"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Email</span><span class="font-medium text-gray-900" x-text="viewData.teacher_email || '-'"></span></div>
+                    </div>
+                </div>
+
+                <!-- Course & Batch Card -->
+                <div class="bg-green-50 border border-green-100 rounded-lg p-4">
+                    <div class="font-semibold text-green-900 border-b border-green-200 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-book-open text-green-600"></i> Course & Batch Details
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><span class="text-xs text-gray-500 block">Course ID</span><span class="font-medium text-gray-900" x-text="viewData.course_id"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Course Name</span><span class="font-medium text-gray-900" x-text="viewData.course_name"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Batch Name</span><span class="font-medium text-gray-900" x-text="viewData.batch_name"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Batch Code</span><span class="font-medium text-gray-900" x-text="viewData.batch_code"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Class Timing</span><span class="font-medium text-gray-900" x-text="viewData.timing"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Capacity</span><span class="font-medium text-gray-900" x-text="viewData.capacity"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Start Date</span><span class="font-medium text-gray-900" x-text="viewData.start_date"></span></div>
+                        <div><span class="text-xs text-gray-500 block">End Date</span><span class="font-medium text-gray-900" x-text="viewData.end_date"></span></div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center text-xs text-gray-500 px-1 pt-1">
+                    <span>Allocated Date: <strong class="text-gray-700" x-text="viewData.created_date"></strong></span>
+                </div>
+            </div>
+            <div class="px-6 py-3 border-t bg-gray-50 flex justify-end">
+                <button type="button" @click="showViewModal = false" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Teacher Allocation Modal -->
+    <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showEditModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <form method="POST" action="{% url 'teacher_allocation' %}" class="flex flex-col flex-1 overflow-hidden">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_teacher_allocation">
+                <input type="hidden" name="batch_id" :value="editData.batch_id">
+                
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-amber-600"></i> Edit Teacher Allocation
+                    </h3>
+                    <button type="button" @click="showEditModal = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 overflow-y-auto space-y-4 text-sm flex-1">
+                    <!-- Batch Info Summary -->
+                    <div class="bg-green-50 border border-green-200 p-3.5 rounded-lg text-xs space-y-1">
+                        <div class="font-semibold text-green-900 mb-1 text-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-green-600"></i> Allocated Class Details
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-gray-700">
+                            <div>Batch: <strong class="text-gray-900" x-text="editData.batch_name"></strong> (<span x-text="editData.batch_code"></span>)</div>
+                            <div>Course: <strong class="text-gray-900" x-text="editData.course_name"></strong></div>
+                            <div>Timing: <strong class="text-gray-900" x-text="editData.timing"></strong></div>
+                        </div>
+                    </div>
+
+                    <!-- Teacher Selection -->
+                    <div>
+                        <label class="block font-medium text-gray-700 mb-1">Select / Reassign Teacher <span class="text-red-500">*</span></label>
+                        <select name="teacher_id" x-model="editData.teacher_id" @change="fetchEditTeacherDetails" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <option value="">-- Select Teacher --</option>
+                            {% for t in teachers %}
+                            <option value="{{ t.user_id }}">{{ t.display_name }} ({{ t.user_code|default:"-" }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="mt-3 text-xs text-gray-500 space-y-1 bg-gray-50 p-3 rounded border border-gray-200">
+                            <div>Teacher Name: <strong class="text-gray-800" x-text="editData.teacher_name"></strong></div>
+                            <div>Teacher ID: <strong class="text-gray-800" x-text="editData.teacher_code"></strong></div>
+                            <div>Phone: <strong class="text-gray-800" x-text="editData.teacher_phone"></strong></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+                    <button type="button" @click="showEditModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium shadow transition">Update Allocation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Teacher Allocation Modal -->
+    <div x-show="showDeleteModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showDeleteModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-md flex flex-col">
+            <form method="POST" action="{% url 'teacher_allocation' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_teacher_allocation">
+                <input type="hidden" name="batch_id" :value="deleteData.batch_id">
+                
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2 text-red-600">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Remove Teacher Allocation
+                    </h3>
+                    <button type="button" @click="showDeleteModal = false" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 text-sm text-gray-700 space-y-3">
+                    <p>Are you sure you want to remove the teacher allocation?</p>
+                    <div class="bg-red-50 border border-red-200 p-3 rounded text-xs space-y-1 text-red-900">
+                        <div>Teacher: <strong x-text="deleteData.teacher_name"></strong></div>
+                        <div>Batch: <strong x-text="deleteData.batch_name"></strong></div>
+                        <div>Course: <strong x-text="deleteData.course_name"></strong></div>
+                    </div>
+                    <p class="text-xs text-gray-500">This will unassign the teacher from this batch without deleting the batch itself.</p>
+                </div>
+                
+                <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+                    <button type="button" @click="showDeleteModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium shadow transition">Remove Allocation</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -160,6 +346,9 @@ function teacherAllocationData() {
     return {
         showFilter: false,
         showModal: false,
+        showViewModal: false,
+        showEditModal: false,
+        showDeleteModal: false,
         selectedTeacherId: '',
         selectedBatchId: '',
         teacherData: { code: '', name: '', phone: '' },
@@ -168,7 +357,34 @@ function teacherAllocationData() {
             teacher_name: '', teacher_phone: '', 
             start_time: '', end_time: '' 
         },
+        viewData: {
+            teacher_code: '', teacher_name: '', teacher_phone: '', teacher_email: '',
+            course_id: '', course_name: '', batch_id: '', batch_code: '', batch_name: '',
+            timing: '', start_date: '', end_date: '', capacity: '', created_date: ''
+        },
+        editData: {
+            batch_id: '', teacher_id: '', teacher_code: '', teacher_name: '', teacher_phone: '',
+            course_name: '', batch_code: '', batch_name: '', timing: ''
+        },
+        deleteData: {
+            batch_id: '', teacher_name: '', batch_name: '', course_name: ''
+        },
         
+        openView(data) {
+            this.viewData = Object.assign({}, data);
+            this.showViewModal = true;
+        },
+
+        openEdit(data) {
+            this.editData = Object.assign({}, data);
+            this.showEditModal = true;
+        },
+
+        openDelete(data) {
+            this.deleteData = Object.assign({}, data);
+            this.showDeleteModal = true;
+        },
+
         fetchTeacherDetails() {
             if (!this.selectedTeacherId) {
                 this.teacherData = { code: '', name: '', phone: '' };
@@ -197,6 +413,19 @@ function teacherAllocationData() {
                 .then(data => {
                     if (data.success) {
                         this.batchData = data;
+                    }
+                });
+        },
+
+        fetchEditTeacherDetails() {
+            if (!this.editData.teacher_id) return;
+            fetch(`/api/get-teacher/?id=${this.editData.teacher_id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        this.editData.teacher_code = data.teacher_code || 'N/A';
+                        this.editData.teacher_name = data.name;
+                        this.editData.teacher_phone = data.phone || 'N/A';
                     }
                 });
         }

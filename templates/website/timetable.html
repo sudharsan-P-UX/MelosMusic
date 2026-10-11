@@ -2,18 +2,83 @@
 {% load static %}
 
 {% block content %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 min-h-screen" x-data="{ showFilter: false }">
     <!-- Header -->
     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
         <h2 class="text-xl font-bold text-gray-800">{{ page_title }}</h2>
-        <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center">
-            <i class="fa-solid fa-plus mr-2"></i> Add New Slot
-        </button>
+        <div class="flex items-center gap-2">
+            <!-- Mobile Filter Toggle Button -->
+            <button type="button" @click="showFilter = !showFilter" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
+                <i class="fa-solid fa-filter text-xs"></i>
+                <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
+                <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
+            </button>
+            {% if menu_access.add %}<button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium shadow-sm transition flex items-center text-sm">
+                <i class="fa-solid fa-plus mr-2"></i> Add New Slot
+            </button>{% endif %}
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div :class="showFilter ? 'block' : 'hidden md:block'" class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <form method="GET" action="{% url 'timetable' %}" class="flex flex-wrap gap-3 items-end">
+            <!-- Search -->
+            <div class="relative min-w-[200px] flex-1">
+                <label class="block text-xs text-gray-500 mb-1">Search</label>
+                <div class="relative">
+                    <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search batch, teacher, room..." class="border border-gray-300 rounded px-3 py-1.5 w-full text-sm focus:outline-none focus:border-indigo-500 h-[36px] bg-white">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400 text-xs"></i>
+                </div>
+            </div>
+
+            <!-- Day of Week -->
+            <div class="w-40">
+                <label class="block text-xs text-gray-500 mb-1">Day</label>
+                <select name="day" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Days</option>
+                    {% for d in days %}
+                    <option value="{{ d }}" {% if request.GET.day|lower == d|lower %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Batch Filter -->
+            <div class="w-48">
+                <label class="block text-xs text-gray-500 mb-1">Batch</label>
+                <select name="batch_id" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Batches</option>
+                    {% for b in batches %}
+                    <option value="{{ b.batch_id }}" {% if request.GET.batch_id == b.batch_id|stringformat:"s" %}selected{% endif %}>{{ b.batch_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Teacher Filter -->
+            <div class="w-48">
+                <label class="block text-xs text-gray-500 mb-1">Teacher</label>
+                <select name="teacher_id" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Teachers</option>
+                    {% for t in teachers %}
+                    <option value="{{ t.user_id }}" {% if request.GET.teacher_id == t.user_id|stringformat:"s" %}selected{% endif %}>{{ t.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex space-x-2">
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm hover:bg-indigo-700 h-[36px] flex items-center shadow-sm font-medium">
+                    <i class="fa-solid fa-filter mr-1.5 text-xs"></i> Apply
+                </button>
+                <a href="{% url 'timetable' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[36px] flex items-center shadow-sm">
+                    Clear
+                </a>
+            </div>
+        </form>
     </div>
 
     <!-- Calendar View -->
     <div class="p-6 overflow-x-auto">
-        <div class="min-w-[800px] grid grid-cols-7 gap-4">
+        <div class="{% if schedule_data|length == 1 %}max-w-md mx-auto grid grid-cols-1{% else %}min-w-[800px] grid grid-cols-7{% endif %} gap-4">
             {% for day, day_slots in schedule_data %}
             <div class="flex flex-col">
                 <div class="bg-indigo-100 text-indigo-800 font-bold text-center py-2 rounded-t-md border-b-2 border-indigo-200 uppercase text-xs tracking-wider">

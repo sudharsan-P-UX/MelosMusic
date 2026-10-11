@@ -3,7 +3,13 @@ import os
 from django.conf import settings
 
 def security_settings(request):
-    security = {'phone_length': 10, 'email_length': 255}
+    security = {
+        'phone_length': 10,
+        'email_length': 255,
+        'password_expire': 90,
+        'attendance_from_date': '2026-09-05',
+        'attendance_to_date': '2026-10-05',
+    }
     try:
         path = os.path.join(settings.BASE_DIR, 'security_settings.json')
         if os.path.exists(path):
@@ -28,8 +34,11 @@ def sidebar_menu_processor(request):
         all_menus = list(MasterMenu.objects.filter(is_active=True).order_by('display_order', 'menu_id'))
         
         # Get role access for this user
-        access_records = RoleAccess.objects.filter(role=user.role, view_access=True).values_list('menu_id', flat=True)
-        access_set = set(access_records)
+        if user.role and user.role.role_name.lower() == 'superadmin':
+            access_set = {m.menu_id for m in all_menus}
+        else:
+            access_records = RoleAccess.objects.filter(role=user.role, view_access=True).values_list('menu_id', flat=True)
+            access_set = set(access_records)
         
         # Build tree
         def build_tree(parent_id=None):
@@ -56,10 +65,23 @@ def user_permissions(request):
         return {'user_perms': {}}
         
     try:
-        from users.models import User, RoleAccess
+        from users.models import User, RoleAccess, MasterMenu
         user = User.objects.get(user_id=request.session['user_id'])
         if not user.role:
             return {'user_perms': {}}
+            
+        if user.role and user.role.role_name.lower() == 'superadmin':
+            perms = {}
+            for menu in MasterMenu.objects.filter(is_active=True):
+                menu_name = menu.menu_name.replace(' ', '_').replace('&', 'and')
+                perms[menu_name] = {
+                    'view': True,
+                    'add': True,
+                    'edit': True,
+                    'delete': True,
+                    'export': True,
+                }
+            return {'user_perms': perms}
             
         accesses = RoleAccess.objects.filter(role=user.role).select_related('menu')
         perms = {}
@@ -87,7 +109,7 @@ def current_menu_access_processor(request):
         user = User.objects.select_related('role').get(user_id=request.session['user_id'])
         
         # If Superadmin, return all true
-        if user.role.role_name == 'Superadmin':
+        if user.role and user.role.role_name.lower() == 'superadmin':
             return {
                 'menu_access': {
                     'view': True, 'add': True, 'edit': True, 'delete': True, 'export': True

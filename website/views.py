@@ -708,15 +708,19 @@ def events_dashboard_view(request):
             phone_length = request.POST.get('phone_length', 10)
             email_length = request.POST.get('email_length', 255)
             password_expire = request.POST.get('password_expire', 90)
+            attendance_from_date = request.POST.get('attendance_from_date', '').strip()
+            attendance_to_date = request.POST.get('attendance_to_date', '').strip()
             
             data = {
-                'phone_length': int(phone_length),
-                'email_length': int(email_length),
-                'password_expire': int(password_expire)
+                'phone_length': int(phone_length) if phone_length else 10,
+                'email_length': int(email_length) if email_length else 255,
+                'password_expire': int(password_expire) if password_expire else 90,
+                'attendance_from_date': attendance_from_date,
+                'attendance_to_date': attendance_to_date,
             }
             path = os.path.join(settings.BASE_DIR, 'security_settings.json')
             with open(path, 'w') as fh:
-                json.dump(data, fh)
+                json.dump(data, fh, indent=4)
             
             messages.success(request, 'Settings saved successfully.')
             return redirect('/admin-dashboard/?tab=settings')
@@ -972,7 +976,8 @@ def timetable_view(request):
 
     
         return redirect('login')
-    from academics.models import Timetable, Batch
+    from academics.models import Timetable, Batch, Course
+    from django.db.models import Q
     
     if request.method == 'POST':
         batch_id = request.POST.get('batch_id')
@@ -994,20 +999,47 @@ def timetable_view(request):
             room_number=room_number
         )
         messages.success(request, 'Timetable slot added successfully!')
-        return redirect('page', page_name='timetable')
+        return redirect('timetable')
         
-    slots = Timetable.objects.all().order_by('start_time')
-    batches = Batch.objects.filter(is_active=True)
-    teachers = User.objects.filter(role__role_name='Teacher', is_active=True)
+    slots = Timetable.objects.select_related('batch', 'batch__course', 'teacher').filter(is_active=True).order_by('start_time')
+
+    # Filter logic
+    search = request.GET.get('search', '').strip()
+    batch_filter = request.GET.get('batch_id', '').strip()
+    teacher_filter = request.GET.get('teacher_id', '').strip()
+    day_filter = request.GET.get('day', '').strip()
+    course_filter = request.GET.get('course_id', '').strip()
+
+    if search:
+        slots = slots.filter(
+            Q(batch__batch_name__icontains=search) |
+            Q(batch__batch_code__icontains=search) |
+            Q(batch__course__course_name__icontains=search) |
+            Q(teacher__display_name__icontains=search) |
+            Q(room_number__icontains=search)
+        )
+    if batch_filter:
+        slots = slots.filter(batch_id=batch_filter)
+    if teacher_filter:
+        slots = slots.filter(teacher_id=teacher_filter)
+    if day_filter:
+        slots = slots.filter(day_of_week__iexact=day_filter)
+    if course_filter:
+        slots = slots.filter(batch__course_id=course_filter)
+
+    batches = Batch.objects.select_related('course').filter(is_active=True).order_by('batch_name')
+    teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
+    courses = Course.objects.filter(is_active=True).order_by('course_name')
     
     # Organize slots by day
     days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    schedule = {day: [] for day in days}
+    display_days = [d for d in days if d.lower() == day_filter.lower()] if day_filter else days
+    schedule = {day: [] for day in display_days}
     for slot in slots:
         if slot.day_of_week in schedule:
             schedule[slot.day_of_week].append(slot)
             
-    schedule_data = [(day, schedule[day]) for day in days]
+    schedule_data = [(day, schedule[day]) for day in display_days]
             
     return render(request, 'website/timetable.html', {
         'user': user,
@@ -1015,8 +1047,111 @@ def timetable_view(request):
         'days': days,
         'batches': batches,
         'teachers': teachers,
+        'courses': courses,
         'page_title': 'Class Schedule'
     })
+
+
+def get_security_settings():
+    import json, os
+    from django.conf import settings
+    sec = {
+        'phone_length': 10,
+        'email_length': 255,
+        'password_expire': 90,
+        'attendance_from_date': '2026-09-05',
+        'attendance_to_date': '2026-10-05',
+    }
+    try:
+        path = os.path.join(settings.BASE_DIR, 'security_settings.json')
+        if os.path.exists(path):
+            with open(path, 'r') as fh:
+                sec.update(json.load(fh))
+    except Exception:
+        pass
+    return sec
+
+def get_attendance_period_for_date(req_date, cfg_from, cfg_to):
+    import calendar
+    from datetime import date
+    
+    if not cfg_from or not cfg_to:
+        return None, None, ""
+        
+    if cfg_from <= req_date <= cfg_to:
+        return cfg_from, cfg_to, cfg_from.strftime('%B %Y')
+        
+    from_day = cfg_from.day
+    to_day = cfg_to.day
+    
+    if from_day == to_day:
+        if req_date.day >= from_day:
+            p_start_year = req_date.year
+            p_start_month = req_date.month
+        else:
+            if req_date.month == 1:
+                p_start_year = req_date.year - 1
+                p_start_month = 12
+            else:
+                p_start_year = req_date.year
+                p_start_month = req_date.month - 1
+                
+        if p_start_month == 12:
+            p_end_year = p_start_year + 1
+            p_end_month = 1
+        else:
+            p_end_year = p_start_year
+            p_end_month = p_start_month + 1
+            
+        max_s_day = calendar.monthrange(p_start_year, p_start_month)[1]
+        max_e_day = calendar.monthrange(p_end_year, p_end_month)[1]
+        p_start = date(p_start_year, p_start_month, min(from_day, max_s_day))
+        p_end = date(p_end_year, p_end_month, min(to_day, max_e_day))
+        p_name = p_start.strftime('%B %Y')
+        return p_start, p_end, p_name
+        
+    return cfg_from, cfg_to, ""
+
+def validate_attendance_date_range(from_date_str, to_date_str=None, current_date=None):
+    from datetime import datetime, date
+    sec = get_security_settings()
+    allowed_from_str = sec.get('attendance_from_date')
+    allowed_to_str = sec.get('attendance_to_date')
+
+    def parse_d(val):
+        if not val:
+            return None
+        if isinstance(val, date):
+            return val
+        for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y'):
+            try:
+                return datetime.strptime(str(val).strip(), fmt).date()
+            except (ValueError, TypeError):
+                pass
+        return None
+
+    cfg_from = parse_d(allowed_from_str)
+    cfg_to = parse_d(allowed_to_str)
+    req_from = parse_d(from_date_str)
+    req_to = parse_d(to_date_str) if to_date_str else req_from
+    today = current_date or date.today()
+
+    if not cfg_from or not cfg_to:
+        return True, ""
+
+    if not req_from:
+        return False, "Please provide a valid attendance date."
+
+    # Validate each date against its respective attendance period cutoff
+    for d in (req_from, req_to):
+        p_start, p_end, p_name = get_attendance_period_for_date(d, cfg_from, cfg_to)
+        if p_end:
+            if today > p_end:
+                period_label = f"{p_name} " if p_name else ""
+                end_str = p_end.strftime('%d-%m-%Y')
+                return False, f"The {period_label}attendance period ended on {end_str}. Once the period end date has passed, new attendance requests cannot be applied for this period."
+
+    return True, ""
 
 
 def student_attendance_view(request):
@@ -1032,52 +1167,88 @@ def student_attendance_view(request):
         request.session.flush()
 
         return redirect('login')
-    from academics.models import Batch, LeaveRequest, StudentAttendance, StudentAttendanceDetail
+    from academics.models import Batch, StudentAttendance, StudentAttendanceDetail
     
     if request.method == 'POST':
         action = request.POST.get('action')
-        if action == 'apply_leave':
-            student_id = request.POST.get('student_id')
-            student = User.objects.get(user_id=student_id)
-            LeaveRequest.objects.create(
-                user=student,
-                user_type='Student',
-                from_date=request.POST.get('from_date'),
-                to_date=request.POST.get('to_date'),
-                no_of_days=request.POST.get('no_of_days') or 1,
-                request_type=request.POST.get('request_type'),
-                batch_id=request.POST.get('batch_id') or None,
-                created_by=user.user_id
-            )
-            messages.success(request, 'Attendance request submitted successfully!')
-            return redirect('student_attendance')
-        elif action == 'mark_attendance':
-            att_date = request.POST.get('attendance_date')
+        if action in ('mark_attendance', 'apply_leave'):
+            from_date = request.POST.get('from_date') or request.POST.get('attendance_date')
+            to_date = request.POST.get('to_date') or from_date
+            is_valid, err_msg = validate_attendance_date_range(from_date, to_date)
+            if not is_valid:
+                messages.error(request, err_msg)
+                return redirect('student_attendance')
             batch_id = request.POST.get('batch_id')
             student_id = request.POST.get('student_id')
             status = request.POST.get('status')
-            remarks = request.POST.get('remarks', '')
+            if not status and request.POST.get('request_type'):
+                rt = request.POST.get('request_type').strip().lower()
+                status_map = {'present': 1, 'absent': 2, 'late': 3, 'leave': 4, 'on duty': 5, 'permission': 6, 'work from home': 7}
+                status = status_map.get(rt, 4)
+            approval_status = 'Pending'
+            status_labels = {1: 'Present', 2: 'Absent', 3: 'Late', 4: 'Leave', 5: 'On Duty', 6: 'Permission', 7: 'Work From Home'}
+            status_label = status_labels.get(int(status) if status else 1, 'Leave')
+            remarks = request.POST.get('remarks') or request.POST.get('request_type', '')
             
             batch = Batch.objects.filter(batch_id=batch_id).first() if batch_id else None
             student = User.objects.filter(user_id=student_id).first() if student_id else None
             
-            if att_date and student:
+            if from_date and student:
+                from datetime import datetime, timedelta
+                d_from = datetime.strptime(str(from_date).strip(), '%Y-%m-%d').date()
+                d_to = datetime.strptime(str(to_date).strip(), '%Y-%m-%d').date() if to_date else d_from
                 course = batch.course if batch else None
-                att_record, _ = StudentAttendance.objects.get_or_create(
-                    attendance_date=att_date,
+                cur = d_from
+                count = 0
+                while cur <= d_to:
+                    att_record, _ = StudentAttendance.objects.get_or_create(
+                        attendance_date=cur,
+                        batch=batch,
+                        defaults={'course': course, 'created_by': user.user_id}
+                    )
+                    StudentAttendanceDetail.objects.update_or_create(
+                        student_attendance=att_record,
+                        student=student,
+                        defaults={
+                            'attendance_status': int(status) if status else 1,
+                            'approval_status': 'Pending',
+                            'remarks': remarks,
+                            'created_by': user.user_id
+                        }
+                    )
+                    cur += timedelta(days=1)
+                    count += 1
+
+                from academics.models import LeaveRequest
+                LeaveRequest.objects.create(
+                    user=student,
+                    user_type='Student',
+                    from_date=d_from,
+                    to_date=d_to,
+                    no_of_days=count,
+                    request_type=status_label,
+                    manager_approval_status='Pending',
                     batch=batch,
-                    defaults={'course': course, 'created_by': user.user_id}
+                    created_by=user.user_id
                 )
-                StudentAttendanceDetail.objects.update_or_create(
-                    student_attendance=att_record,
-                    student=student,
-                    defaults={
-                        'attendance_status': int(status) if status else 1,
-                        'remarks': remarks,
-                        'created_by': user.user_id
-                    }
-                )
-                messages.success(request, f'Attendance marked for {student.display_name or student.first_name}!')
+                messages.success(request, f'Attendance marked for {student.display_name or student.first_name} ({count} day{"s" if count > 1 else ""})! Status: Pending Approval.')
+            return redirect('student_attendance')
+        elif action in ('approve_attendance', 'reject_attendance'):
+            detail_id = request.POST.get('detail_id')
+            if detail_id:
+                new_app = 'Approved' if action == 'approve_attendance' else 'Rejected'
+                detail = StudentAttendanceDetail.objects.filter(student_attendance_detail_id=detail_id).first()
+                if detail:
+                    detail.approval_status = new_app
+                    detail.save()
+                    from academics.models import LeaveRequest
+                    from django.utils import timezone
+                    LeaveRequest.objects.filter(
+                        user=detail.student,
+                        from_date__lte=detail.student_attendance.attendance_date,
+                        to_date__gte=detail.student_attendance.attendance_date
+                    ).update(manager_approval_status=new_app, manager_approval_on=timezone.now())
+                messages.success(request, f'Attendance {new_app.lower()} successfully!')
             return redirect('student_attendance')
         elif action == 'delete_attendance':
             detail_id = request.POST.get('detail_id')
@@ -1093,6 +1264,7 @@ def student_attendance_view(request):
     selected_batch = request.GET.get('batch_id', '')
     selected_student = request.GET.get('student_id', '')
     selected_date = request.GET.get('date', '')
+    selected_approval_status = request.GET.get('approval_status', '')
     
     batches = Batch.objects.filter(is_active=True)
     students = User.objects.filter(role__role_name__iexact='student', is_active=True)
@@ -1108,13 +1280,8 @@ def student_attendance_view(request):
         details = details.filter(student_id=selected_student)
     if selected_date:
         details = details.filter(student_attendance__attendance_date=selected_date)
-        
-    # Query Leave Requests
-    leave_requests = LeaveRequest.objects.filter(user_type='Student').select_related('user').order_by('-applied_date')
-    if selected_student:
-        leave_requests = leave_requests.filter(user_id=selected_student)
-    if selected_date:
-        leave_requests = leave_requests.filter(from_date__lte=selected_date, to_date__gte=selected_date)
+    if selected_approval_status:
+        details = details.filter(approval_status=selected_approval_status)
 
     return render(request, 'website/student_attendance.html', {
         'user': user,
@@ -1122,10 +1289,10 @@ def student_attendance_view(request):
         'batches': batches,
         'students': students,
         'details': details,
-        'leave_requests': leave_requests,
         'selected_batch': selected_batch,
         'selected_student': selected_student,
         'selected_date': selected_date,
+        'selected_approval_status': selected_approval_status,
         'allocated_batches': allocated_batches
     })
 
@@ -1142,23 +1309,91 @@ def teacher_attendance_view(request):
         request.session.flush()
 
         return redirect('login')
-    from academics.models import LeaveRequest
+    from academics.models import TeacherAttendance, TeacherAttendanceDetail
     
     if request.method == 'POST':
-        if request.POST.get('action') == 'apply_leave':
+        action = request.POST.get('action')
+        if action in ('mark_teacher_attendance', 'apply_leave'):
+            from_date = request.POST.get('from_date') or request.POST.get('attendance_date')
+            to_date = request.POST.get('to_date') or from_date
+            is_valid, err_msg = validate_attendance_date_range(from_date, to_date)
+            if not is_valid:
+                messages.error(request, err_msg)
+                return redirect('teacher_attendance')
             teacher_id = request.POST.get('teacher_id')
-            teacher = User.objects.get(user_id=teacher_id)
-            LeaveRequest.objects.create(
-                user=teacher,
-                user_type='Teacher',
-                from_date=request.POST.get('from_date'),
-                to_date=request.POST.get('to_date'),
-                no_of_days=request.POST.get('no_of_days') or 1,
-                request_type=request.POST.get('request_type'),
-                batch_id=request.POST.get('batch_id'),
-                created_by=user.user_id
-            )
-            messages.success(request, 'Attendance request submitted successfully!')
+            status = request.POST.get('status')
+            if not status and request.POST.get('request_type'):
+                rt = request.POST.get('request_type').strip().lower()
+                status_map = {'present': 1, 'absent': 2, 'late': 3, 'leave': 4, 'on duty': 5, 'permission': 6, 'work from home': 7}
+                status = status_map.get(rt, 4)
+            approval_status = 'Pending'
+            status_labels = {1: 'Present', 2: 'Absent', 3: 'Late', 4: 'Leave', 5: 'On Duty', 6: 'Permission', 7: 'Work From Home'}
+            status_label = status_labels.get(int(status) if status else 1, 'Leave')
+            check_in_time = request.POST.get('check_in_time') or None
+            check_out_time = request.POST.get('check_out_time') or None
+            remarks = request.POST.get('remarks') or request.POST.get('request_type', '')
+            teacher = User.objects.filter(user_id=teacher_id).first() if teacher_id else None
+            if from_date and teacher:
+                from datetime import datetime, timedelta
+                d_from = datetime.strptime(str(from_date).strip(), '%Y-%m-%d').date()
+                d_to = datetime.strptime(str(to_date).strip(), '%Y-%m-%d').date() if to_date else d_from
+                cur = d_from
+                count = 0
+                while cur <= d_to:
+                    att_record, _ = TeacherAttendance.objects.get_or_create(
+                        attendance_date=cur,
+                        defaults={'created_by': user.user_id}
+                    )
+                    TeacherAttendanceDetail.objects.update_or_create(
+                        teacher_attendance=att_record,
+                        teacher=teacher,
+                        defaults={
+                            'attendance_status': int(status) if status else 1,
+                            'approval_status': 'Pending',
+                            'check_in_time': check_in_time,
+                            'check_out_time': check_out_time,
+                            'remarks': remarks,
+                            'created_by': user.user_id
+                        }
+                    )
+                    cur += timedelta(days=1)
+                    count += 1
+
+                from academics.models import LeaveRequest
+                LeaveRequest.objects.create(
+                    user=teacher,
+                    user_type='Teacher',
+                    from_date=d_from,
+                    to_date=d_to,
+                    no_of_days=count,
+                    request_type=status_label,
+                    manager_approval_status='Pending',
+                    created_by=user.user_id
+                )
+                messages.success(request, f'Attendance marked for {teacher.display_name or teacher.first_name} ({count} day{"s" if count > 1 else ""})! Status: Pending Approval.')
+            return redirect('teacher_attendance')
+        elif action in ('approve_teacher_attendance', 'reject_teacher_attendance'):
+            detail_id = request.POST.get('detail_id')
+            if detail_id:
+                new_app = 'Approved' if action == 'approve_teacher_attendance' else 'Rejected'
+                detail = TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).first()
+                if detail:
+                    detail.approval_status = new_app
+                    detail.save()
+                    from academics.models import LeaveRequest
+                    from django.utils import timezone
+                    LeaveRequest.objects.filter(
+                        user=detail.teacher,
+                        from_date__lte=detail.teacher_attendance.attendance_date,
+                        to_date__gte=detail.teacher_attendance.attendance_date
+                    ).update(manager_approval_status=new_app, manager_approval_on=timezone.now())
+                messages.success(request, f'Teacher attendance {new_app.lower()} successfully!')
+            return redirect('teacher_attendance')
+        elif action == 'delete_teacher_attendance':
+            detail_id = request.POST.get('detail_id')
+            if detail_id:
+                TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).delete()
+                messages.success(request, 'Attendance record deleted successfully!')
             return redirect('teacher_attendance')
             
     # Filters
@@ -1167,16 +1402,20 @@ def teacher_attendance_view(request):
     
     selected_teacher = request.GET.get('teacher_id', '')
     selected_date = request.GET.get('date', '')
+    selected_approval_status = request.GET.get('approval_status', '')
     
     teachers = User.objects.filter(role__role_name__iexact='teacher', is_active=True)
     
-    details = LeaveRequest.objects.filter(user_type='Teacher').select_related('user').order_by('-applied_date')
+    details = TeacherAttendanceDetail.objects.select_related('teacher_attendance', 'teacher').order_by('-teacher_attendance__attendance_date')
     
     if selected_teacher:
-        details = details.filter(user_id=selected_teacher)
+        details = details.filter(teacher_id=selected_teacher)
         
     if selected_date:
-        details = details.filter(from_date__lte=selected_date, to_date__gte=selected_date)
+        details = details.filter(teacher_attendance__attendance_date=selected_date)
+
+    if selected_approval_status:
+        details = details.filter(approval_status=selected_approval_status)
 
     return render(request, 'website/teacher_attendance.html', {
         'user': user,
@@ -1184,8 +1423,8 @@ def teacher_attendance_view(request):
         'teachers': teachers,
         'details': details,
         'selected_teacher': selected_teacher,
-        'selected_date': selected_date
-,
+        'selected_date': selected_date,
+        'selected_approval_status': selected_approval_status,
         'allocated_batches': allocated_batches
     })
 
@@ -1413,6 +1652,37 @@ def courses_batches_view(request):
                 created_by=user.user_id
             )
             messages.success(request, 'Course added successfully!')
+            return redirect('courses')
+        elif action == 'edit_course':
+            course_id = request.POST.get('course_id')
+            try:
+                course = Course.objects.get(course_id=course_id)
+                course.course_name = request.POST.get('course_name')
+                course.category = request.POST.get('category') or None
+                course.duration_months = request.POST.get('duration_months') or None
+                course.duration_hrs = request.POST.get('duration_hrs') or None
+                course.total_sessions = request.POST.get('total_sessions') or None
+                course.days = request.POST.get('days') or None
+                course.fee_amount = request.POST.get('fee_amount') or 0.00
+                course.description = request.POST.get('description') or None
+                course.is_active = (request.POST.get('status') == 'active')
+                course.save()
+                messages.success(request, 'Course updated successfully!')
+            except Exception as e:
+                messages.error(request, f'Error updating course: {str(e)}')
+            return redirect('courses')
+        elif action == 'delete_course':
+            course_id = request.POST.get('course_id')
+            try:
+                batch_count = Batch.objects.filter(course_id=course_id).count()
+                if batch_count > 0:
+                    messages.error(request, f'Cannot delete course because it is assigned to {batch_count} batch(es). Please delete or reassign those batches first.')
+                else:
+                    Course.objects.filter(course_id=course_id).delete()
+                    messages.success(request, 'Course deleted successfully!')
+            except Exception as e:
+                messages.error(request, f'Error deleting course: {str(e)}')
+            return redirect('courses')
         elif action == 'add_batch':
             batch_code = request.POST.get('batch_code')
             if not batch_code:
@@ -1443,10 +1713,44 @@ def courses_batches_view(request):
             )
             messages.success(request, 'Batch added successfully!')
             return redirect('/courses/?tab=batches')
+        elif action == 'edit_batch':
+            batch_id = request.POST.get('batch_id')
+            try:
+                batch = Batch.objects.get(batch_id=batch_id)
+                batch.batch_name = request.POST.get('batch_name')
+                course_id = request.POST.get('course_id')
+                if course_id:
+                    batch.course_id = course_id
+                teacher_id = request.POST.get('teacher_id')
+                batch.teacher_id = teacher_id if teacher_id else None
+                batch.start_date = request.POST.get('start_date') or None
+                batch.end_date = request.POST.get('end_date') or None
+                batch.start_time = request.POST.get('start_time') or None
+                batch.end_time = request.POST.get('end_time') or None
+                batch.capacity = request.POST.get('capacity') or None
+                batch.is_active = (request.POST.get('status') == 'active')
+                batch.save()
+                messages.success(request, 'Batch updated successfully!')
+            except Exception as e:
+                messages.error(request, f'Error updating batch: {str(e)}')
+            return redirect('/courses/?tab=batches')
+        elif action == 'delete_batch':
+            batch_id = request.POST.get('batch_id')
+            try:
+                from academics.models import StudentEnrollment
+                enroll_count = StudentEnrollment.objects.filter(batch_id=batch_id).count()
+                if enroll_count > 0:
+                    messages.error(request, f'Cannot delete batch because it has {enroll_count} student enrollment(s).')
+                else:
+                    Batch.objects.filter(batch_id=batch_id).delete()
+                    messages.success(request, 'Batch deleted successfully!')
+            except Exception as e:
+                messages.error(request, f'Error deleting batch: {str(e)}')
+            return redirect('/courses/?tab=batches')
         return redirect('courses')
         
     courses = Course.objects.all().order_by('-course_id')
-    batches = Batch.objects.all().order_by('-batch_id')
+    batches = Batch.objects.select_related('course', 'teacher').all().order_by('-batch_id')
     teachers = User.objects.filter(role__role_name='Teacher', is_active=True)
     
     return render(request, 'website/courses_batches.html', {
@@ -1478,16 +1782,17 @@ def admin_dashboard_view(request):
     
     roles = Role.objects.all().select_related('role_group')
     users = User.objects.all().select_related('role')
-    # Fetch menus and construct a tree (Parents first, then their children)
+    # Fetch menus and construct a full tree hierarchy (Parents, children, and subchildren)
     raw_menus = list(MasterMenu.objects.filter(is_active=True).order_by('display_order', 'menu_id'))
-    menus = []
-    for m in raw_menus:
-        if not m.parent_menu_id:
-            menus.append(m)
-            # Find children for this parent
-            for child in raw_menus:
-                if child.parent_menu_id == m.menu_id:
-                    menus.append(child)
+    def get_ordered_menus(parent_id=None, level=0):
+        result = []
+        for m in raw_menus:
+            if m.parent_menu_id == parent_id:
+                m.level = level
+                result.append(m)
+                result.extend(get_ordered_menus(m.menu_id, level + 1))
+        return result
+    menus = get_ordered_menus(None)
     
     # RBAC Enforcement
     try:
@@ -1511,15 +1816,19 @@ def admin_dashboard_view(request):
             phone_length = request.POST.get('phone_length', 10)
             email_length = request.POST.get('email_length', 255)
             password_expire = request.POST.get('password_expire', 90)
+            attendance_from_date = request.POST.get('attendance_from_date', '').strip()
+            attendance_to_date = request.POST.get('attendance_to_date', '').strip()
             
             data = {
-                'phone_length': int(phone_length),
-                'email_length': int(email_length),
-                'password_expire': int(password_expire)
+                'phone_length': int(phone_length) if phone_length else 10,
+                'email_length': int(email_length) if email_length else 255,
+                'password_expire': int(password_expire) if password_expire else 90,
+                'attendance_from_date': attendance_from_date,
+                'attendance_to_date': attendance_to_date,
             }
             path = os.path.join(settings.BASE_DIR, 'security_settings.json')
             with open(path, 'w') as fh:
-                json.dump(data, fh)
+                json.dump(data, fh, indent=4)
             
             messages.success(request, 'Settings saved successfully.')
             return redirect('/admin-dashboard/?tab=settings')
@@ -1775,11 +2084,41 @@ def student_course_view(request):
 
         
         return redirect('login')
-    from academics.models import Course, StudentEnrollment
+    from academics.models import Course, StudentEnrollment, Batch
     from django.db.models import Q
     
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'edit_student_allocation':
+            enrollment_id = request.POST.get('enrollment_id')
+            student_id = request.POST.get('student_id')
+            batch_id = request.POST.get('batch_id')
+            try:
+                enrollment = StudentEnrollment.objects.get(enrollment_id=enrollment_id)
+                if student_id:
+                    enrollment.student = User.objects.get(user_id=student_id)
+                if batch_id:
+                    batch = Batch.objects.get(batch_id=batch_id)
+                    enrollment.batch = batch
+                    enrollment.course = batch.course
+                enrollment.save()
+                messages.success(request, 'Student allocation updated successfully.')
+            except Exception as e:
+                messages.error(request, f'Error updating student allocation: {str(e)}')
+            return redirect('student_course')
+        elif action == 'delete_student_allocation':
+            enrollment_id = request.POST.get('enrollment_id')
+            try:
+                StudentEnrollment.objects.filter(enrollment_id=enrollment_id).delete()
+                messages.success(request, 'Student allocation deleted successfully.')
+            except Exception as e:
+                messages.error(request, f'Error deleting student allocation: {str(e)}')
+            return redirect('student_course')
+
     enrollments = StudentEnrollment.objects.select_related('student', 'course', 'batch', 'batch__teacher').exclude(batch__isnull=True).order_by('-created_date')
     courses = Course.objects.filter(is_active=True)
+    batches = Batch.objects.select_related('course', 'teacher').filter(is_active=True).order_by('batch_name')
+    students = User.objects.filter(role__role_name='Student', is_active=True).order_by('display_name')
     
     # Filter logic
     search = request.GET.get('search', '')
@@ -1803,8 +2142,10 @@ def student_course_view(request):
     return render(request, 'website/student_course.html', {
         'user': user,
         'page_title': 'Allocation Details',
-        'allocations': enrollments,  # Changed to allocations to match template
-        'courses': courses
+        'allocations': enrollments,
+        'courses': courses,
+        'batches': batches,
+        'students': students,
     })
 
 def student_allocation_view(request):
@@ -1857,10 +2198,59 @@ def student_allocation_view(request):
             except Exception as e:
                 messages.error(request, f'Error allocating student: {str(e)}')
             return redirect('student_allocation')
+        elif action == 'edit_student_allocation':
+            enrollment_id = request.POST.get('enrollment_id')
+            student_id = request.POST.get('student_id')
+            batch_id = request.POST.get('batch_id')
+            try:
+                enrollment = StudentEnrollment.objects.get(enrollment_id=enrollment_id)
+                if student_id:
+                    enrollment.student = User.objects.get(user_id=student_id)
+                if batch_id:
+                    batch = Batch.objects.get(batch_id=batch_id)
+                    enrollment.batch = batch
+                    enrollment.course = batch.course
+                enrollment.save()
+                messages.success(request, 'Student allocation updated successfully.')
+            except Exception as e:
+                messages.error(request, f'Error updating student allocation: {str(e)}')
+            return redirect('student_allocation')
+        elif action == 'delete_student_allocation':
+            enrollment_id = request.POST.get('enrollment_id')
+            try:
+                StudentEnrollment.objects.filter(enrollment_id=enrollment_id).delete()
+                messages.success(request, 'Student allocation deleted successfully.')
+            except Exception as e:
+                messages.error(request, f'Error deleting student allocation: {str(e)}')
+            return redirect('student_allocation')
             
     # GET Request
     allocations = StudentEnrollment.objects.select_related('student', 'course', 'batch', 'batch__teacher').exclude(batch__isnull=True).order_by('-created_date')
-    
+
+    # Filter logic
+    search = request.GET.get('search', '').strip()
+    course_filter = request.GET.get('course_id', '').strip()
+    batch_filter = request.GET.get('batch_id', '').strip()
+    teacher_filter = request.GET.get('teacher_id', '').strip()
+
+    if search:
+        allocations = allocations.filter(
+            Q(student__display_name__icontains=search) |
+            Q(student__user_code__icontains=search) |
+            Q(student__phone__icontains=search) |
+            Q(course__course_name__icontains=search) |
+            Q(batch__batch_name__icontains=search) |
+            Q(batch__batch_code__icontains=search) |
+            Q(batch__teacher__display_name__icontains=search)
+        )
+    if course_filter:
+        allocations = allocations.filter(course_id=course_filter)
+    if batch_filter:
+        allocations = allocations.filter(batch_id=batch_filter)
+    if teacher_filter:
+        allocations = allocations.filter(batch__teacher_id=teacher_filter)
+
+    courses = Course.objects.filter(is_active=True).order_by('course_name')
     # Pre-fetch for the modal dropdowns
     students = User.objects.filter(role__role_name='Student', is_active=True).order_by('display_name')
     teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
@@ -1878,6 +2268,7 @@ def student_allocation_view(request):
         'students': students,
         'teachers': teachers,
         'batches': batches,
+        'courses': courses,
     })
 
 from django.http import JsonResponse
@@ -1955,6 +2346,28 @@ def teacher_allocation_view(request):
             except Exception as e:
                 messages.error(request, f'Error allocating teacher: {str(e)}')
             return redirect('teacher_allocation')
+        elif action == 'edit_teacher_allocation':
+            batch_id = request.POST.get('batch_id')
+            teacher_id = request.POST.get('teacher_id')
+            try:
+                batch = Batch.objects.get(batch_id=batch_id)
+                teacher = User.objects.get(user_id=teacher_id)
+                batch.teacher = teacher
+                batch.save()
+                messages.success(request, 'Teacher allocation updated successfully.')
+            except Exception as e:
+                messages.error(request, f'Error updating teacher allocation: {str(e)}')
+            return redirect('teacher_allocation')
+        elif action == 'delete_teacher_allocation':
+            batch_id = request.POST.get('batch_id')
+            try:
+                batch = Batch.objects.get(batch_id=batch_id)
+                batch.teacher = None
+                batch.save()
+                messages.success(request, 'Teacher allocation removed successfully.')
+            except Exception as e:
+                messages.error(request, f'Error removing teacher allocation: {str(e)}')
+            return redirect('teacher_allocation')
             
     # GET Request
     allocations = Batch.objects.select_related('course', 'teacher').exclude(teacher__isnull=True).order_by('-created_date')
@@ -2024,6 +2437,22 @@ def attendance_log_view(request):
             lr.manager_approval_status = 'Pending'
             lr.manager_approval_on = None
             lr.save()
+
+            if lr.user_type == 'Student':
+                from academics.models import StudentAttendanceDetail
+                StudentAttendanceDetail.objects.filter(
+                    student=lr.user,
+                    student_attendance__attendance_date__gte=lr.from_date,
+                    student_attendance__attendance_date__lte=lr.to_date
+                ).update(approval_status='Pending')
+            elif lr.user_type == 'Teacher':
+                from academics.models import TeacherAttendanceDetail
+                TeacherAttendanceDetail.objects.filter(
+                    teacher=lr.user,
+                    teacher_attendance__attendance_date__gte=lr.from_date,
+                    teacher_attendance__attendance_date__lte=lr.to_date
+                ).update(approval_status='Pending')
+
             messages.success(request, 'Request revoked and moved back to approvals!')
         return redirect(f'/attendance-log/?tab={request.POST.get("tab", request.GET.get("tab", "students"))}')
         
@@ -2090,9 +2519,26 @@ def attendance_approval_view(request):
         if action in ['Approve', 'Reject'] and request_id:
             from django.utils import timezone
             lr = LeaveRequest.objects.get(leave_request_id=request_id)
-            lr.manager_approval_status = 'Approved' if action == 'Approve' else 'Rejected'
+            new_status = 'Approved' if action == 'Approve' else 'Rejected'
+            lr.manager_approval_status = new_status
             lr.manager_approval_on = timezone.now()
             lr.save()
+
+            if lr.user_type == 'Student':
+                from academics.models import StudentAttendanceDetail
+                StudentAttendanceDetail.objects.filter(
+                    student=lr.user,
+                    student_attendance__attendance_date__gte=lr.from_date,
+                    student_attendance__attendance_date__lte=lr.to_date
+                ).update(approval_status=new_status)
+            elif lr.user_type == 'Teacher':
+                from academics.models import TeacherAttendanceDetail
+                TeacherAttendanceDetail.objects.filter(
+                    teacher=lr.user,
+                    teacher_attendance__attendance_date__gte=lr.from_date,
+                    teacher_attendance__attendance_date__lte=lr.to_date
+                ).update(approval_status=new_status)
+
             messages.success(request, f'Request {action}d successfully!')
         return redirect(f'/attendance-approval/?tab={request.POST.get("tab", request.GET.get("tab", "students"))}')
         
@@ -2232,16 +2678,36 @@ def mobile_courses_api(request):
 @csrf_exempt
 def mobile_timetable_api(request):
     if request.method == 'GET':
-        timetables = Timetable.objects.filter(is_active=True).select_related('course', 'batch', 'teacher').values(
+        timetables = Timetable.objects.filter(is_active=True).select_related('batch', 'batch__course', 'teacher')
+        day = request.GET.get('day')
+        batch_id = request.GET.get('batch_id')
+        teacher_id = request.GET.get('teacher_id')
+        search = request.GET.get('search')
+        if day:
+            timetables = timetables.filter(day_of_week__iexact=day)
+        if batch_id:
+            timetables = timetables.filter(batch_id=batch_id)
+        if teacher_id:
+            timetables = timetables.filter(teacher_id=teacher_id)
+        if search:
+            timetables = timetables.filter(
+                Q(batch__batch_name__icontains=search) |
+                Q(batch__course__course_name__icontains=search) |
+                Q(teacher__display_name__icontains=search) |
+                Q(room_number__icontains=search)
+            )
+        data = timetables.values(
             'timetable_id', 
             'day_of_week', 
             'start_time', 
             'end_time', 
-            'course__course_name',
+            'batch__course__course_name',
             'batch__batch_name',
-            'teacher__first_name'
+            'teacher__first_name',
+            'teacher__display_name',
+            'room_number'
         )
-        return JsonResponse({'success': True, 'data': list(timetables)})
+        return JsonResponse({'success': True, 'data': list(data)})
     return JsonResponse({'success': False, 'error': 'Method not allowed'})
 
 from users.models import MasterMenu, RoleAccess
@@ -2258,8 +2724,11 @@ def mobile_menus_api(request):
             all_menus = list(MasterMenu.objects.filter(is_active=True).order_by('display_order', 'menu_id'))
             
             # Get role access
-            access_records = RoleAccess.objects.filter(role=user.role, view_access=True).values_list('menu_id', flat=True)
-            access_set = set(access_records)
+            if user.role and user.role.role_name.lower() == 'superadmin':
+                access_set = {m.menu_id for m in all_menus}
+            else:
+                access_records = RoleAccess.objects.filter(role=user.role, view_access=True).values_list('menu_id', flat=True)
+                access_set = set(access_records)
             
             # We will flatten the menu structure for the mobile grid, or return a list of accessible menus.
             # For simplicity in mobile, let's just return all accessible menus that are NOT parent containers 

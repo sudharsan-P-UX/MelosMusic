@@ -31,7 +31,7 @@
                     <div x-show="open" class="pl-4 mt-1 space-y-1">
                         {% for child in menu.children %}
                             {% if child.children %}
-                            <div x-data="{ open: false }" x-init="const childPaths = `{% for cc in child.children %}{{ cc.url_page }}|{% endfor %}`.split('|').filter(Boolean); if(childPaths.some(p => window.location.pathname.includes(p.split('?')[0]) && p.split('?')[0] !== '/')) open = true;">
+                            <div x-data="{ open: false }" x-init="const childPaths = `{% for cc in child.children %}{{ cc.url_page }}|{% endfor %}`.split('|').filter(Boolean); if(childPaths.some(p => { const path = p.split('?')[0].replace(/\/$/, ''); return window.location.pathname.replace(/\/$/, '').includes(path) && path !== ''; })) open = true;">
                                 <button @click="open = !open" class="w-full flex justify-between items-center px-4 py-1.5 text-xs rounded-md text-indigo-100 hover:text-white hover:bg-indigo-700/50 focus:outline-none transition-colors">
                                     <span>{{ child.menu_name }}</span>
                                     <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': open}"></i>

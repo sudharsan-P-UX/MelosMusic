@@ -1,0 +1,7 @@
+{
+    "phone_length": 10,
+    "email_length": 255,
+    "password_expire": 90,
+    "attendance_from_date": "2026-09-05",
+    "attendance_to_date": "2026-10-05"
+}

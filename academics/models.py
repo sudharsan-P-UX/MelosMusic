@@ -73,6 +73,28 @@ class Batch(models.Model):
     created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
     created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
 
+    @property
+    def duration_display(self):
+        if self.start_time and self.end_time:
+            from datetime import datetime, date, timedelta
+            dummy = date.today()
+            dt_start = datetime.combine(dummy, self.start_time)
+            dt_end = datetime.combine(dummy, self.end_time)
+            if dt_end < dt_start:
+                dt_end += timedelta(days=1)
+            diff = dt_end - dt_start
+            total_minutes = int(diff.total_seconds() // 60)
+            hours = total_minutes // 60
+            mins = total_minutes % 60
+            if hours > 0 and mins > 0:
+                return f"{hours} hr{'s' if hours > 1 else ''} {mins} min{'s' if mins > 1 else ''}"
+            elif hours > 0:
+                return f"{hours} Hour{'s' if hours > 1 else ''}"
+            elif mins > 0:
+                return f"{mins} Mins"
+            return "0 mins"
+        return "-"
+
     class Meta:
         db_table = 'Batch'
 
@@ -125,6 +147,7 @@ class StudentAttendanceDetail(models.Model):
     student_attendance = models.ForeignKey(StudentAttendance, on_delete=models.CASCADE, db_column='StudentAttendanceId')
     student = models.ForeignKey(User, on_delete=models.CASCADE, db_column='StudentId')
     attendance_status = models.SmallIntegerField(db_column='AttendanceStatus') # 1=Present, 2=Absent, etc.
+    approval_status = models.CharField(max_length=50, default='Pending', db_column='ApprovalStatus')
     check_in_time = models.TimeField(null=True, blank=True, db_column='CheckInTime')
     check_out_time = models.TimeField(null=True, blank=True, db_column='CheckOutTime')
     remarks = models.CharField(max_length=500, null=True, blank=True, db_column='Remarks')
@@ -148,6 +171,7 @@ class TeacherAttendanceDetail(models.Model):
     teacher_attendance = models.ForeignKey(TeacherAttendance, on_delete=models.CASCADE, db_column='TeacherAttendanceId')
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, db_column='TeacherId')
     attendance_status = models.SmallIntegerField(db_column='AttendanceStatus')
+    approval_status = models.CharField(max_length=50, default='Pending', db_column='ApprovalStatus')
     check_in_time = models.TimeField(null=True, blank=True, db_column='CheckInTime')
     check_out_time = models.TimeField(null=True, blank=True, db_column='CheckOutTime')
     remarks = models.CharField(max_length=500, null=True, blank=True, db_column='Remarks')

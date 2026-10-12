@@ -1788,6 +1788,37 @@ def student_attendance_view(request):
                     ).update(manager_approval_status=new_app, manager_approval_on=timezone.now())
                 messages.success(request, f'Attendance {new_app.lower()} successfully!')
             return redirect('student_attendance')
+        elif action == 'update_attendance':
+            detail_id = request.POST.get('detail_id')
+            status = request.POST.get('status')
+            approval_status = request.POST.get('approval_status')
+            remarks = (request.POST.get('remarks') or '').strip()
+            if detail_id:
+                detail = StudentAttendanceDetail.objects.filter(student_attendance_detail_id=detail_id).first()
+                if detail:
+                    if status:
+                        try:
+                            detail.attendance_status = int(status)
+                        except (ValueError, TypeError):
+                            pass
+                    if approval_status:
+                        detail.approval_status = approval_status
+                    detail.remarks = remarks
+                    detail.save()
+                    
+                    from academics.models import LeaveRequest
+                    from django.utils import timezone
+                    lr_status = approval_status if approval_status in ('Approved', 'Rejected') else 'Pending'
+                    LeaveRequest.objects.filter(
+                        user=detail.student,
+                        from_date__lte=detail.student_attendance.attendance_date,
+                        to_date__gte=detail.student_attendance.attendance_date
+                    ).update(
+                        manager_approval_status=lr_status,
+                        manager_approval_on=timezone.now() if lr_status != 'Pending' else None
+                    )
+                    messages.success(request, 'Attendance details updated successfully!')
+            return redirect('student_attendance')
         elif action == 'delete_attendance':
             detail_id = request.POST.get('detail_id')
             if detail_id:
@@ -1809,7 +1840,7 @@ def student_attendance_view(request):
     
     # Query Daily Attendance records
     details = StudentAttendanceDetail.objects.select_related(
-        'student', 'student_attendance', 'student_attendance__batch', 'student_attendance__course'
+        'student', 'student_attendance', 'student_attendance__batch', 'student_attendance__course', 'student_attendance__batch__course'
     ).order_by('-student_attendance__attendance_date', '-student_attendance_detail_id')
     
     if selected_batch:

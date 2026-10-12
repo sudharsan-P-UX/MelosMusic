@@ -125,14 +125,6 @@
                                 <i class="fa-solid fa-check"></i>
                             </button>
                         </form>
-                        <form method="POST" action="{% url 'teacher_attendance' %}" class="inline-block" title="Reject">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="reject_teacher_attendance">
-                            <input type="hidden" name="detail_id" value="{{ detail.teacher_attendance_detail_id }}">
-                            <button type="submit" class="text-amber-500 hover:text-amber-700 p-1.5 rounded hover:bg-amber-50 transition" title="Reject">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </form>
                         <button type="button" 
                                 onclick="openUpdateTeacherModal({
                                     id: '{{ detail.teacher_attendance_detail_id }}',

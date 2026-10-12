@@ -12,34 +12,117 @@ def index(request):
     
     # Fetch user for dashboard display
     try:
-        try:
-
-            user = User.objects.get(user_id=request.session['user_id'])
-
-        except User.DoesNotExist:
-
-            request.session.flush()
-
-            return redirect('login')
+        user = User.objects.get(user_id=request.session['user_id'])
     except User.DoesNotExist:
         request.session.flush()
         return redirect('login')
     
+    from academics.models import Course, Batch, Timetable, StudentEnrollment, Holiday
+    from finance.models import StudentFee, FeePayment
+    from datetime import date
+    from django.db.models import Sum, Q
+
     # Dashboard metrics
     total_students = User.objects.filter(role__role_name__iexact='student').count()
     active_teachers = User.objects.filter(role__role_name__iexact='teacher').count()
     total_courses = Course.objects.filter(is_active=True).count()
     
-    pending_fees = StudentFeeInstallment.objects.filter(amount__gt=F('paid_amount')).aggregate(
-        total_pending=Sum(F('amount') - F('paid_amount'))
-    )['total_pending'] or 0
-    
+    # Sync enrollment fees and compute pending fees
+    try:
+        sync_enrollment_fees(user.user_id)
+    except Exception as e:
+        print(f"Error syncing enrollment fees: {e}")
+
+    total_pending = 0
+    for sf in StudentFee.objects.filter(status__in=[1, 2]):
+        paid = FeePayment.objects.filter(student_fee=sf).aggregate(total=Sum('paid_amount'))['total'] or 0
+        total_pending += max(0, sf.final_amount - paid)
+
+    # Sync batch timetable
+    try:
+        sync_batch_timetable(user.user_id)
+    except Exception as e:
+        print(f"Error syncing batch timetable: {e}")
+
+    today = date.today()
+    today_day = today.strftime('%A')
+    today_date_str = today.strftime('%A, %d %B %Y')
+
+    # Check if today is a holiday
+    today_holiday = Holiday.objects.filter(
+        is_active=True
+    ).filter(
+        Q(holiday_date=today) | Q(is_recurring_weekly=True, day_of_week__iexact=today_day)
+    ).first()
+
+    # Query today's timetable slots
+    today_slots_qs = Timetable.objects.select_related(
+        'batch', 'batch__course', 'teacher', 'batch__classroom'
+    ).filter(
+        is_active=True,
+        day_of_week__iexact=today_day
+    ).order_by('start_time')
+
+    today_schedule = []
+    for slot in today_slots_qs:
+        b = slot.batch
+        if not b or not b.is_active:
+            continue
+        is_upcoming = bool(b.start_date and today < b.start_date)
+        is_completed = bool(b.end_date and today > b.end_date)
+        if is_completed:
+            continue
+
+        teacher = slot.teacher or b.teacher
+        teacher_name = teacher.display_name or f"{teacher.first_name} {teacher.last_name}".strip() if teacher else "Not assigned"
+
+        enrolled_count = StudentEnrollment.objects.filter(batch=b, status=1).count()
+
+        if b.classroom:
+            room_display = f"{b.classroom.class_code} ({b.classroom.class_name})"
+        elif slot.room_number:
+            room_display = slot.room_number
+        elif b.batch_code:
+            room_display = f"Studio {b.batch_code}"
+        else:
+            room_display = "Studio 1"
+
+        start_str = slot.start_time.strftime('%I:%M %p') if slot.start_time else '-'
+        end_str = slot.end_time.strftime('%I:%M %p') if slot.end_time else '-'
+
+        today_schedule.append({
+            'slot_id': slot.timetable_id,
+            'start_time': start_str,
+            'end_time': end_str,
+            'timing': f"{start_str} - {end_str}",
+            'batch_id': b.batch_id,
+            'batch_name': b.batch_name,
+            'batch_code': b.batch_code or '-',
+            'course_name': b.course.course_name if b.course else '-',
+            'course_code': b.course.course_code if b.course and b.course.course_code else '',
+            'teacher_name': teacher_name,
+            'room': room_display,
+            'enrolled_count': enrolled_count,
+            'capacity': b.capacity if b.capacity else '-',
+            'is_upcoming': is_upcoming,
+            'start_date_display': b.start_date.strftime('%d/%m/%Y') if b.start_date else None,
+            'status_label': f"Starts {b.start_date.strftime('%d/%m/%Y')}" if is_upcoming else "Active",
+        })
+
+    today_class_count = len(today_schedule)
+
     context = {
         'user': user,
         'total_students': total_students,
         'active_teachers': active_teachers,
         'total_courses': total_courses,
-        'pending_fees': pending_fees,
+        'pending_fees': total_pending,
+        'pending_fees_display': f"{total_pending:,.2f}",
+        'today_schedule': today_schedule,
+        'today_class_count': today_class_count,
+        'today_date_str': today_date_str,
+        'today_day': today_day,
+        'today_holiday': today_holiday,
     }
     return render(request, 'website/index.html', context)
 

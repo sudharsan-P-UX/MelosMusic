@@ -132,7 +132,7 @@
             </button>
         </div>
         
-        <form id="teacherForm" method="POST" action="{% url 'teachers' %}" enctype="multipart/form-data" class="flex flex-col flex-1 overflow-hidden" autocomplete="off"> x-data="{ passwordError: false }" @submit="if(document.getElementById(\'modalPassword\').value !== document.getElementById(\'modalConfirmPassword\').value) { $event.preventDefault(); passwordError = true; } else { passwordError = false; }">
+        <form id="teacherForm" method="POST" action="{% url 'teachers' %}" enctype="multipart/form-data" class="flex flex-col flex-1 overflow-hidden" autocomplete="off" x-data="{ passwordError: false }" @submit="if(document.getElementById('modalPassword').value !== document.getElementById('modalConfirmPassword').value) { $event.preventDefault(); passwordError = true; } else { passwordError = false; }">
             <div class="p-6 overflow-y-auto space-y-4 flex-1">
                 {% csrf_token %}
                 
@@ -450,7 +450,11 @@
         // make passwords required for new teacher
         document.getElementById('modalPassword').required = true;
         document.getElementById('modalConfirmPassword').required = true;
-        if (document.getElementById('modalCourse')) document.getElementById('modalCourse').value = '';
+        const urlParams = new URLSearchParams(window.location.search);
+        const assignCourse = urlParams.get('assign_course') || urlParams.get('course_id');
+        if (document.getElementById('modalCourse')) {
+            document.getElementById('modalCourse').value = assignCourse || '';
+        }
         
         // Reset dynamic rows
         document.getElementById('educationContainer').innerHTML = '';
@@ -613,18 +617,5 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     }
-
-    // Auto-open modal if redirected with assign_course
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const assignCourse = urlParams.get('assign_course') || urlParams.get('course_id');
-        if (assignCourse) {
-            openModal();
-            const courseSelect = document.getElementById('modalCourse');
-            if (courseSelect) {
-                courseSelect.value = assignCourse;
-            }
-        }
-    });
 </script>
 {% endblock %}

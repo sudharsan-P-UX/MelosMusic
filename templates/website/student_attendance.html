@@ -132,7 +132,6 @@
                                 <i class="fa-solid fa-check"></i>
                             </button>
                         </form>
-                        {% endif %}
                         <button type="button" 
                                 onclick="openUpdateModal({
                                     id: '{{ detail.student_attendance_detail_id }}',
@@ -157,6 +156,11 @@
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </form>
+                        {% else %}
+                        <span class="inline-flex items-center text-xs text-gray-400 italic">
+                            <i class="fa-solid fa-lock text-[10px] mr-1"></i>Locked
+                        </span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}

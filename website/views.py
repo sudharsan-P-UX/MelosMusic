@@ -1796,12 +1796,15 @@ def student_attendance_view(request):
             if detail_id:
                 detail = StudentAttendanceDetail.objects.filter(student_attendance_detail_id=detail_id).first()
                 if detail:
+                    if detail.approval_status != 'Pending':
+                        messages.error(request, f'Cannot update attendance record that has already been {detail.approval_status.lower()}. Only pending records can be updated.')
+                        return redirect('student_attendance')
                     if status:
                         try:
                             detail.attendance_status = int(status)
                         except (ValueError, TypeError):
                             pass
-                    if approval_status:
+                    if approval_status in ('Pending', 'Approved', 'Rejected'):
                         detail.approval_status = approval_status
                     detail.remarks = remarks
                     detail.save()
@@ -1822,8 +1825,13 @@ def student_attendance_view(request):
         elif action == 'delete_attendance':
             detail_id = request.POST.get('detail_id')
             if detail_id:
-                StudentAttendanceDetail.objects.filter(student_attendance_detail_id=detail_id).delete()
-                messages.success(request, 'Attendance record deleted successfully!')
+                detail = StudentAttendanceDetail.objects.filter(student_attendance_detail_id=detail_id).first()
+                if detail:
+                    if detail.approval_status != 'Pending':
+                        messages.error(request, f'Cannot delete attendance record that has already been {detail.approval_status.lower()}. Only pending records can be deleted.')
+                        return redirect('student_attendance')
+                    detail.delete()
+                    messages.success(request, 'Attendance record deleted successfully!')
             return redirect('student_attendance')
             
     # Filters
@@ -1958,11 +1966,53 @@ def teacher_attendance_view(request):
                     ).update(manager_approval_status=new_app, manager_approval_on=timezone.now())
                 messages.success(request, f'Teacher attendance {new_app.lower()} successfully!')
             return redirect('teacher_attendance')
+        elif action == 'update_teacher_attendance':
+            detail_id = request.POST.get('detail_id')
+            if detail_id:
+                detail = TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).first()
+                if detail:
+                    if detail.approval_status != 'Pending':
+                        messages.error(request, f'Cannot update attendance that has already been {detail.approval_status.lower()}. Only pending records can be updated.')
+                        return redirect('teacher_attendance')
+                    status = request.POST.get('status')
+                    if status:
+                        try:
+                            detail.attendance_status = int(status)
+                        except (ValueError, TypeError):
+                            pass
+                    approval_status = request.POST.get('approval_status')
+                    if approval_status in ('Pending', 'Approved', 'Rejected'):
+                        detail.approval_status = approval_status
+                    check_in = request.POST.get('check_in_time')
+                    check_out = request.POST.get('check_out_time')
+                    detail.check_in_time = check_in if check_in else None
+                    detail.check_out_time = check_out if check_out else None
+                    detail.remarks = (request.POST.get('remarks') or '').strip()
+                    detail.save()
+                    
+                    from academics.models import LeaveRequest
+                    from django.utils import timezone
+                    lr_status = detail.approval_status if detail.approval_status in ('Approved', 'Rejected') else 'Pending'
+                    LeaveRequest.objects.filter(
+                        user=detail.teacher,
+                        from_date__lte=detail.teacher_attendance.attendance_date,
+                        to_date__gte=detail.teacher_attendance.attendance_date
+                    ).update(
+                        manager_approval_status=lr_status,
+                        manager_approval_on=timezone.now() if lr_status != 'Pending' else None
+                    )
+                    messages.success(request, 'Teacher attendance updated successfully!')
+            return redirect('teacher_attendance')
         elif action == 'delete_teacher_attendance':
             detail_id = request.POST.get('detail_id')
             if detail_id:
-                TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).delete()
-                messages.success(request, 'Attendance record deleted successfully!')
+                detail = TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).first()
+                if detail:
+                    if detail.approval_status != 'Pending':
+                        messages.error(request, f'Cannot delete attendance record that has already been {detail.approval_status.lower()}. Only pending records can be deleted.')
+                        return redirect('teacher_attendance')
+                    detail.delete()
+                    messages.success(request, 'Attendance record deleted successfully!')
             return redirect('teacher_attendance')
             
     # Filters

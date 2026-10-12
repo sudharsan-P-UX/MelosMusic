@@ -2467,14 +2467,20 @@ def check_student_time_conflict(student_id, target_batch, exclude_enrollment_id=
 
     for enr in enrollments:
         b = enr.batch
+        student_name = enr.student.display_name if enr.student else "This student"
+        c_name = b.course.course_name if b.course else ""
+        class_desc = f"'{b.batch_name}' ({c_name})" if c_name else f"'{b.batch_name}'"
+
+        # Check 1: Already assigned to the same batch
         if b.batch_id == target_batch.batch_id:
-            continue
+            msg = f"Student {student_name} is already assigned to batch {class_desc}. Cannot add again."
+            return b, msg
+
+        # Check 2: Time overlap with another batch
         if times_overlap(target_batch.start_time, target_batch.end_time, b.start_time, b.end_time):
             if dates_overlap(target_batch.start_date, target_batch.end_date, b.start_date, b.end_date):
                 if check_days_overlap(target_batch.course, b.course):
                     t_str = f"{b.start_time.strftime('%I:%M %p')} - {b.end_time.strftime('%I:%M %p')}"
-                    student_name = enr.student.display_name if enr.student else "This student"
-                    c_name = b.course.course_name if b.course else ""
                     msg = f"Student {student_name} is already enrolled in batch '{b.batch_name}' ({c_name}, {t_str}) during this time. A student cannot be assigned to multiple batches at the same time."
                     return b, msg
     return None, None
@@ -3638,23 +3644,35 @@ def student_allocation_view(request):
             try:
                 student = User.objects.get(user_id=student_id)
                 batch = Batch.objects.get(batch_id=batch_id)
-                
-                # Check if already enrolled in this course
-                existing = StudentEnrollment.objects.filter(student=student, course=batch.course).first()
+
+                # Check if already enrolled in this exact batch
+                if StudentEnrollment.objects.filter(student=student, batch=batch, status=1).exists():
+                    c_name = batch.course.course_name if batch.course else ""
+                    class_desc = f"'{batch.batch_name}' ({c_name})" if c_name else f"'{batch.batch_name}'"
+                    messages.error(request, f"Student {student.display_name} is already assigned to batch {class_desc}. Cannot add again.")
+                    return redirect('student_allocation')
+
+                # Check if already enrolled in this course with an active batch
+                existing_course_batch = StudentEnrollment.objects.filter(student=student, course=batch.course, status=1, batch__isnull=False).first()
+                if existing_course_batch:
+                    c_name = batch.course.course_name if batch.course else "this course"
+                    messages.error(request, f"Student {student.display_name} is already assigned to batch '{existing_course_batch.batch.batch_name}' for course '{c_name}'. Cannot add again.")
+                    return redirect('student_allocation')
 
                 clash_b, clash_m = check_student_time_conflict(
                     student_id=student.user_id,
-                    target_batch=batch,
-                    exclude_enrollment_id=existing.enrollment_id if existing else None
+                    target_batch=batch
                 )
                 if clash_b:
                     messages.error(request, clash_m)
                     return redirect('student_allocation')
 
-                if existing:
-                    existing.batch = batch
-                    existing.save()
-                    messages.success(request, 'Student allocation updated successfully.')
+                # If student had an enrollment for this course without a batch assigned
+                existing_unassigned = StudentEnrollment.objects.filter(student=student, course=batch.course, batch__isnull=True).first()
+                if existing_unassigned:
+                    existing_unassigned.batch = batch
+                    existing_unassigned.save()
+                    messages.success(request, 'Student allocated successfully.')
                 else:
                     StudentEnrollment.objects.create(
                         student=student,
@@ -3955,6 +3973,15 @@ def teacher_allocation_view(request):
                 teacher = User.objects.get(user_id=teacher_id)
                 batch = Batch.objects.get(batch_id=batch_id)
 
+                if batch.teacher_id and str(batch.teacher_id) == str(teacher.user_id):
+                    messages.error(request, f"Teacher {teacher.display_name} is already assigned to batch '{batch.batch_name}'. Cannot add again.")
+                    return redirect('teacher_allocation')
+
+                if batch.teacher_id and str(batch.teacher_id) != str(teacher.user_id):
+                    curr_t_name = batch.teacher.display_name if batch.teacher else "another teacher"
+                    messages.error(request, f"Batch '{batch.batch_name}' is already assigned to teacher {curr_t_name}. To reassign, please edit the existing allocation.")
+                    return redirect('teacher_allocation')
+
                 clash_b, clash_m = check_teacher_time_conflict(
                     teacher_id=teacher.user_id,
                     start_time=batch.start_time,
@@ -4077,13 +4104,30 @@ def api_check_conflict(request):
         course = Course.objects.filter(course_id=course_id).first() if course_id else None
         
         if batch_id:
-            target_batch = Batch.objects.filter(batch_id=batch_id).select_related('course').first()
+            target_batch = Batch.objects.filter(batch_id=batch_id).select_related('course', 'teacher').first()
             if target_batch:
                 start_time = target_batch.start_time
                 end_time = target_batch.end_time
                 start_date = target_batch.start_date
                 end_date = target_batch.end_date
                 course = target_batch.course
+
+                # Check if this batch is already assigned to a teacher (in Add mode)
+                is_edit_same = bool(exclude_batch_id and str(exclude_batch_id) == str(target_batch.batch_id))
+                if not is_edit_same and teacher_id and target_batch.teacher_id:
+                    if str(target_batch.teacher_id) == str(teacher_id):
+                        teacher_name = target_batch.teacher.display_name if target_batch.teacher else "This teacher"
+                        return JsonResponse({
+                            'has_conflict': True,
+                            'conflict_message': f"Teacher {teacher_name} is already assigned to batch '{target_batch.batch_name}'. Cannot add again."
+                        })
+                    else:
+                        curr_t_name = target_batch.teacher.display_name if target_batch.teacher else "another teacher"
+                        return JsonResponse({
+                            'has_conflict': True,
+                            'conflict_message': f"Batch '{target_batch.batch_name}' is already assigned to teacher {curr_t_name}. To reassign, please edit the existing allocation."
+                        })
+
                 if not exclude_batch_id:
                     exclude_batch_id = target_batch.batch_id
 
@@ -4105,7 +4149,51 @@ def api_check_conflict(request):
         student_id = request.GET.get('student_id')
         batch_id = request.GET.get('batch_id')
         exclude_enrollment_id = request.GET.get('exclude_enrollment_id')
-        
+
+        from academics.models import Batch, StudentEnrollment
+        from users.models import User
+
+        if student_id and batch_id:
+            target_batch = Batch.objects.filter(batch_id=batch_id).select_related('course').first()
+            student_obj = User.objects.filter(user_id=student_id).first()
+            student_name = student_obj.display_name if student_obj else "This student"
+
+            # Check 1: Already assigned to the SAME batch
+            same_batch_enr = StudentEnrollment.objects.filter(
+                student_id=student_id,
+                batch_id=batch_id,
+                status=1
+            )
+            if exclude_enrollment_id:
+                try:
+                    same_batch_enr = same_batch_enr.exclude(enrollment_id=int(exclude_enrollment_id))
+                except (ValueError, TypeError):
+                    pass
+
+            if same_batch_enr.exists():
+                batch_name = target_batch.batch_name if target_batch else "this batch"
+                c_name = target_batch.course.course_name if target_batch and target_batch.course else ""
+                class_desc = f"'{batch_name}' ({c_name})" if c_name else f"'{batch_name}'"
+                return JsonResponse({
+                    'has_conflict': True,
+                    'conflict_message': f"Student {student_name} is already assigned to batch {class_desc}. Cannot add again."
+                })
+
+            # Check 2: Already enrolled in the same course with an active batch (in Add mode)
+            if not exclude_enrollment_id and target_batch:
+                existing_course_enr = StudentEnrollment.objects.filter(
+                    student_id=student_id,
+                    course=target_batch.course,
+                    status=1,
+                    batch__isnull=False
+                ).first()
+                if existing_course_enr:
+                    c_name = target_batch.course.course_name if target_batch.course else "this course"
+                    return JsonResponse({
+                        'has_conflict': True,
+                        'conflict_message': f"Student {student_name} is already assigned to batch '{existing_course_enr.batch.batch_name}' for course '{c_name}'. Cannot add again."
+                    })
+
         clash_batch, msg = check_student_time_conflict(
             student_id=student_id,
             target_batch=batch_id,

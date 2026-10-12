@@ -2762,14 +2762,34 @@ def courses_batches_view(request):
                 else:
                     course_code = "C1000"
             
+            category = request.POST.get('category')
+            if category == 'Custom' and request.POST.get('category_custom'):
+                category = request.POST.get('category_custom')
+            category = category.strip() if category else None
+
+            days = request.POST.get('days')
+            if days == 'Custom' and request.POST.get('days_custom'):
+                days = request.POST.get('days_custom')
+            days = days.strip() if days else None
+
+            duration_hrs = request.POST.get('duration_hrs')
+            if duration_hrs:
+                try:
+                    from decimal import Decimal
+                    duration_hrs = Decimal(str(duration_hrs))
+                except:
+                    duration_hrs = None
+            else:
+                duration_hrs = None
+
             Course.objects.create(
                 course_code=course_code,
                 course_name=request.POST.get('course_name'),
-                category=request.POST.get('category'),
+                category=category,
                 duration_months=request.POST.get('duration_months') or None,
-                duration_hrs=request.POST.get('duration_hrs') or None,
+                duration_hrs=duration_hrs,
                 total_sessions=request.POST.get('total_sessions') or None,
-                days=request.POST.get('days') or None,
+                days=days,
                 fee_amount=request.POST.get('fee_amount') or 0.00,
                 description=request.POST.get('description'),
                 is_active=request.POST.get('status') == 'active',
@@ -2782,11 +2802,32 @@ def courses_batches_view(request):
             try:
                 course = Course.objects.get(course_id=course_id)
                 course.course_name = request.POST.get('course_name')
-                course.category = request.POST.get('category') or None
+                
+                category = request.POST.get('category')
+                if category == 'Custom' and request.POST.get('category_custom'):
+                    category = request.POST.get('category_custom')
+                course.category = category.strip() if category else None
+
                 course.duration_months = request.POST.get('duration_months') or None
-                course.duration_hrs = request.POST.get('duration_hrs') or None
+
+                duration_hrs = request.POST.get('duration_hrs')
+                if duration_hrs:
+                    try:
+                        from decimal import Decimal
+                        duration_hrs = Decimal(str(duration_hrs))
+                    except:
+                        duration_hrs = None
+                else:
+                    duration_hrs = None
+                course.duration_hrs = duration_hrs
+
                 course.total_sessions = request.POST.get('total_sessions') or None
-                course.days = request.POST.get('days') or None
+
+                days = request.POST.get('days')
+                if days == 'Custom' and request.POST.get('days_custom'):
+                    days = request.POST.get('days_custom')
+                course.days = days.strip() if days else None
+
                 course.fee_amount = request.POST.get('fee_amount') or 0.00
                 course.description = request.POST.get('description') or None
                 course.is_active = (request.POST.get('status') == 'active')
@@ -2901,11 +2942,29 @@ def courses_batches_view(request):
             'course_ids': all_cids
         })
     teachers_json = json.dumps(teachers_list)
+
+    courses_list = []
+    for c in courses:
+        courses_list.append({
+            'course_id': c.course_id,
+            'course_code': c.course_code or '',
+            'course_name': c.course_name,
+            'category': c.category or '',
+            'duration_months': c.duration_months or 0,
+            'duration_hrs': float(c.duration_hrs) if c.duration_hrs is not None else 0.0,
+            'total_sessions': c.total_sessions or 0,
+            'days': c.days or '',
+            'fee_amount': float(c.fee_amount) if c.fee_amount is not None else 0.0,
+            'is_active': c.is_active,
+            'description': c.description or '',
+        })
+    courses_json = json.dumps(courses_list)
     
     return render(request, 'website/courses_batches.html', {
         'user': user,
         'page_title': 'Courses & Batches',
         'courses': courses,
+        'courses_json': courses_json,
         'batches': batches,
         'teachers': teachers,
         'teachers_json': teachers_json,

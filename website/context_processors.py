@@ -150,3 +150,49 @@ def current_menu_access_processor(request):
         pass
         
     return {'menu_access': {'view': False, 'add': False, 'edit': False, 'delete': False, 'export': False}}
+
+
+def menu_columns_processor(request):
+    """
+    Context processor that provides configured table columns for each menu.
+    Allows templates to dynamically order, label, and toggle columns.
+    """
+    try:
+        from users.models import MenuColumn
+        active_cols = list(
+            MenuColumn.objects.filter(status=True, menu__is_active=True)
+            .select_related('menu')
+            .order_by('order_by', 'column_id')
+        )
+        
+        columns_by_name = {}
+        for col in active_cols:
+            m_name = col.menu.menu_name
+            # Exact name
+            columns_by_name.setdefault(m_name, []).append(col)
+            # Normalized key: 'Student Master' -> 'student_master'
+            norm_key = m_name.lower().replace(' ', '_').replace('&', 'and').replace('-', '_')
+            columns_by_name.setdefault(norm_key, []).append(col)
+            # URL mapping
+            if col.menu.url_page:
+                columns_by_name.setdefault(col.menu.url_page, []).append(col)
+                # Tab mapping if url has ?tab=
+                if '?tab=' in col.menu.url_page:
+                    tab_val = col.menu.url_page.split('?tab=')[-1].split('&')[0]
+                    columns_by_name.setdefault(f"tab_{tab_val}", []).append(col)
+
+        # Current page columns
+        current_cols = []
+        full_path = request.get_full_path()
+        path = request.path
+        for url_key, c_list in columns_by_name.items():
+            if url_key.startswith('/') and (url_key in full_path or (url_key != '/' and path.startswith(url_key))):
+                current_cols = c_list
+                break
+
+        return {
+            'menu_columns_map': columns_by_name,
+            'current_menu_columns': current_cols,
+        }
+    except Exception as e:
+        return {'menu_columns_map': {}, 'current_menu_columns': []}

@@ -164,3 +164,22 @@ class UserExperience(models.Model):
 
     class Meta:
         db_table = 'UserExperience'
+
+
+class MenuColumn(models.Model):
+    column_id = models.AutoField(primary_key=True, db_column='ColumnId')
+    menu = models.ForeignKey(MasterMenu, on_delete=models.CASCADE, related_name='columns', db_column='MenuId')
+    column_key = models.CharField(max_length=100, db_column='ColumnKey')
+    column_name = models.CharField(max_length=100, db_column='ColumnName')
+    display_name = models.CharField(max_length=255, db_column='DisplayName')
+    status = models.BooleanField(default=True, db_column='Status')
+    order_by = models.IntegerField(default=0, db_column='OrderBy')
+    created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
+    created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
+
+    class Meta:
+        db_table = 'MenuColumn'
+        ordering = ['order_by', 'column_id']
+
+    def __str__(self):
+        return f"{self.menu.menu_name} - {self.display_name} ({self.column_name})"

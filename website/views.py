@@ -3471,9 +3471,32 @@ def admin_dashboard_view(request):
                 messages.error(request, 'You do not have permission to add records.')
                 return redirect('/admin-dashboard/?tab=menu')
                 
-        if action == 'delete_menu' and not admin_access.delete_access:
-            messages.error(request, 'You do not have permission to delete records.')
-            return redirect('/admin-dashboard/?tab=menu')
+        if action == 'save_menu_columns':
+            is_superadmin = (user.role and user.role.role_name.lower() == 'superadmin') or getattr(user, 'is_superuser', False)
+            if not is_superadmin:
+                messages.error(request, 'Only Superadmin has full access to edit menu columns.')
+                return redirect('/admin-dashboard/?tab=column_list')
+            
+            from users.models import MenuColumn
+            target_menu_id = request.POST.get('menu_id')
+            cols = MenuColumn.objects.filter(menu_id=target_menu_id)
+            for col in cols:
+                cid = col.column_id
+                d_name = request.POST.get(f'display_name_{cid}')
+                st_val = request.POST.get(f'status_{cid}')
+                ord_val = request.POST.get(f'order_by_{cid}')
+                if d_name is not None:
+                    col.display_name = d_name.strip()
+                if st_val is not None:
+                    col.status = (st_val == '1')
+                if ord_val is not None:
+                    try:
+                        col.order_by = int(ord_val)
+                    except (ValueError, TypeError):
+                        pass
+                col.save()
+            messages.success(request, 'Menu columns updated successfully!')
+            return redirect(f'/admin-dashboard/?tab=column_list&menu_id={target_menu_id}')
 
         if action == 'create_user':
             first_name = request.POST.get('first_name', '')
@@ -3658,16 +3681,38 @@ def admin_dashboard_view(request):
 
     audit_logs = audit_qs[:100]
     
+    is_superadmin = (user.role and user.role.role_name.lower() == 'superadmin') or getattr(user, 'is_superuser', False)
+
+    from users.models import MenuColumn
+    selected_col_menu_id = request.GET.get('menu_id')
+    selected_col_menu = None
+    if selected_col_menu_id:
+        selected_col_menu = MasterMenu.objects.filter(menu_id=selected_col_menu_id).first()
+    
+    if not selected_col_menu:
+        first_col = MenuColumn.objects.first()
+        if first_col:
+            selected_col_menu = first_col.menu
+        elif menus:
+            selected_col_menu = menus[0]
+
+    column_list_cols = []
+    if selected_col_menu:
+        column_list_cols = list(MenuColumn.objects.filter(menu=selected_col_menu).order_by('order_by', 'column_id'))
+
     context = {
         'page_title': 'Admin',
         'active_tab': tab,
         'user': user,
+        'is_superadmin': is_superadmin,
         'roles': roles,
         'users': users,
         'menus': menus,
         'audit_logs': audit_logs,
         'selected_role': selected_role,
         'role_access_map': role_access_map,
+        'selected_col_menu': selected_col_menu,
+        'column_list_cols': column_list_cols,
     }
     return render(request, 'website/admin_dashboard.html', context)
 

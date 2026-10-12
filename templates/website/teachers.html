@@ -65,32 +65,30 @@
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-gray-100 text-gray-600 text-sm border-b">
-                    <th class="py-3 px-6 font-medium">Teacher ID</th>
-                    <th class="py-3 px-6 font-medium">Name</th>
-                    <th class="py-3 px-6 font-medium">Course</th>
-                    <th class="py-3 px-6 font-medium">Email</th>
-                    <th class="py-3 px-6 font-medium">Phone</th>
-                    <th class="py-3 px-6 font-medium">Created Date</th>
-                    <th class="py-3 px-6 font-medium">Status</th>
+                    {% for col in menu_columns_map.teacher_master %}
+                    <th class="py-3 px-6 font-medium">{{ col.display_name }}</th>
+                    {% endfor %}
                     <th class="py-3 px-6 font-medium text-right">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-gray-700 text-sm">
                 {% for teacher in teachers %}
                 <tr class="border-b hover:bg-gray-50 transition">
-                    <td class="py-4 px-6 font-medium text-gray-600">{{ teacher.user_code|default:"-" }}</td>
-                    <td class="py-4 px-6 font-medium">{{ teacher.display_name }}</td>
-                    <td class="py-4 px-6 text-indigo-700 font-semibold">{{ teacher.usercourse_set.first.course.course_name|default:"-" }}</td>
-                    <td class="py-4 px-6">{{ teacher.email }}</td>
-                    <td class="py-4 px-6">{{ teacher.phone }}</td>
-                    <td class="py-4 px-6 text-gray-500">{{ teacher.created_date|date:"d M Y" }}</td>
-                    <td class="py-4 px-6">
-                        {% if teacher.is_active %}
-                        <span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Active</span>
-                        {% else %}
-                        <span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">Inactive</span>
+                    {% for col in menu_columns_map.teacher_master %}
+                        {% if col.column_key == 'teacher_id' %}
+                        <td class="py-4 px-6 font-medium text-gray-600">{{ teacher.user_code|default:"-" }}</td>
+                        {% elif col.column_key == 'name' %}
+                        <td class="py-4 px-6 font-medium">{{ teacher.display_name }}</td>
+                        {% elif col.column_key == 'course' %}
+                        <td class="py-4 px-6 text-indigo-700 font-semibold">{{ teacher.usercourse_set.first.course.course_name|default:"-" }}</td>
+                        {% elif col.column_key == 'email' %}
+                        <td class="py-4 px-6">{{ teacher.email }}</td>
+                        {% elif col.column_key == 'phone' %}
+                        <td class="py-4 px-6">{{ teacher.phone }}</td>
+                        {% elif col.column_key == 'created_date' %}
+                        <td class="py-4 px-6 text-gray-500">{{ teacher.created_date|date:"d M Y" }}</td>
                         {% endif %}
-                    </td>
+                    {% endfor %}
                     <td class="py-4 px-6 text-right space-x-3">
                         
                         <!-- View Button -->

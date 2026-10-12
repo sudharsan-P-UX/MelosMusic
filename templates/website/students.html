@@ -82,12 +82,9 @@
             <thead>
                 <tr class="bg-gray-50 text-gray-500 border-b border-gray-200 text-xs uppercase tracking-wider">
                     <th class="py-2.5 px-4 font-semibold w-10 text-center"><input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-offset-0 focus:ring-blue-200 focus:ring-opacity-50"></th>
-                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Student ID <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
-                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100 flex items-center">Student Name <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
-                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Phone <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
-                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Email <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
-                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Status <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
-                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">Created On <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
+                    {% for col in menu_columns_map.student_master %}
+                    <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">{{ col.display_name }} <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
+                    {% endfor %}
                     <th class="py-2.5 px-4 font-semibold text-center border-l border-gray-100">Actions</th>
                 </tr>
             </thead>
@@ -95,27 +92,24 @@
                 {% for student in students %}
                 <tr class="border-b border-gray-100 hover:bg-gray-50 transition group">
                     <td class="py-2.5 px-4 text-center"><input type="checkbox" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-offset-0 focus:ring-blue-200 focus:ring-opacity-50"></td>
-                    <td class="py-2.5 px-4 text-gray-600 font-medium">{{ student.user_code|default:"-" }}</td>
-                    <td class="py-2.5 px-4 flex items-center space-x-2">
-                        <i class="fa-regular fa-star text-gray-300 hover:text-yellow-400 cursor-pointer transition"></i>
-                        <span class="text-blue-600 cursor-pointer hover:underline">{{ student.display_name }}</span>
-                    </td>
-                    
-                    <td class="py-2.5 px-4 text-gray-600">{{ student.phone }}</td>
-                    <td class="py-2.5 px-4 text-gray-600">{{ student.email }}</td>
-                    <td class="py-2.5 px-4">
-                        {% if student.is_active %}
-                        <span class="text-gray-600">Active</span>
-                        {% else %}
-                        <span class="text-gray-600">Inactive</span>
+                    {% for col in menu_columns_map.student_master %}
+                        {% if col.column_key == 'student_id' %}
+                        <td class="py-2.5 px-4 text-gray-600 font-medium">{{ student.user_code|default:"-" }}</td>
+                        {% elif col.column_key == 'student_name' %}
+                        <td class="py-2.5 px-4 flex items-center space-x-2">
+                            <i class="fa-regular fa-star text-gray-300 hover:text-yellow-400 cursor-pointer transition"></i>
+                            <span class="text-blue-600 cursor-pointer hover:underline">{{ student.display_name }}</span>
+                        </td>
+                        {% elif col.column_key == 'phone' %}
+                        <td class="py-2.5 px-4 text-gray-600">{{ student.phone }}</td>
+                        {% elif col.column_key == 'email' %}
+                        <td class="py-2.5 px-4 text-gray-600">{{ student.email }}</td>
+                        {% elif col.column_key == 'created_on' %}
+                        <td class="py-2.5 px-4 text-gray-500">{{ student.created_date|date:"m/d/Y h:i A" }}</td>
                         {% endif %}
-                    </td>
-                    <td class="py-2.5 px-4 text-gray-500">{{ student.created_date|date:"m/d/Y h:i A" }}</td>
+                    {% endfor %}
                     <td class="py-2.5 px-4 text-center border-l border-gray-100 text-gray-400 text-lg space-x-3">
                         <i class="fa-solid fa-clipboard-check hover:text-gray-600 cursor-pointer" onclick="openEditModal('{{ student.user_id }}', '{{ student.display_name|escapejs }}', '{{ student.email|escapejs }}', '{{ student.phone|escapejs }}', '{{ student.is_active|yesno:"1,0" }}', '{{ student.gender|escapejs }}', '{{ student.dob|date:"Y-m-d" }}', '{{ student.address|escapejs }}', '{{ student.parent_name|escapejs }}', '{{ student.parent_phone|escapejs }}')" title="Edit"></i>
-                        
-                        
-                        
                         <a href="{% url 'delete_student' student.user_id %}" onclick="return confirm('Are you sure you want to delete {{ student.display_name }}?')" class="text-red-300 hover:text-red-500 transition" title="Delete">
                             <i class="fa-solid fa-trash-can text-sm"></i>
                         </a>
@@ -123,7 +117,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" class="py-8 text-center text-gray-500">No students found.</td>
+                    <td colspan="7" class="py-8 text-center text-gray-500">No students found.</td>
                 </tr>
                 {% endfor %}
             </tbody>

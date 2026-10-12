@@ -79,6 +79,7 @@ TEMPLATES = [
                 'website.context_processors.sidebar_menu_processor',
                 'website.context_processors.current_menu_access_processor',
                 'website.context_processors.security_settings',
+                'website.context_processors.menu_columns_processor',
             ],
         },
     },

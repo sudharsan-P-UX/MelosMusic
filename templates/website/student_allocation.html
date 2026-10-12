@@ -84,34 +84,68 @@
         <table class="w-full text-left border-collapse whitespace-nowrap">
             <thead>
                 <tr class="bg-gray-50 text-gray-500 border-b border-gray-200 text-xs uppercase tracking-wider">
-                    <th class="py-3 px-4 font-semibold">Student ID</th>
-                    <th class="py-3 px-4 font-semibold">Student Name</th>
-                    <th class="py-3 px-4 font-semibold">Student Phone</th>
-                    <th class="py-3 px-4 font-semibold">Class/Course ID</th>
-                    <th class="py-3 px-4 font-semibold">Batch ID</th>
-                    <th class="py-3 px-4 font-semibold">Teacher ID</th>
-                    <th class="py-3 px-4 font-semibold">Teacher Name</th>
-                    <th class="py-3 px-4 font-semibold">Teacher Phone</th>
-                    <th class="py-3 px-4 font-semibold">Batch Start</th>
-                    <th class="py-3 px-4 font-semibold">Batch End</th>
-                    <th class="py-3 px-4 font-semibold">Created Date</th>
+                    {% if menu_columns_map.student_course_allocation %}
+                        {% for col in menu_columns_map.student_course_allocation %}
+                        <th class="py-3 px-4 font-semibold">{{ col.display_name }}</th>
+                        {% endfor %}
+                    {% else %}
+                        <th class="py-3 px-4 font-semibold">Student ID</th>
+                        <th class="py-3 px-4 font-semibold">Student Name</th>
+                        <th class="py-3 px-4 font-semibold">Student Phone</th>
+                        <th class="py-3 px-4 font-semibold">Class/Course ID</th>
+                        <th class="py-3 px-4 font-semibold">Batch ID</th>
+                        <th class="py-3 px-4 font-semibold">Teacher ID</th>
+                        <th class="py-3 px-4 font-semibold">Teacher Name</th>
+                        <th class="py-3 px-4 font-semibold">Teacher Phone</th>
+                        <th class="py-3 px-4 font-semibold">Batch Start</th>
+                        <th class="py-3 px-4 font-semibold">Batch End</th>
+                        <th class="py-3 px-4 font-semibold">Created Date</th>
+                    {% endif %}
                     <th class="py-3 px-4 font-semibold text-center">Actions</th>
                 </tr>
             </thead>
             <tbody class="text-gray-700 text-sm">
                 {% for alloc in allocations %}
                 <tr class="border-b hover:bg-gray-50 transition">
-                    <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.student.user_code|default:"-" }}</td>
-                    <td class="py-3 px-4 font-medium">{{ alloc.student.display_name }}</td>
-                    <td class="py-3 px-4">{{ alloc.student.phone|default:"-" }}</td>
-                    <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.course.course_name }}</td>
-                    <td class="py-3 px-4">{{ alloc.batch.batch_code|default:"-" }}</td>
-                    <td class="py-3 px-4">{{ alloc.batch.teacher.user_code|default:"-" }}</td>
-                    <td class="py-3 px-4">{{ alloc.batch.teacher.display_name|default:"-" }}</td>
-                    <td class="py-3 px-4">{{ alloc.batch.teacher.phone|default:"-" }}</td>
-                    <td class="py-3 px-4 text-gray-500">{{ alloc.batch.start_date|date:"d M Y"|default:"-" }}</td>
-                    <td class="py-3 px-4 text-gray-500">{{ alloc.batch.end_date|date:"d M Y"|default:"-" }}</td>
-                    <td class="py-3 px-4 text-gray-500">{{ alloc.created_date|date:"d M Y H:i" }}</td>
+                    {% if menu_columns_map.student_course_allocation %}
+                        {% for col in menu_columns_map.student_course_allocation %}
+                            {% if col.column_key == 'student_id' %}
+                            <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.student.user_code|default:"-" }}</td>
+                            {% elif col.column_key == 'student_name' %}
+                            <td class="py-3 px-4 font-medium">{{ alloc.student.display_name }}</td>
+                            {% elif col.column_key == 'student_phone' %}
+                            <td class="py-3 px-4">{{ alloc.student.phone|default:"-" }}</td>
+                            {% elif col.column_key == 'course' %}
+                            <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.course.course_name }}</td>
+                            {% elif col.column_key == 'batch_id' %}
+                            <td class="py-3 px-4">{{ alloc.batch.batch_code|default:"-" }}</td>
+                            {% elif col.column_key == 'teacher_id' %}
+                            <td class="py-3 px-4">{{ alloc.batch.teacher.user_code|default:"-" }}</td>
+                            {% elif col.column_key == 'teacher_name' %}
+                            <td class="py-3 px-4">{{ alloc.batch.teacher.display_name|default:"-" }}</td>
+                            {% elif col.column_key == 'teacher_phone' %}
+                            <td class="py-3 px-4">{{ alloc.batch.teacher.phone|default:"-" }}</td>
+                            {% elif col.column_key == 'batch_start' %}
+                            <td class="py-3 px-4 text-gray-500">{{ alloc.batch.start_date|date:"d M Y"|default:"-" }}</td>
+                            {% elif col.column_key == 'batch_end' %}
+                            <td class="py-3 px-4 text-gray-500">{{ alloc.batch.end_date|date:"d M Y"|default:"-" }}</td>
+                            {% elif col.column_key == 'created_date' %}
+                            <td class="py-3 px-4 text-gray-500">{{ alloc.created_date|date:"d M Y H:i" }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.student.user_code|default:"-" }}</td>
+                        <td class="py-3 px-4 font-medium">{{ alloc.student.display_name }}</td>
+                        <td class="py-3 px-4">{{ alloc.student.phone|default:"-" }}</td>
+                        <td class="py-3 px-4 font-medium text-indigo-600">{{ alloc.course.course_name }}</td>
+                        <td class="py-3 px-4">{{ alloc.batch.batch_code|default:"-" }}</td>
+                        <td class="py-3 px-4">{{ alloc.batch.teacher.user_code|default:"-" }}</td>
+                        <td class="py-3 px-4">{{ alloc.batch.teacher.display_name|default:"-" }}</td>
+                        <td class="py-3 px-4">{{ alloc.batch.teacher.phone|default:"-" }}</td>
+                        <td class="py-3 px-4 text-gray-500">{{ alloc.batch.start_date|date:"d M Y"|default:"-" }}</td>
+                        <td class="py-3 px-4 text-gray-500">{{ alloc.batch.end_date|date:"d M Y"|default:"-" }}</td>
+                        <td class="py-3 px-4 text-gray-500">{{ alloc.created_date|date:"d M Y H:i" }}</td>
+                    {% endif %}
                     <td class="py-3 px-4 text-center whitespace-nowrap">
                         <div class="inline-flex items-center space-x-1.5">
                             <button type="button" @click="openView({

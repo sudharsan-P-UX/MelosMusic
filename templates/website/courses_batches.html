@@ -37,28 +37,40 @@
                 <table class="min-w-full bg-white">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th class="py-3 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course Code</th>
-                            <th class="py-3 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course Name</th>
-                            <th class="py-3 px-6 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Duration</th>
-                            <th class="py-3 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Fee (₹)</th>
-                            <th class="py-3 px-6 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                            {% if menu_columns_map.course_master %}
+                                {% for col in menu_columns_map.course_master %}
+                                <th class="py-3 px-6 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key == 'duration' %}text-center{% elif col.column_key == 'fee' %}text-right{% else %}text-left{% endif %}">{{ col.display_name }}</th>
+                                {% endfor %}
+                            {% else %}
+                                <th class="py-3 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course Code</th>
+                                <th class="py-3 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course Name</th>
+                                <th class="py-3 px-6 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Duration</th>
+                                <th class="py-3 px-6 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Fee (₹)</th>
+                            {% endif %}
                             <th class="py-3 px-6 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 text-sm">
                         {% for course in courses %}
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="py-3 px-6 font-medium text-gray-800">{{ course.course_code|default:"-" }}</td>
-                            <td class="py-3 px-6 font-semibold text-indigo-700">{{ course.course_name }}</td>
-                            <td class="py-3 px-6 text-center text-gray-600">{% if course.duration_months %}{{ course.duration_months }} Months{% else %}-{% endif %}</td>
-                            <td class="py-3 px-6 text-right font-bold text-gray-800">{{ course.fee_amount|default:"0.00" }}</td>
-                            <td class="py-3 px-6 text-center">
-                                {% if course.is_active %}
-                                <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Active</span>
-                                {% else %}
-                                <span class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">Inactive</span>
-                                {% endif %}
-                            </td>
+                            {% if menu_columns_map.course_master %}
+                                {% for col in menu_columns_map.course_master %}
+                                    {% if col.column_key == 'course_code' %}
+                                    <td class="py-3 px-6 font-medium text-gray-800">{{ course.course_code|default:"-" }}</td>
+                                    {% elif col.column_key == 'course_name' %}
+                                    <td class="py-3 px-6 font-semibold text-indigo-700">{{ course.course_name }}</td>
+                                    {% elif col.column_key == 'duration' %}
+                                    <td class="py-3 px-6 text-center text-gray-600">{% if course.duration_months %}{{ course.duration_months }} Months{% else %}-{% endif %}</td>
+                                    {% elif col.column_key == 'fee' %}
+                                    <td class="py-3 px-6 text-right font-bold text-gray-800">{{ course.fee_amount|default:"0.00" }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <td class="py-3 px-6 font-medium text-gray-800">{{ course.course_code|default:"-" }}</td>
+                                <td class="py-3 px-6 font-semibold text-indigo-700">{{ course.course_name }}</td>
+                                <td class="py-3 px-6 text-center text-gray-600">{% if course.duration_months %}{{ course.duration_months }} Months{% else %}-{% endif %}</td>
+                                <td class="py-3 px-6 text-right font-bold text-gray-800">{{ course.fee_amount|default:"0.00" }}</td>
+                            {% endif %}
                             <td class="py-3 px-6 text-center whitespace-nowrap">
                                 <div class="inline-flex items-center space-x-1.5">
                                     <button type="button" @click="openViewCourse({
@@ -125,70 +137,124 @@
                 <table class="min-w-full bg-white">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Batch</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Room</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Teacher</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Start Date</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">End Date</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Timing</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Duration</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Capacity</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                            {% if menu_columns_map.batch_master %}
+                                {% for col in menu_columns_map.batch_master %}
+                                <th class="py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key == 'batch' or col.column_key == 'course' or col.column_key == 'classroom' or col.column_key == 'teacher' %}text-left{% else %}text-center whitespace-nowrap{% endif %}">{{ col.display_name }}</th>
+                                {% endfor %}
+                            {% else %}
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Batch</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Room</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Teacher</th>
+                                <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Start Date</th>
+                                <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">End Date</th>
+                                <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Timing</th>
+                                <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Duration</th>
+                                <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Capacity</th>
+                            {% endif %}
                             <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 text-sm">
                         {% for batch in batches %}
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="py-3 px-4 font-medium text-gray-800">
-                                <div class="font-bold text-gray-900">{{ batch.batch_name }}</div>
-                                {% if batch.batch_code %}
-                                <div class="text-[11px] font-mono text-gray-500">{{ batch.batch_code }}</div>
-                                {% endif %}
-                            </td>
-                            <td class="py-3 px-4 font-semibold text-indigo-700">{{ batch.course.course_name }}</td>
-                            <td class="py-3 px-4 text-gray-700">
-                                {% if batch.classroom %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                                    <i class="fa-solid fa-door-open mr-1 text-[10px]"></i> {{ batch.classroom.class_code }}
-                                </span>
-                                <div class="text-[11px] text-gray-500 mt-0.5 truncate max-w-[130px]" title="{{ batch.classroom.class_name }}">{{ batch.classroom.class_name }}</div>
-                                {% else %}
-                                <span class="text-gray-400 text-xs">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-3 px-4 text-gray-600">{{ batch.teacher.display_name|default:"Unassigned" }}</td>
-                            <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
-                                {% if batch.start_date %}
-                                <span class="inline-flex items-center text-gray-700">
-                                    <i class="fa-regular fa-calendar mr-1 text-[10px] text-gray-400"></i>
-                                    {{ batch.start_date|date:"d M Y" }}
-                                </span>
-                                {% else %}-{% endif %}
-                            </td>
-                            <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
-                                {% if batch.end_date %}
-                                <span class="inline-flex items-center text-gray-700">
-                                    <i class="fa-regular fa-calendar-check mr-1 text-[10px] text-gray-400"></i>
-                                    {{ batch.end_date|date:"d M Y" }}
-                                </span>
-                                {% else %}-{% endif %}
-                            </td>
-                            <td class="py-3 px-4 text-center text-gray-600 whitespace-nowrap">{% if batch.start_time and batch.end_time %}{{ batch.start_time|time:"g:i A" }} - {{ batch.end_time|time:"g:i A" }}{% else %}-{% endif %}</td>
-                            <td class="py-3 px-4 text-center font-medium whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
-                                    <i class="fa-regular fa-clock mr-1 text-[11px]"></i> {{ batch.duration_display }}
-                                </span>
-                            </td>
-                            <td class="py-3 px-4 text-center text-gray-600">{{ batch.capacity|default:"-" }}</td>
-                            <td class="py-3 px-4 text-center">
-                                {% if batch.is_active %}
-                                <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Active</span>
-                                {% else %}
-                                <span class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">Inactive</span>
-                                {% endif %}
-                            </td>
+                            {% if menu_columns_map.batch_master %}
+                                {% for col in menu_columns_map.batch_master %}
+                                    {% if col.column_key == 'batch' %}
+                                    <td class="py-3 px-4 font-medium text-gray-800">
+                                        <div class="font-bold text-gray-900">{{ batch.batch_name }}</div>
+                                        {% if batch.batch_code %}
+                                        <div class="text-[11px] font-mono text-gray-500">{{ batch.batch_code }}</div>
+                                        {% endif %}
+                                    </td>
+                                    {% elif col.column_key == 'course' %}
+                                    <td class="py-3 px-4 font-semibold text-indigo-700">{{ batch.course.course_name }}</td>
+                                    {% elif col.column_key == 'classroom' %}
+                                    <td class="py-3 px-4 text-gray-700">
+                                        {% if batch.classroom %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                            <i class="fa-solid fa-door-open mr-1 text-[10px]"></i> {{ batch.classroom.class_code }}
+                                        </span>
+                                        <div class="text-[11px] text-gray-500 mt-0.5 truncate max-w-[130px]" title="{{ batch.classroom.class_name }}">{{ batch.classroom.class_name }}</div>
+                                        {% else %}
+                                        <span class="text-gray-400 text-xs">-</span>
+                                        {% endif %}
+                                    </td>
+                                    {% elif col.column_key == 'teacher' %}
+                                    <td class="py-3 px-4 text-gray-600">{{ batch.teacher.display_name|default:"Unassigned" }}</td>
+                                    {% elif col.column_key == 'start_date' %}
+                                    <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
+                                        {% if batch.start_date %}
+                                        <span class="inline-flex items-center text-gray-700">
+                                            <i class="fa-regular fa-calendar mr-1 text-[10px] text-gray-400"></i>
+                                            {{ batch.start_date|date:"d M Y" }}
+                                        </span>
+                                        {% else %}-{% endif %}
+                                    </td>
+                                    {% elif col.column_key == 'end_date' %}
+                                    <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
+                                        {% if batch.end_date %}
+                                        <span class="inline-flex items-center text-gray-700">
+                                            <i class="fa-regular fa-calendar-check mr-1 text-[10px] text-gray-400"></i>
+                                            {{ batch.end_date|date:"d M Y" }}
+                                        </span>
+                                        {% else %}-{% endif %}
+                                    </td>
+                                    {% elif col.column_key == 'timing' %}
+                                    <td class="py-3 px-4 text-center text-gray-600 whitespace-nowrap">{% if batch.start_time and batch.end_time %}{{ batch.start_time|time:"g:i A" }} - {{ batch.end_time|time:"g:i A" }}{% else %}-{% endif %}</td>
+                                    {% elif col.column_key == 'duration' %}
+                                    <td class="py-3 px-4 text-center font-medium whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                            <i class="fa-regular fa-clock mr-1 text-[11px]"></i> {{ batch.duration_display }}
+                                        </span>
+                                    </td>
+                                    {% elif col.column_key == 'capacity' %}
+                                    <td class="py-3 px-4 text-center text-gray-600">{{ batch.capacity|default:"-" }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <td class="py-3 px-4 font-medium text-gray-800">
+                                    <div class="font-bold text-gray-900">{{ batch.batch_name }}</div>
+                                    {% if batch.batch_code %}
+                                    <div class="text-[11px] font-mono text-gray-500">{{ batch.batch_code }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-4 font-semibold text-indigo-700">{{ batch.course.course_name }}</td>
+                                <td class="py-3 px-4 text-gray-700">
+                                    {% if batch.classroom %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                        <i class="fa-solid fa-door-open mr-1 text-[10px]"></i> {{ batch.classroom.class_code }}
+                                    </span>
+                                    <div class="text-[11px] text-gray-500 mt-0.5 truncate max-w-[130px]" title="{{ batch.classroom.class_name }}">{{ batch.classroom.class_name }}</div>
+                                    {% else %}
+                                    <span class="text-gray-400 text-xs">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-4 text-gray-600">{{ batch.teacher.display_name|default:"Unassigned" }}</td>
+                                <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
+                                    {% if batch.start_date %}
+                                    <span class="inline-flex items-center text-gray-700">
+                                        <i class="fa-regular fa-calendar mr-1 text-[10px] text-gray-400"></i>
+                                        {{ batch.start_date|date:"d M Y" }}
+                                    </span>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
+                                    {% if batch.end_date %}
+                                    <span class="inline-flex items-center text-gray-700">
+                                        <i class="fa-regular fa-calendar-check mr-1 text-[10px] text-gray-400"></i>
+                                        {{ batch.end_date|date:"d M Y" }}
+                                    </span>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td class="py-3 px-4 text-center text-gray-600 whitespace-nowrap">{% if batch.start_time and batch.end_time %}{{ batch.start_time|time:"g:i A" }} - {{ batch.end_time|time:"g:i A" }}{% else %}-{% endif %}</td>
+                                <td class="py-3 px-4 text-center font-medium whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
+                                        <i class="fa-regular fa-clock mr-1 text-[11px]"></i> {{ batch.duration_display }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-4 text-center text-gray-600">{{ batch.capacity|default:"-" }}</td>
+                            {% endif %}
                             <td class="py-3 px-4 text-center whitespace-nowrap">
                                 <div class="inline-flex items-center space-x-1.5">
                                     <button type="button" @click="openViewBatch({
@@ -264,34 +330,52 @@
                 <table class="min-w-full bg-white">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Code</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Name</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building Name</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Block</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
-                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class No</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Capacity</th>
-                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                            {% if menu_columns_map.class_room %}
+                                {% for col in menu_columns_map.class_room %}
+                                <th class="py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key == 'capacity' %}text-center{% else %}text-left{% endif %}">{{ col.display_name }}</th>
+                                {% endfor %}
+                            {% else %}
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Code</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Name</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building Name</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Block</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class No</th>
+                                <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Capacity</th>
+                            {% endif %}
                             <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 text-sm">
                         {% for cr in classrooms %}
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="py-3 px-4 font-mono font-bold text-indigo-700">{{ cr.class_code }}</td>
-                            <td class="py-3 px-4 font-semibold text-gray-900">{{ cr.class_name }}</td>
-                            <td class="py-3 px-4 text-gray-600">{{ cr.build_name|default:"-" }}</td>
-                            <td class="py-3 px-4 text-gray-600">{{ cr.block|default:"-" }}</td>
-                            <td class="py-3 px-4 text-gray-600">{{ cr.floor|default:"-" }}</td>
-                            <td class="py-3 px-4 text-gray-600">{{ cr.class_no|default:"-" }}</td>
-                            <td class="py-3 px-4 text-center text-gray-600 font-medium">{{ cr.capacity|default:"-" }}</td>
-                            <td class="py-3 px-4 text-center">
-                                {% if cr.is_active %}
-                                <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Active</span>
-                                {% else %}
-                                <span class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">Inactive</span>
-                                {% endif %}
-                            </td>
+                            {% if menu_columns_map.class_room %}
+                                {% for col in menu_columns_map.class_room %}
+                                    {% if col.column_key == 'class_code' %}
+                                    <td class="py-3 px-4 font-mono font-bold text-indigo-700">{{ cr.class_code }}</td>
+                                    {% elif col.column_key == 'class_name' %}
+                                    <td class="py-3 px-4 font-semibold text-gray-900">{{ cr.class_name }}</td>
+                                    {% elif col.column_key == 'build_name' %}
+                                    <td class="py-3 px-4 text-gray-600">{{ cr.build_name|default:"-" }}</td>
+                                    {% elif col.column_key == 'block' %}
+                                    <td class="py-3 px-4 text-gray-600">{{ cr.block|default:"-" }}</td>
+                                    {% elif col.column_key == 'floor' %}
+                                    <td class="py-3 px-4 text-gray-600">{{ cr.floor|default:"-" }}</td>
+                                    {% elif col.column_key == 'class_no' %}
+                                    <td class="py-3 px-4 text-gray-600">{{ cr.class_no|default:"-" }}</td>
+                                    {% elif col.column_key == 'capacity' %}
+                                    <td class="py-3 px-4 text-center text-gray-600 font-medium">{{ cr.capacity|default:"-" }}</td>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <td class="py-3 px-4 font-mono font-bold text-indigo-700">{{ cr.class_code }}</td>
+                                <td class="py-3 px-4 font-semibold text-gray-900">{{ cr.class_name }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ cr.build_name|default:"-" }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ cr.block|default:"-" }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ cr.floor|default:"-" }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ cr.class_no|default:"-" }}</td>
+                                <td class="py-3 px-4 text-center text-gray-600 font-medium">{{ cr.capacity|default:"-" }}</td>
+                            {% endif %}
                             <td class="py-3 px-4 text-center whitespace-nowrap">
                                 <div class="inline-flex items-center space-x-1.5">
                                     <button type="button" @click="openViewClassroom({

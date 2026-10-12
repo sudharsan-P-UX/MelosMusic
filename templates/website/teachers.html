@@ -610,9 +610,21 @@
     }
     
     function closeModal() {
-
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     }
+
+    // Auto-open modal if redirected with assign_course
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const assignCourse = urlParams.get('assign_course') || urlParams.get('course_id');
+        if (assignCourse) {
+            openModal();
+            const courseSelect = document.getElementById('modalCourse');
+            if (courseSelect) {
+                courseSelect.value = assignCourse;
+            }
+        }
+    });
 </script>
 {% endblock %}

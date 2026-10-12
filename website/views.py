@@ -975,15 +975,7 @@ def sync_batch_timetable(created_by_id=None):
     try:
         from academics.models import Batch, Timetable, Course
 
-        default_course_days = {
-            'Guiter Class Basic': 'Tuesday, Thursday, Saturday',
-            'Piano Class': 'Monday, Wednesday, Friday',
-            'Flute Class Mid': 'Monday, Thursday',
-        }
-        for c in Course.objects.filter(is_active=True):
-            if not c.days and c.course_name in default_course_days:
-                c.days = default_course_days[c.course_name]
-                c.save(update_fields=['days'])
+        all_class_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
         day_map = {
             'mon': 'Monday', 'monday': 'Monday',
@@ -1001,14 +993,18 @@ def sync_batch_timetable(created_by_id=None):
 
             course_days = []
             if batch.course and batch.course.days:
-                raw_days = [d.strip() for d in batch.course.days.replace(';', ',').split(',') if d.strip()]
-                for rd in raw_days:
-                    clean = day_map.get(rd.lower())
-                    if clean and clean not in course_days:
-                        course_days.append(clean)
+                raw_text = batch.course.days.lower()
+                if 'all' in raw_text or 'every' in raw_text:
+                    course_days = list(all_class_days)
+                else:
+                    raw_days = [d.strip() for d in batch.course.days.replace(';', ',').split(',') if d.strip()]
+                    for rd in raw_days:
+                        clean = day_map.get(rd.lower())
+                        if clean and clean not in course_days:
+                            course_days.append(clean)
 
             if not course_days:
-                course_days = [batch.start_date.strftime('%A') if batch.start_date else 'Monday']
+                course_days = list(all_class_days)
 
             room = f"Studio {batch.batch_code}" if batch.batch_code else "Studio 1"
 
@@ -1036,6 +1032,9 @@ def sync_batch_timetable(created_by_id=None):
                     if slot.start_time != batch.start_time or slot.end_time != batch.end_time:
                         slot.start_time = batch.start_time
                         slot.end_time = batch.end_time
+                        updated = True
+                    if slot.room_number != room:
+                        slot.room_number = room
                         updated = True
                     if not slot.is_active:
                         slot.is_active = True

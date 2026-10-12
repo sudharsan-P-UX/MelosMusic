@@ -85,7 +85,9 @@
                     {% for col in menu_columns_map.student_master %}
                     <th class="py-2.5 px-4 font-semibold cursor-pointer hover:bg-gray-100">{{ col.display_name }} <i class="fa-solid fa-sort ml-1 text-gray-400"></i></th>
                     {% endfor %}
+                    {% if menu_access.edit or menu_access.delete %}
                     <th class="py-2.5 px-4 font-semibold text-center border-l border-gray-100">Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody class="text-gray-700 text-sm">
@@ -98,7 +100,7 @@
                         {% elif col.column_key == 'student_name' %}
                         <td class="py-2.5 px-4 flex items-center space-x-2">
                             <i class="fa-regular fa-star text-gray-300 hover:text-yellow-400 cursor-pointer transition"></i>
-                            <span class="text-blue-600 cursor-pointer hover:underline">{{ student.display_name }}</span>
+                            <span class="text-blue-600 {% if menu_access.edit %}cursor-pointer hover:underline" onclick="openEditModal('{{ student.user_id }}', '{{ student.display_name|escapejs }}', '{{ student.email|escapejs }}', '{{ student.phone|escapejs }}', '{{ student.is_active|yesno:"1,0" }}', '{{ student.gender|escapejs }}', '{{ student.dob|date:"Y-m-d" }}', '{{ student.address|escapejs }}', '{{ student.parent_name|escapejs }}', '{{ student.parent_phone|escapejs }}')"{% else %}"{% endif %}>{{ student.display_name }}</span>
                         </td>
                         {% elif col.column_key == 'phone' %}
                         <td class="py-2.5 px-4 text-gray-600">{{ student.phone }}</td>
@@ -108,12 +110,18 @@
                         <td class="py-2.5 px-4 text-gray-500">{{ student.created_date|date:"m/d/Y h:i A" }}</td>
                         {% endif %}
                     {% endfor %}
+                    {% if menu_access.edit or menu_access.delete %}
                     <td class="py-2.5 px-4 text-center border-l border-gray-100 text-gray-400 text-lg space-x-3">
+                        {% if menu_access.edit %}
                         <i class="fa-solid fa-clipboard-check hover:text-gray-600 cursor-pointer" onclick="openEditModal('{{ student.user_id }}', '{{ student.display_name|escapejs }}', '{{ student.email|escapejs }}', '{{ student.phone|escapejs }}', '{{ student.is_active|yesno:"1,0" }}', '{{ student.gender|escapejs }}', '{{ student.dob|date:"Y-m-d" }}', '{{ student.address|escapejs }}', '{{ student.parent_name|escapejs }}', '{{ student.parent_phone|escapejs }}')" title="Edit"></i>
+                        {% endif %}
+                        {% if menu_access.delete %}
                         <a href="{% url 'delete_student' student.user_id %}" onclick="return confirm('Are you sure you want to delete {{ student.display_name }}?')" class="text-red-300 hover:text-red-500 transition" title="Delete">
                             <i class="fa-solid fa-trash-can text-sm"></i>
                         </a>
+                        {% endif %}
                     </td>
+                    {% endif %}
                 </tr>
                 {% empty %}
                 <tr>

@@ -96,14 +96,17 @@
                             <i class="fa-solid fa-eye"></i>
                         </button>
                         <!-- Update Button -->
-
+                        {% if menu_access.edit %}
                         <button onclick="openEditModal('{{ teacher.user_id }}', '{{ teacher.display_name|escapejs }}', '{{ teacher.email|escapejs }}', '{{ teacher.phone|escapejs }}', '{{ teacher.is_active|yesno:"1,0" }}', '{{ teacher.preferred_days|escapejs }}', '{{ teacher.usercourse_set.first.course_id|default:"" }}')" class="text-indigo-600 hover:text-indigo-900 transition" title="Edit">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
+                        {% endif %}
                         <!-- Delete Button -->
+                        {% if menu_access.delete %}
                         <a href="{% url 'delete_teacher' teacher.user_id %}" onclick="return confirm('Are you sure you want to delete {{ teacher.display_name }}?')" class="text-red-500 hover:text-red-700 transition" title="Delete">
                             <i class="fa-solid fa-trash-can"></i>
                         </a>
+                        {% endif %}
                     </td>
                 </tr>
 {% empty %}

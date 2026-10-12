@@ -5,6 +5,7 @@ from users.models import User, UserLoginDetails
 from academics.models import Course
 from finance.models import StudentFeeInstallment
 from django.db.models import Sum, F
+from website.context_processors import has_permission
 
 def index(request):
     if 'user_id' not in request.session:
@@ -181,6 +182,10 @@ def students_view(request):
     student_role, _ = Role.objects.get_or_create(role_name="Student", defaults={'role_group': rg})
     
     if request.method == 'POST':
+        if not has_permission(request, 'add', 'Student Master'):
+            messages.error(request, "You do not have permission to add student records.")
+            return redirect('students')
+
         name = request.POST.get('student_name')
         gender = request.POST.get('gender')
         dob = request.POST.get('dob')
@@ -315,6 +320,10 @@ def update_student(request, student_id):
     if 'user_id' not in request.session:
         return redirect('login')
         
+    if not has_permission(request, 'edit', 'Student Master'):
+        messages.error(request, "You do not have permission to edit student records.")
+        return redirect('students')
+
     if request.method == 'POST':
         try:
             student = User.objects.get(user_id=student_id)
@@ -364,6 +373,7 @@ def update_student(request, student_id):
                 student.password = password
                     
             student.save()
+            messages.success(request, "Student updated successfully.")
             
 
         except User.DoesNotExist:
@@ -374,8 +384,12 @@ def update_student(request, student_id):
 def delete_student(request, student_id):
     if 'user_id' not in request.session:
         return redirect('login')
+    if not has_permission(request, 'delete', 'Student Master'):
+        messages.error(request, "You do not have permission to delete student records.")
+        return redirect('students')
     try:
         User.objects.get(user_id=student_id).delete()
+        messages.success(request, "Student deleted successfully.")
     except User.DoesNotExist:
         pass
     return redirect('students')
@@ -408,6 +422,10 @@ def teachers_view(request):
     teacher_role, _ = Role.objects.get_or_create(role_name="Teacher", defaults={'role_group': rg})
     
     if request.method == 'POST':
+        if not has_permission(request, 'add', 'Staff Master'):
+            messages.error(request, "You do not have permission to add staff records.")
+            return redirect('teachers')
+
         name = request.POST.get('teacher_name')
         email = request.POST.get('email')
         phone = request.POST.get('phone')
@@ -577,6 +595,10 @@ def update_teacher(request, teacher_id):
     if 'user_id' not in request.session:
         return redirect('login')
         
+    if not has_permission(request, 'edit', 'Staff Master'):
+        messages.error(request, "You do not have permission to edit staff records.")
+        return redirect('teachers')
+
     if request.method == 'POST':
         try:
             teacher = User.objects.get(user_id=teacher_id)
@@ -697,11 +719,14 @@ def update_teacher(request, teacher_id):
 def delete_teacher(request, teacher_id):
     if 'user_id' not in request.session:
         return redirect('login')
+    if not has_permission(request, 'delete', 'Staff Master'):
+        messages.error(request, "You do not have permission to delete staff records.")
+        return redirect('teachers')
     try:
         User.objects.get(user_id=teacher_id).delete()
+        messages.success(request, 'Staff deleted successfully!')
     except User.DoesNotExist:
         pass
-    messages.success(request, 'Staff deleted successfully!')
     return redirect('teachers')
 
 
@@ -1463,6 +1488,9 @@ def holidays_view(request):
         action = request.POST.get('action')
 
         if action == 'add_holiday':
+            if not has_permission(request, 'add', 'Holiday Management'):
+                messages.error(request, 'You do not have permission to add holidays.')
+                return redirect(f"/holidays/?year={selected_year}")
             name = request.POST.get('holiday_name', '').strip()
             date_from_str = request.POST.get('holiday_date', '').strip()
             date_to_str = request.POST.get('end_date', '').strip()
@@ -1506,6 +1534,9 @@ def holidays_view(request):
             return redirect(f"/holidays/?year={selected_year}")
 
         elif action == 'edit_holiday':
+            if not has_permission(request, 'edit', 'Holiday Management'):
+                messages.error(request, 'You do not have permission to edit holidays.')
+                return redirect(f"/holidays/?year={selected_year}")
             holiday_id = request.POST.get('holiday_id')
             name = request.POST.get('holiday_name', '').strip()
             date_str = request.POST.get('holiday_date', '').strip()
@@ -1526,6 +1557,9 @@ def holidays_view(request):
             return redirect(f"/holidays/?year={selected_year}")
 
         elif action == 'delete_holiday':
+            if not has_permission(request, 'delete', 'Holiday Management'):
+                messages.error(request, 'You do not have permission to delete holidays.')
+                return redirect(f"/holidays/?year={selected_year}")
             holiday_id = request.POST.get('holiday_id')
             try:
                 Holiday.objects.filter(holiday_id=holiday_id).delete()
@@ -1535,6 +1569,9 @@ def holidays_view(request):
             return redirect(f"/holidays/?year={selected_year}")
 
         elif action == 'populate_defaults':
+            if not has_permission(request, 'add', 'Holiday Management'):
+                messages.error(request, 'You do not have permission to add holidays.')
+                return redirect(f"/holidays/?year={selected_year}")
             year = int(request.POST.get('year', selected_year))
             defaults = get_default_holidays(year)
             added = 0
@@ -1872,6 +1909,9 @@ def student_attendance_view(request):
                 messages.success(request, f'Attendance {new_app.lower()} successfully!')
             return redirect('student_attendance')
         elif action == 'update_attendance':
+            if not has_permission(request, 'edit', 'Student Attendance'):
+                messages.error(request, 'You do not have permission to edit student attendance records.')
+                return redirect('student_attendance')
             detail_id = request.POST.get('detail_id')
             status = request.POST.get('status')
             approval_status = request.POST.get('approval_status')
@@ -1906,6 +1946,9 @@ def student_attendance_view(request):
                     messages.success(request, 'Attendance details updated successfully!')
             return redirect('student_attendance')
         elif action == 'delete_attendance':
+            if not has_permission(request, 'delete', 'Student Attendance'):
+                messages.error(request, 'You do not have permission to delete student attendance records.')
+                return redirect('student_attendance')
             detail_id = request.POST.get('detail_id')
             if detail_id:
                 detail = StudentAttendanceDetail.objects.filter(student_attendance_detail_id=detail_id).first()
@@ -2050,6 +2093,9 @@ def teacher_attendance_view(request):
                 messages.success(request, f'Staff attendance {new_app.lower()} successfully!')
             return redirect('teacher_attendance')
         elif action == 'update_teacher_attendance':
+            if not has_permission(request, 'edit', 'Staff Attendance'):
+                messages.error(request, 'You do not have permission to edit staff attendance records.')
+                return redirect('teacher_attendance')
             detail_id = request.POST.get('detail_id')
             if detail_id:
                 detail = TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).first()
@@ -2087,6 +2133,9 @@ def teacher_attendance_view(request):
                     messages.success(request, 'Staff attendance updated successfully!')
             return redirect('teacher_attendance')
         elif action == 'delete_teacher_attendance':
+            if not has_permission(request, 'delete', 'Staff Attendance'):
+                messages.error(request, 'You do not have permission to delete staff attendance records.')
+                return redirect('teacher_attendance')
             detail_id = request.POST.get('detail_id')
             if detail_id:
                 detail = TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).first()
@@ -3092,6 +3141,9 @@ def courses_batches_view(request):
         action = request.POST.get('action')
         
         if action == 'add_course':
+            if not has_permission(request, 'add', 'Course Master', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to add courses.')
+                return redirect('/courses/?tab=courses')
             course_code = request.POST.get('course_code')
             if not course_code:
                 last_course = Course.objects.exclude(course_code__isnull=True).exclude(course_code='').order_by('-course_id').first()
@@ -3140,6 +3192,9 @@ def courses_batches_view(request):
             messages.success(request, 'Course added successfully!')
             return redirect('courses')
         elif action == 'edit_course':
+            if not has_permission(request, 'edit', 'Course Master', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to edit courses.')
+                return redirect('/courses/?tab=courses')
             course_id = request.POST.get('course_id')
             try:
                 course = Course.objects.get(course_id=course_id)
@@ -3179,6 +3234,9 @@ def courses_batches_view(request):
                 messages.error(request, f'Error updating course: {str(e)}')
             return redirect('courses')
         elif action == 'delete_course':
+            if not has_permission(request, 'delete', 'Course Master', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to delete courses.')
+                return redirect('/courses/?tab=courses')
             course_id = request.POST.get('course_id')
             try:
                 batch_count = Batch.objects.filter(course_id=course_id).count()
@@ -3191,6 +3249,9 @@ def courses_batches_view(request):
                 messages.error(request, f'Error deleting course: {str(e)}')
             return redirect('courses')
         elif action == 'add_batch':
+            if not has_permission(request, 'add', 'Batch Master', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to add batches.')
+                return redirect('/courses/?tab=batches')
             batch_code = request.POST.get('batch_code')
             if not batch_code:
                 last_batch = Batch.objects.exclude(batch_code__isnull=True).exclude(batch_code='').order_by('-batch_id').first()
@@ -3246,6 +3307,9 @@ def courses_batches_view(request):
             messages.success(request, 'Batch added successfully!')
             return redirect('/courses/?tab=batches')
         elif action == 'edit_batch':
+            if not has_permission(request, 'edit', 'Batch Master', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to edit batches.')
+                return redirect('/courses/?tab=batches')
             batch_id = request.POST.get('batch_id')
             try:
                 batch = Batch.objects.get(batch_id=batch_id)
@@ -3293,6 +3357,9 @@ def courses_batches_view(request):
                 messages.error(request, f'Error updating batch: {str(e)}')
             return redirect('/courses/?tab=batches')
         elif action == 'delete_batch':
+            if not has_permission(request, 'delete', 'Batch Master', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to delete batches.')
+                return redirect('/courses/?tab=batches')
             batch_id = request.POST.get('batch_id')
             try:
                 from academics.models import StudentEnrollment, Timetable
@@ -3307,6 +3374,9 @@ def courses_batches_view(request):
                 messages.error(request, f'Error deleting batch: {str(e)}')
             return redirect('/courses/?tab=batches')
         elif action == 'add_classroom':
+            if not has_permission(request, 'add', 'Class Room', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to add class rooms.')
+                return redirect('/courses/?tab=classrooms')
             class_code = (request.POST.get('class_code') or '').strip().upper()
             if not class_code:
                 last_cr = Classroom.objects.exclude(class_code__isnull=True).exclude(class_code='').order_by('-classroom_id').first()
@@ -3340,6 +3410,9 @@ def courses_batches_view(request):
             messages.success(request, 'Class Room added successfully!')
             return redirect('/courses/?tab=classrooms')
         elif action == 'edit_classroom':
+            if not has_permission(request, 'edit', 'Class Room', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to edit class rooms.')
+                return redirect('/courses/?tab=classrooms')
             classroom_id = request.POST.get('classroom_id')
             try:
                 cr = Classroom.objects.get(classroom_id=classroom_id)
@@ -3370,6 +3443,9 @@ def courses_batches_view(request):
                 messages.error(request, f'Error updating Class Room: {str(e)}')
             return redirect('/courses/?tab=classrooms')
         elif action == 'delete_classroom':
+            if not has_permission(request, 'delete', 'Class Room', parent_fallback='Courses & Batches'):
+                messages.error(request, 'You do not have permission to delete class rooms.')
+                return redirect('/courses/?tab=classrooms')
             classroom_id = request.POST.get('classroom_id')
             try:
                 b_count = Batch.objects.filter(classroom_id=classroom_id).count()
@@ -3705,6 +3781,9 @@ def admin_dashboard_view(request):
             return redirect('/admin-dashboard/?tab=menu')
             
         elif action == 'delete_menu':
+            if not has_permission(request, 'delete', 'Menu Details', parent_fallback='Admin'):
+                messages.error(request, 'You do not have permission to delete menus.')
+                return redirect('/admin-dashboard/?tab=menu')
             menu_id = request.POST.get('menu_id')
             try:
                 menu = MasterMenu.objects.get(menu_id=menu_id)
@@ -3822,6 +3901,9 @@ def student_course_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'edit_student_allocation':
+            if not has_permission(request, 'edit', 'Allocation Details'):
+                messages.error(request, 'You do not have permission to edit student allocations.')
+                return redirect('student_course')
             enrollment_id = request.POST.get('enrollment_id')
             student_id = request.POST.get('student_id')
             batch_id = request.POST.get('batch_id')
@@ -3876,6 +3958,9 @@ def student_course_view(request):
                 messages.error(request, f'Error updating student allocation: {str(e)}')
             return redirect('student_course')
         elif action == 'delete_student_allocation':
+            if not has_permission(request, 'delete', 'Allocation Details'):
+                messages.error(request, 'You do not have permission to delete student allocations.')
+                return redirect('student_course')
             enrollment_id = request.POST.get('enrollment_id')
             try:
                 enrollment = StudentEnrollment.objects.filter(enrollment_id=enrollment_id).first()
@@ -3940,6 +4025,9 @@ def student_allocation_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'allocate_student':
+            if not has_permission(request, 'add', 'Student Course Allocation'):
+                messages.error(request, 'You do not have permission to allocate students.')
+                return redirect('student_allocation')
             student_id = request.POST.get('student_id')
             batch_id = request.POST.get('batch_id')
             
@@ -4013,6 +4101,9 @@ def student_allocation_view(request):
                 messages.error(request, f'Error allocating student: {str(e)}')
             return redirect('student_allocation')
         elif action == 'edit_student_allocation':
+            if not has_permission(request, 'edit', 'Student Course Allocation'):
+                messages.error(request, 'You do not have permission to edit student allocations.')
+                return redirect('student_allocation')
             enrollment_id = request.POST.get('enrollment_id')
             student_id = request.POST.get('student_id')
             batch_id = request.POST.get('batch_id')
@@ -4067,6 +4158,9 @@ def student_allocation_view(request):
                 messages.error(request, f'Error updating student allocation: {str(e)}')
             return redirect('student_allocation')
         elif action == 'delete_student_allocation':
+            if not has_permission(request, 'delete', 'Student Course Allocation'):
+                messages.error(request, 'You do not have permission to delete student allocations.')
+                return redirect('student_allocation')
             enrollment_id = request.POST.get('enrollment_id')
             try:
                 enrollment = StudentEnrollment.objects.filter(enrollment_id=enrollment_id).first()
@@ -4271,6 +4365,9 @@ def teacher_allocation_view(request):
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'allocate_teacher':
+            if not has_permission(request, 'add', 'Staff Class Allocation'):
+                messages.error(request, 'You do not have permission to allocate staff.')
+                return redirect('teacher_allocation')
             teacher_id = request.POST.get('teacher_id')
             batch_id = request.POST.get('batch_id')
             
@@ -4311,6 +4408,9 @@ def teacher_allocation_view(request):
                 messages.error(request, f'Error allocating staff: {str(e)}')
             return redirect('teacher_allocation')
         elif action == 'edit_teacher_allocation':
+            if not has_permission(request, 'edit', 'Staff Class Allocation'):
+                messages.error(request, 'You do not have permission to edit staff allocations.')
+                return redirect('teacher_allocation')
             batch_id = request.POST.get('batch_id')
             teacher_id = request.POST.get('teacher_id')
             try:
@@ -4341,6 +4441,9 @@ def teacher_allocation_view(request):
                 messages.error(request, f'Error updating staff allocation: {str(e)}')
             return redirect('teacher_allocation')
         elif action == 'delete_teacher_allocation':
+            if not has_permission(request, 'delete', 'Staff Class Allocation'):
+                messages.error(request, 'You do not have permission to remove staff allocations.')
+                return redirect('teacher_allocation')
             batch_id = request.POST.get('batch_id')
             try:
                 batch = Batch.objects.get(batch_id=batch_id)

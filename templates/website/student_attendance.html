@@ -136,6 +136,7 @@
                                 <i class="fa-solid fa-check"></i>
                             </button>
                         </form>
+                        {% if menu_access.edit %}
                         <button type="button" 
                                 onclick="openUpdateModal({
                                     id: '{{ detail.student_attendance_detail_id }}',
@@ -152,6 +153,8 @@
                                 title="Update">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
+                        {% endif %}
+                        {% if menu_access.delete %}
                         <form method="POST" action="{% url 'student_attendance' %}" class="inline-block" onsubmit="return confirm('Delete this attendance entry?');">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete_attendance">
@@ -160,6 +163,7 @@
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </form>
+                        {% endif %}
                         {% else %}
                         <span class="inline-flex items-center text-xs text-gray-400 italic">
                             <i class="fa-solid fa-lock text-[10px] mr-1"></i>Locked

@@ -112,7 +112,7 @@
     <div x-show="tab === 'batches'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-lg font-bold text-gray-800">Batch Master</h3>
-            {% if menu_access.add %}<button type="button" @click="showBatchModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
+            {% if menu_access.add %}<button type="button" @click="openAddBatch()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
                 <i class="fa-solid fa-plus mr-2"></i> Add Batch
             </button>{% endif %}
         </div>
@@ -474,7 +474,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required x-model="selectedCourseId" @change="calculateEndDate(); calculateEndTime()" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <select name="course_id" required x-model="selectedCourseId" @change="calculateEndDate(); calculateEndTime(); onCourseChange()" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="" data-duration="0" data-duration-hrs="0">-- Select Course --</option>
                                 {% for course in courses %}
                                 <option value="{{ course.course_id }}" data-duration="{{ course.duration_months|default:0 }}" data-duration-hrs="{{ course.duration_hrs|default:0 }}">{{ course.course_name }}</option>
@@ -482,13 +482,25 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                            <select name="teacher_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                                <option value="">-- Unassigned --</option>
-                                {% for teacher in teachers %}
-                                <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
-                                {% endfor %}
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Teacher</label>
+                                <button type="button" x-show="selectedCourseId" @click="showAllTeachersAdd = !showAllTeachersAdd" class="text-[11px] text-indigo-600 hover:text-indigo-800 underline focus:outline-none" x-text="showAllTeachersAdd ? 'Show course teachers only' : 'Show all teachers'"></button>
+                            </div>
+                            <select name="teacher_id" x-model="selectedTeacherId" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="" x-text="selectedCourseId ? '-- Unassigned --' : '-- Select Course First --'"></option>
+                                <template x-for="teacher in getFilteredTeachers(selectedCourseId, showAllTeachersAdd)" :key="'add-' + teacher.user_id">
+                                    <option :value="teacher.user_id" :selected="teacher.user_id == selectedTeacherId" x-text="teacher.name + (teacher.is_course_teacher || !selectedCourseId ? '' : ' (Other Course)')"></option>
+                                </template>
                             </select>
+                            <p x-show="!selectedCourseId" class="text-[11px] text-gray-400 mt-1">
+                                <i class="fa-solid fa-circle-info mr-1"></i> Select a course above to see assigned teachers.
+                            </p>
+                            <p x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0 && !showAllTeachersAdd" class="text-[11px] text-amber-600 mt-1">
+                                <i class="fa-solid fa-circle-exclamation mr-1"></i> No teachers assigned to this course yet. <button type="button" @click="showAllTeachersAdd = true" class="underline font-semibold ml-1">Show all teachers</button>
+                            </p>
+                            <p x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0 && !showAllTeachersAdd" class="text-[11px] text-emerald-600 mt-1">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Showing teachers for selected course.
+                            </p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
@@ -618,20 +630,26 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required x-model="editBatch.course_id" id="edit_batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <select name="course_id" required x-model="editBatch.course_id" @change="onEditCourseChange()" id="edit_batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 {% for course in courses %}
                                 <option value="{{ course.course_id }}">{{ course.course_name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                            <select name="teacher_id" x-model="editBatch.teacher_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Teacher</label>
+                                <button type="button" @click="showAllTeachersEdit = !showAllTeachersEdit" class="text-[11px] text-indigo-600 hover:text-indigo-800 underline focus:outline-none" x-text="showAllTeachersEdit ? 'Show course teachers only' : 'Show all teachers'"></button>
+                            </div>
+                            <select name="teacher_id" x-model="editBatch.teacher_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="">-- Unassigned --</option>
-                                {% for teacher in teachers %}
-                                <option value="{{ teacher.user_id }}">{{ teacher.display_name }}</option>
-                                {% endfor %}
+                                <template x-for="teacher in getFilteredTeachers(editBatch.course_id, showAllTeachersEdit, editBatch.teacher_id)" :key="'edit-' + teacher.user_id">
+                                    <option :value="teacher.user_id" :selected="teacher.user_id == editBatch.teacher_id" x-text="teacher.name + (teacher.is_course_teacher || !editBatch.course_id ? '' : ' (Other Course)')"></option>
+                                </template>
                             </select>
+                            <p x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0 && !showAllTeachersEdit" class="text-[11px] text-amber-600 mt-1">
+                                <i class="fa-solid fa-circle-exclamation mr-1"></i> No teachers assigned to this course yet. <button type="button" @click="showAllTeachersEdit = true" class="underline font-semibold ml-1">Show all teachers</button>
+                            </p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
@@ -738,6 +756,78 @@ function courseBatchData() {
         editBatch: {},
         deleteBatch: {},
 
+        // Teachers & Course mapping
+        allTeachers: {{ teachers_json|safe|default:"[]" }},
+        showAllTeachersAdd: false,
+        showAllTeachersEdit: false,
+        selectedTeacherId: '',
+
+        openAddBatch() {
+            this.selectedCourseId = '';
+            this.selectedTeacherId = '';
+            this.showAllTeachersAdd = false;
+            this.startDate = '';
+            this.endDate = '';
+            this.startTime = '';
+            this.endTime = '';
+            this.calculatedDuration = '-';
+            this.showBatchModal = true;
+        },
+
+        getFilteredTeachers(courseId, showAll = false, currentTeacherId = null) {
+            if (!this.allTeachers || this.allTeachers.length === 0) return [];
+            const cId = parseInt(courseId, 10);
+            return this.allTeachers.map(t => {
+                const isCourseTeacher = Boolean(cId && t.course_ids && t.course_ids.includes(cId));
+                return {
+                    ...t,
+                    is_course_teacher: isCourseTeacher
+                };
+            }).filter(t => {
+                if (showAll) return true;
+                if (!cId) return false;
+                if (currentTeacherId && String(t.user_id) === String(currentTeacherId)) return true;
+                return t.is_course_teacher;
+            });
+        },
+
+        getCourseTeacherCount(courseId) {
+            if (!courseId) return 0;
+            const cId = parseInt(courseId, 10);
+            return this.allTeachers.filter(t => t.course_ids && t.course_ids.includes(cId)).length;
+        },
+
+        onCourseChange() {
+            this.showAllTeachersAdd = false;
+            const cId = parseInt(this.selectedCourseId, 10);
+            if (!cId) {
+                this.selectedTeacherId = '';
+                return;
+            }
+            const matching = this.allTeachers.filter(t => t.course_ids && t.course_ids.includes(cId));
+            if (matching.length === 1) {
+                this.selectedTeacherId = String(matching[0].user_id);
+            } else if (matching.length > 1) {
+                const stillValid = matching.some(t => String(t.user_id) === String(this.selectedTeacherId));
+                if (!stillValid) {
+                    this.selectedTeacherId = '';
+                }
+            } else {
+                this.selectedTeacherId = '';
+            }
+        },
+
+        onEditCourseChange() {
+            this.showAllTeachersEdit = false;
+            const cId = parseInt(this.editBatch.course_id, 10);
+            if (!cId) return;
+            const matching = this.allTeachers.filter(t => t.course_ids && t.course_ids.includes(cId));
+            const stillValid = matching.some(t => String(t.user_id) === String(this.editBatch.teacher_id));
+            if (!stillValid && matching.length === 1) {
+                this.editBatch.teacher_id = String(matching[0].user_id);
+            }
+        },
+
         // Add Batch state & duration
         selectedCourseId: '',
         startDate: '',
@@ -765,6 +855,8 @@ function courseBatchData() {
         },
         openEditBatch(data) {
             this.editBatch = { ...data };
+            this.editBatch.teacher_id = data.teacher_id ? String(data.teacher_id) : '';
+            this.showAllTeachersEdit = false;
             this.editBatch.calculatedDuration = this.computeDuration(data.start_time, data.end_time);
             this.showEditBatchModal = true;
         },

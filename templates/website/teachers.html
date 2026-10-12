@@ -67,6 +67,7 @@
                 <tr class="bg-gray-100 text-gray-600 text-sm border-b">
                     <th class="py-3 px-6 font-medium">Teacher ID</th>
                     <th class="py-3 px-6 font-medium">Name</th>
+                    <th class="py-3 px-6 font-medium">Course</th>
                     <th class="py-3 px-6 font-medium">Email</th>
                     <th class="py-3 px-6 font-medium">Phone</th>
                     <th class="py-3 px-6 font-medium">Created Date</th>
@@ -79,6 +80,7 @@
                 <tr class="border-b hover:bg-gray-50 transition">
                     <td class="py-4 px-6 font-medium text-gray-600">{{ teacher.user_code|default:"-" }}</td>
                     <td class="py-4 px-6 font-medium">{{ teacher.display_name }}</td>
+                    <td class="py-4 px-6 text-indigo-700 font-semibold">{{ teacher.usercourse_set.first.course.course_name|default:"-" }}</td>
                     <td class="py-4 px-6">{{ teacher.email }}</td>
                     <td class="py-4 px-6">{{ teacher.phone }}</td>
                     <td class="py-4 px-6 text-gray-500">{{ teacher.created_date|date:"d M Y" }}</td>
@@ -97,7 +99,7 @@
                         </button>
                         <!-- Update Button -->
 
-                        <button onclick="openEditModal('{{ teacher.user_id }}', '{{ teacher.display_name|escapejs }}', '{{ teacher.email|escapejs }}', '{{ teacher.phone|escapejs }}', '{{ teacher.is_active|yesno:"1,0" }}', '{{ teacher.preferred_days|escapejs }}')" class="text-indigo-600 hover:text-indigo-900 transition" title="Edit">
+                        <button onclick="openEditModal('{{ teacher.user_id }}', '{{ teacher.display_name|escapejs }}', '{{ teacher.email|escapejs }}', '{{ teacher.phone|escapejs }}', '{{ teacher.is_active|yesno:"1,0" }}', '{{ teacher.preferred_days|escapejs }}', '{{ teacher.usercourse_set.first.course_id|default:"" }}')" class="text-indigo-600 hover:text-indigo-900 transition" title="Edit">
                             <i class="fa-solid fa-pen-to-square"></i>
                         </button>
                         <!-- Delete Button -->
@@ -148,6 +150,16 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                         <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" pattern="\d{{ '{' }}{{ security_settings.phone_length|default:10 }}{{ '}' }}" title="Phone number must be exactly {{ security_settings.phone_length|default:10 }} digits" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Assigned Course / Specialization</label>
+                    <select id="modalCourse" name="course_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                        <option value="">-- Select Course --</option>
+                        {% for c in courses %}
+                        <option value="{{ c.course_id }}">{{ c.course_name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <!-- Educational Qualification Section -->
@@ -438,6 +450,7 @@
         // make passwords required for new teacher
         document.getElementById('modalPassword').required = true;
         document.getElementById('modalConfirmPassword').required = true;
+        if (document.getElementById('modalCourse')) document.getElementById('modalCourse').value = '';
         
         // Reset dynamic rows
         document.getElementById('educationContainer').innerHTML = '';
@@ -452,7 +465,7 @@
     }
 
     // Edit mode
-    function openEditModal(id, name, email, phone, status, daysStr) {
+    function openEditModal(id, name, email, phone, status, daysStr, courseId) {
         modalTitle.innerText = "Update Teacher";
         // Dynamically build the update URL
         let updateUrl = "{% url 'update_teacher' 999999 %}".replace('999999', id);
@@ -462,6 +475,7 @@
         document.getElementById('modalEmail').value = email;
         document.getElementById('modalPhone').value = phone;
         document.getElementById('modalStatus').value = status;
+        if (document.getElementById('modalCourse')) document.getElementById('modalCourse').value = courseId || '';
         
         // Reset dynamic rows
         document.getElementById('educationContainer').innerHTML = '';

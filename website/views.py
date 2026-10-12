@@ -2835,6 +2835,9 @@ def courses_batches_view(request):
                 is_active=request.POST.get('status') == 'active',
                 created_by=user.user_id
             )
+            if course_id and teacher_id:
+                from academics.models import UserCourse
+                UserCourse.objects.get_or_create(user_id=teacher_id, course_id=course_id, defaults={'is_active': True})
             sync_batch_timetable(user.user_id)
             messages.success(request, 'Batch added successfully!')
             return redirect('/courses/?tab=batches')
@@ -2855,6 +2858,9 @@ def courses_batches_view(request):
                 batch.capacity = request.POST.get('capacity') or None
                 batch.is_active = (request.POST.get('status') == 'active')
                 batch.save()
+                if batch.course_id and batch.teacher_id:
+                    from academics.models import UserCourse
+                    UserCourse.objects.get_or_create(user_id=batch.teacher_id, course_id=batch.course_id, defaults={'is_active': True})
                 sync_batch_timetable(user.user_id)
                 messages.success(request, 'Batch updated successfully!')
             except Exception as e:
@@ -2878,14 +2884,31 @@ def courses_batches_view(request):
         
     courses = Course.objects.all().order_by('-course_id')
     batches = Batch.objects.select_related('course', 'teacher').all().order_by('-batch_id')
-    teachers = User.objects.filter(role__role_name='Teacher', is_active=True)
+    teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('first_name', 'last_name')
+    
+    from academics.models import UserCourse
+    import json
+    
+    teachers_list = []
+    for t in teachers:
+        uc_cids = list(UserCourse.objects.filter(user=t, is_active=True).values_list('course_id', flat=True))
+        b_cids = list(Batch.objects.filter(teacher=t).values_list('course_id', flat=True))
+        all_cids = sorted(list(set(uc_cids + b_cids)))
+        teachers_list.append({
+            'user_id': t.user_id,
+            'name': t.display_name or f"{t.first_name} {t.last_name}".strip(),
+            'code': t.user_code or '',
+            'course_ids': all_cids
+        })
+    teachers_json = json.dumps(teachers_list)
     
     return render(request, 'website/courses_batches.html', {
         'user': user,
         'page_title': 'Courses & Batches',
         'courses': courses,
         'batches': batches,
-        'teachers': teachers
+        'teachers': teachers,
+        'teachers_json': teachers_json,
     })
 
 def admin_dashboard_view(request):

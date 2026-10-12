@@ -52,9 +52,9 @@
                     <th class="py-3 px-4 font-semibold">Student Phone</th>
                     <th class="py-3 px-4 font-semibold">Class/Course ID</th>
                     <th class="py-3 px-4 font-semibold">Batch ID</th>
-                    <th class="py-3 px-4 font-semibold">Teacher ID</th>
-                    <th class="py-3 px-4 font-semibold">Teacher Name</th>
-                    <th class="py-3 px-4 font-semibold">Teacher Phone</th>
+                    <th class="py-3 px-4 font-semibold">Staff ID</th>
+                    <th class="py-3 px-4 font-semibold">Staff Name</th>
+                    <th class="py-3 px-4 font-semibold">Staff Phone</th>
                     <th class="py-3 px-4 font-semibold">Batch Start</th>
                     <th class="py-3 px-4 font-semibold">Batch End</th>
                     <th class="py-3 px-4 font-semibold">Created Date</th>
@@ -173,12 +173,12 @@
 
                 <div class="bg-orange-50 border border-orange-100 rounded-lg p-4">
                     <div class="font-semibold text-orange-900 border-b border-orange-200 pb-2 mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-chalkboard-user text-orange-600"></i> Assigned Teacher
+                        <i class="fa-solid fa-chalkboard-user text-orange-600"></i> Assigned Staff
                     </div>
                     <div class="grid grid-cols-3 gap-3">
-                        <div><span class="text-xs text-gray-500 block">Teacher ID</span><span class="font-medium text-gray-900" x-text="viewData.teacher_code"></span></div>
-                        <div><span class="text-xs text-gray-500 block">Teacher Name</span><span class="font-medium text-gray-900" x-text="viewData.teacher_name"></span></div>
-                        <div><span class="text-xs text-gray-500 block">Teacher Phone</span><span class="font-medium text-gray-900" x-text="viewData.teacher_phone"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Staff ID</span><span class="font-medium text-gray-900" x-text="viewData.teacher_code"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Staff Name</span><span class="font-medium text-gray-900" x-text="viewData.teacher_name"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Staff Phone</span><span class="font-medium text-gray-900" x-text="viewData.teacher_phone"></span></div>
                     </div>
                 </div>
 
@@ -237,7 +237,7 @@
                                 <div>Course: <strong class="text-gray-800" x-text="editData.course_name"></strong></div>
                                 <div>Batch Code: <strong class="text-gray-800" x-text="editData.batch_code"></strong></div>
                                 <div>Timing: <strong class="text-gray-800" x-text="editData.timing"></strong></div>
-                                <div>Teacher: <strong class="text-gray-800" x-text="editData.teacher_name"></strong> (<span x-text="editData.teacher_phone"></span>)</div>
+                                <div>Staff: <strong class="text-gray-800" x-text="editData.teacher_name"></strong> (<span x-text="editData.teacher_phone"></span>)</div>
                             </div>
                         </div>
                     </div>

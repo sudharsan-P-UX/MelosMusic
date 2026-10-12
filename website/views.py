@@ -225,7 +225,7 @@ def students_view(request):
         'courses': courses,
         'batches': batches,
         'students': students,
-        'page_title': 'Student Profile'
+        'page_title': 'Student Portfolio'
     })
 
 def update_student(request, student_id):
@@ -452,7 +452,7 @@ def teachers_view(request):
             course = Course.objects.get(course_id=course_id)
             UserCourse.objects.create(user=new_teacher, course=course)
             
-        messages.success(request, 'Teacher added successfully!')
+        messages.success(request, 'Staff added successfully!')
         return redirect('teachers')
         
     teachers = User.objects.filter(role=teacher_role).order_by('-user_id')
@@ -487,7 +487,7 @@ def teachers_view(request):
         'courses': courses,
         'batches': batches,
         'teachers': teachers,
-        'page_title': 'Teacher Management'
+        'page_title': 'Staff Portfolio'
     })
 
 def update_teacher(request, teacher_id):
@@ -608,7 +608,7 @@ def update_teacher(request, teacher_id):
         except User.DoesNotExist:
             pass
             
-    messages.success(request, 'Teacher updated successfully!')
+    messages.success(request, 'Staff updated successfully!')
     return redirect('teachers')
 
 def delete_teacher(request, teacher_id):
@@ -618,7 +618,7 @@ def delete_teacher(request, teacher_id):
         User.objects.get(user_id=teacher_id).delete()
     except User.DoesNotExist:
         pass
-    messages.success(request, 'Teacher deleted successfully!')
+    messages.success(request, 'Staff deleted successfully!')
     return redirect('teachers')
 
 
@@ -956,12 +956,12 @@ def generic_page(request, page_name):
     
     # Map the URL path to a display title
     titles = {
-        'students': 'Student Profile',
+        'students': 'Student Portfolio',
         'attendance': 'Attendance',
         'fees': 'Fees',
         'events': 'Event Scheduling',
         'courses': 'Courses & Batches',
-        'teachers': 'Teacher Management',
+        'teachers': 'Staff Portfolio',
         'timetable': 'Timetable',
         'notifications': 'Notifications / Reminders',
         'reports': 'Reports'
@@ -1964,7 +1964,7 @@ def teacher_attendance_view(request):
                         from_date__lte=detail.teacher_attendance.attendance_date,
                         to_date__gte=detail.teacher_attendance.attendance_date
                     ).update(manager_approval_status=new_app, manager_approval_on=timezone.now())
-                messages.success(request, f'Teacher attendance {new_app.lower()} successfully!')
+                messages.success(request, f'Staff attendance {new_app.lower()} successfully!')
             return redirect('teacher_attendance')
         elif action == 'update_teacher_attendance':
             detail_id = request.POST.get('detail_id')
@@ -2001,7 +2001,7 @@ def teacher_attendance_view(request):
                         manager_approval_status=lr_status,
                         manager_approval_on=timezone.now() if lr_status != 'Pending' else None
                     )
-                    messages.success(request, 'Teacher attendance updated successfully!')
+                    messages.success(request, 'Staff attendance updated successfully!')
             return redirect('teacher_attendance')
         elif action == 'delete_teacher_attendance':
             detail_id = request.POST.get('detail_id')
@@ -2038,7 +2038,7 @@ def teacher_attendance_view(request):
 
     return render(request, 'website/teacher_attendance.html', {
         'user': user,
-        'page_title': 'Teacher Attendance',
+        'page_title': 'Staff Attendance',
         'teachers': teachers,
         'details': details,
         'selected_teacher': selected_teacher,
@@ -2494,9 +2494,9 @@ def check_teacher_time_conflict(teacher_id, start_time, end_time, start_date=Non
                         d_str = f", {b.start_date.strftime('%d/%m/%Y')} to {b.end_date.strftime('%d/%m/%Y')}"
                     elif b.start_date:
                         d_str = f", from {b.start_date.strftime('%d/%m/%Y')}"
-                    teacher_name = b.teacher.display_name if b.teacher else "This teacher"
+                    teacher_name = b.teacher.display_name if b.teacher else "This staff member"
                     c_name = b.course.course_name if b.course else ""
-                    msg = f"Teacher {teacher_name} is already assigned to batch '{b.batch_name}' ({c_name}, {t_str}{d_str}). A teacher cannot be assigned to multiple batches with the same or overlapping schedule."
+                    msg = f"Staff {teacher_name} is already assigned to batch '{b.batch_name}' ({c_name}, {t_str}{d_str}). A staff member cannot be assigned to multiple batches with the same or overlapping schedule."
                     return b, msg
     return None, None
 
@@ -4196,12 +4196,12 @@ def teacher_allocation_view(request):
                 batch = Batch.objects.get(batch_id=batch_id)
 
                 if batch.teacher_id and str(batch.teacher_id) == str(teacher.user_id):
-                    messages.error(request, f"Teacher {teacher.display_name} is already assigned to batch '{batch.batch_name}'. Cannot add again.")
+                    messages.error(request, f"Staff {teacher.display_name} is already assigned to batch '{batch.batch_name}'. Cannot add again.")
                     return redirect('teacher_allocation')
 
                 if batch.teacher_id and str(batch.teacher_id) != str(teacher.user_id):
-                    curr_t_name = batch.teacher.display_name if batch.teacher else "another teacher"
-                    messages.error(request, f"Batch '{batch.batch_name}' is already assigned to teacher {curr_t_name}. To reassign, please edit the existing allocation.")
+                    curr_t_name = batch.teacher.display_name if batch.teacher else "another staff member"
+                    messages.error(request, f"Batch '{batch.batch_name}' is already assigned to staff {curr_t_name}. To reassign, please edit the existing allocation.")
                     return redirect('teacher_allocation')
 
                 clash_b, clash_m = check_teacher_time_conflict(
@@ -4223,9 +4223,9 @@ def teacher_allocation_view(request):
                     from academics.models import UserCourse
                     UserCourse.objects.get_or_create(user_id=teacher.user_id, course_id=batch.course_id, defaults={'is_active': True})
                 sync_batch_timetable(user.user_id)
-                messages.success(request, 'Teacher allocated successfully.')
+                messages.success(request, 'Staff allocated successfully.')
             except Exception as e:
-                messages.error(request, f'Error allocating teacher: {str(e)}')
+                messages.error(request, f'Error allocating staff: {str(e)}')
             return redirect('teacher_allocation')
         elif action == 'edit_teacher_allocation':
             batch_id = request.POST.get('batch_id')
@@ -4253,9 +4253,9 @@ def teacher_allocation_view(request):
                     from academics.models import UserCourse
                     UserCourse.objects.get_or_create(user_id=teacher.user_id, course_id=batch.course_id, defaults={'is_active': True})
                 sync_batch_timetable(user.user_id)
-                messages.success(request, 'Teacher allocation updated successfully.')
+                messages.success(request, 'Staff allocation updated successfully.')
             except Exception as e:
-                messages.error(request, f'Error updating teacher allocation: {str(e)}')
+                messages.error(request, f'Error updating staff allocation: {str(e)}')
             return redirect('teacher_allocation')
         elif action == 'delete_teacher_allocation':
             batch_id = request.POST.get('batch_id')
@@ -4264,9 +4264,9 @@ def teacher_allocation_view(request):
                 batch.teacher = None
                 batch.save()
                 sync_batch_timetable(user.user_id)
-                messages.success(request, 'Teacher allocation removed successfully.')
+                messages.success(request, 'Staff allocation removed successfully.')
             except Exception as e:
-                messages.error(request, f'Error removing teacher allocation: {str(e)}')
+                messages.error(request, f'Error removing staff allocation: {str(e)}')
             return redirect('teacher_allocation')
             
     # GET Request
@@ -4288,7 +4288,7 @@ def teacher_allocation_view(request):
     
     return render(request, 'website/teacher_allocation.html', {
         'user': user,
-        'page_title': 'Teacher Class Allocation',
+        'page_title': 'Staff Class Allocation',
         'allocations': allocations,
         'teachers': teachers,
         'batches': batches,
@@ -4338,16 +4338,16 @@ def api_check_conflict(request):
                 is_edit_same = bool(exclude_batch_id and str(exclude_batch_id) == str(target_batch.batch_id))
                 if not is_edit_same and teacher_id and target_batch.teacher_id:
                     if str(target_batch.teacher_id) == str(teacher_id):
-                        teacher_name = target_batch.teacher.display_name if target_batch.teacher else "This teacher"
+                        teacher_name = target_batch.teacher.display_name if target_batch.teacher else "This staff member"
                         return JsonResponse({
                             'has_conflict': True,
-                            'conflict_message': f"Teacher {teacher_name} is already assigned to batch '{target_batch.batch_name}'. Cannot add again."
+                            'conflict_message': f"Staff {teacher_name} is already assigned to batch '{target_batch.batch_name}'. Cannot add again."
                         })
                     else:
-                        curr_t_name = target_batch.teacher.display_name if target_batch.teacher else "another teacher"
+                        curr_t_name = target_batch.teacher.display_name if target_batch.teacher else "another staff member"
                         return JsonResponse({
                             'has_conflict': True,
-                            'conflict_message': f"Batch '{target_batch.batch_name}' is already assigned to teacher {curr_t_name}. To reassign, please edit the existing allocation."
+                            'conflict_message': f"Batch '{target_batch.batch_name}' is already assigned to staff {curr_t_name}. To reassign, please edit the existing allocation."
                         })
 
                 if not exclude_batch_id:
@@ -4902,7 +4902,7 @@ def mobile_dashboard_metrics_api(request):
         
         metrics = [
             {'title': 'Total Students', 'value': str(total_students), 'icon': 'people', 'color': 'blue'},
-            {'title': 'Active Teachers', 'value': str(active_teachers), 'icon': 'school', 'color': 'orange'},
+            {'title': 'Active Staff', 'value': str(active_teachers), 'icon': 'school', 'color': 'orange'},
             {'title': 'Active Courses', 'value': str(total_courses), 'icon': 'music_note', 'color': 'purple'},
             {'title': 'Pending Fees', 'value': f'${pending_fees}', 'icon': 'money', 'color': 'red'},
         ]

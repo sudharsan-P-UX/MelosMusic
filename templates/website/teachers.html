@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block header %}Teacher Management{% endblock %}
+{% block header %}Staff Portfolio{% endblock %}
 
 {% block content %}
 <div class="bg-white rounded-lg shadow min-h-screen" x-data="{ showFilter: false }">
     <!-- Header with Add Button -->
     <div class="px-6 py-4 border-b border-gray-200">
         <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-            <h2 class="text-lg font-medium text-gray-800">Teachers Directory</h2>
+            <h2 class="text-lg font-medium text-gray-800">Staff Directory</h2>
             <div class="flex items-center gap-2 ml-auto">
                 <!-- Mobile Filter Toggle Button -->
                 <button type="button" @click="showFilter = !showFilter" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
@@ -16,7 +16,7 @@
                     <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
                 </button>
                 {% if menu_access.add %}<button type="button" onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded shadow-sm text-sm h-[34px] flex items-center">
-                    <i class="fa-solid fa-plus mr-1.5"></i> Add Teacher
+                    <i class="fa-solid fa-plus mr-1.5"></i> Add Staff
                 </button>{% endif %}
             </div>
         </div>
@@ -33,7 +33,7 @@
             </div>
             
             <div class="relative">
-                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search Teacher" class="border border-gray-300 rounded px-3 py-1.5 w-48 text-sm focus:outline-none focus:border-blue-500 h-[34px]">
+                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search Staff" class="border border-gray-300 rounded px-3 py-1.5 w-48 text-sm focus:outline-none focus:border-blue-500 h-[34px]">
                 <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400"></i>
             </div>
             
@@ -65,7 +65,7 @@
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr class="bg-gray-100 text-gray-600 text-sm border-b">
-                    {% for col in menu_columns_map.teacher_master %}
+                    {% for col in menu_columns_map.staff_master|default:menu_columns_map.teacher_master %}
                     <th class="py-3 px-6 font-medium">{{ col.display_name }}</th>
                     {% endfor %}
                     <th class="py-3 px-6 font-medium text-right">Actions</th>
@@ -74,7 +74,7 @@
             <tbody class="text-gray-700 text-sm">
                 {% for teacher in teachers %}
                 <tr class="border-b hover:bg-gray-50 transition">
-                    {% for col in menu_columns_map.teacher_master %}
+                    {% for col in menu_columns_map.staff_master|default:menu_columns_map.teacher_master %}
                         {% if col.column_key == 'teacher_id' %}
                         <td class="py-4 px-6 font-medium text-gray-600">{{ teacher.user_code|default:"-" }}</td>
                         {% elif col.column_key == 'name' %}
@@ -109,7 +109,7 @@
 {% empty %}
                 <tr>
                     <td colspan="7" class="py-8 text-center text-gray-500">
-                        No teachers found. Click "Add Teacher" to create one.
+                        No staff found. Click "Add Staff" to create one.
                     </td>
                 </tr>
                 {% endfor %}
@@ -124,7 +124,7 @@
     <!-- Modal Content -->
     <div class="bg-white rounded-lg shadow-xl w-full max-w-7xl md:max-w-3xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
-            <h3 id="modalTitle" class="text-lg font-bold text-gray-800">Add New Teacher</h3>
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-800">Add New Staff</h3>
             <button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
                 <i class="fa-solid fa-xmark text-xl"></i>
             </button>
@@ -135,7 +135,7 @@
                 {% csrf_token %}
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Teacher Name</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
                     <input type="text" id="modalName" name="teacher_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500" required autocomplete="off">
                 </div>
 
@@ -299,7 +299,7 @@
             </div>
             <div class="px-6 py-4 border-t bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
                 <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">Cancel</button>
-                <button type="submit" id="modalSubmitBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow transition">Save Teacher</button>
+                <button type="submit" id="modalSubmitBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 shadow transition">Save Staff</button>
             </div>
         </form>
     </div>
@@ -310,7 +310,7 @@
                 <div id="viewModal_{{ teacher.user_id }}" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 transition-opacity">
                     <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 overflow-hidden flex flex-col max-h-[90vh]">
                         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 flex-shrink-0">
-                            <h3 class="text-lg font-bold text-gray-800">Teacher Details: {{ teacher.display_name }}</h3>
+                            <h3 class="text-lg font-bold text-gray-800">Staff Details: {{ teacher.display_name }}</h3>
                             <button type="button" onclick="document.getElementById('viewModal_{{ teacher.user_id }}').classList.add('hidden'); document.getElementById('viewModal_{{ teacher.user_id }}').classList.remove('flex');" class="text-gray-400 hover:text-gray-600">
                                 <i class="fa-solid fa-xmark text-xl"></i>
                             </button>
@@ -441,10 +441,10 @@
     
     // Add mode
     function openModal() {
-        modalTitle.innerText = "Add New Teacher";
+        modalTitle.innerText = "Add New Staff";
         form.action = "{% url 'teachers' %}";
         form.reset();
-        submitBtn.innerText = "Save Teacher";
+        submitBtn.innerText = "Save Staff";
         // make passwords required for new teacher
         document.getElementById('modalPassword').required = true;
         document.getElementById('modalConfirmPassword').required = true;
@@ -468,7 +468,7 @@
 
     // Edit mode
     function openEditModal(id, name, email, phone, status, daysStr, courseId) {
-        modalTitle.innerText = "Update Teacher";
+        modalTitle.innerText = "Update Staff";
         // Dynamically build the update URL
         let updateUrl = "{% url 'update_teacher' 999999 %}".replace('999999', id);
         form.action = updateUrl;
@@ -494,7 +494,7 @@
         document.getElementById('modalPassword').value = '';
         document.getElementById('modalConfirmPassword').value = '';
 
-        submitBtn.innerText = "Update Teacher";
+        submitBtn.innerText = "Update Staff";
         
         modal.classList.remove('hidden');
         modal.classList.add('flex');

@@ -12,7 +12,7 @@
             STUDENTS
         </a>
         <a href="?tab=teachers" class="px-6 py-2.5 rounded-t-lg font-bold text-sm {% if tab == 'teachers' %}bg-[#8070d6] text-white{% else %}text-white/80 hover:bg-[#6d5eb5] hover:text-white{% endif %} transition-colors">
-            TEACHERS
+            STAFF
         </a>
     </div>
 
@@ -61,7 +61,7 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-50 border-b border-gray-200 text-gray-600 text-xs uppercase tracking-wider">
-                        <th class="py-3 px-4 font-semibold whitespace-nowrap">{% if tab == 'students' %}Student{% else %}Teacher{% endif %} ID</th>
+                        <th class="py-3 px-4 font-semibold whitespace-nowrap">{% if tab == 'students' %}Student{% else %}Staff{% endif %} ID</th>
                         <th class="py-3 px-4 font-semibold whitespace-nowrap">Name</th>
                         <th class="py-3 px-4 font-semibold whitespace-nowrap">Date (From - To)</th>
                         <th class="py-3 px-4 font-semibold whitespace-nowrap text-center">No Of Days</th>

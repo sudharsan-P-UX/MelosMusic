@@ -145,7 +145,7 @@
                                 <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Batch</th>
                                 <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course</th>
                                 <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Room</th>
-                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Teacher</th>
+                                <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Staff</th>
                                 <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Start Date</th>
                                 <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">End Date</th>
                                 <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Timing</th>
@@ -834,34 +834,34 @@
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="selectedCourseDurationHrs"></span> hrs)
                             </p>
                         </div>
-                        <!-- 7. Teacher details -->
+                        <!-- 7. Staff details -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Staff</label>
                             <select name="teacher_id" x-model="selectedTeacherId" @change="checkAddBatchConflict()" @click="if(selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0) redirectToAssignTeacher()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="addBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
                                 <option value="" x-show="!selectedCourseId">-- Select Course First --</option>
-                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0">-- No teacher assigned (Click to assign) --</option>
-                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0">-- Select Teacher --</option>
+                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0">-- No staff assigned (Click to assign) --</option>
+                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0">-- Select Staff --</option>
                                 <template x-for="teacher in getFilteredTeachers(selectedCourseId)" :key="'add-' + teacher.user_id">
                                     <option :value="teacher.user_id" :selected="teacher.user_id == selectedTeacherId" x-text="teacher.name"></option>
                                 </template>
                             </select>
                             <p x-show="addBatchConflictMessage" class="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1.5">
-                                <i class="fa-solid fa-circle-exclamation text-red-500"></i> Teacher schedule conflict detected!
+                                <i class="fa-solid fa-circle-exclamation text-red-500"></i> Staff schedule conflict detected!
                             </p>
                             <p x-show="!addBatchConflictMessage && !selectedCourseId" class="text-[11px] text-gray-400 mt-1">
-                                <i class="fa-solid fa-circle-info mr-1"></i> Select a course above to see assigned teachers.
+                                <i class="fa-solid fa-circle-info mr-1"></i> Select a course above to see assigned staff.
                             </p>
                             <div x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0" class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-between gap-2">
                                 <div class="text-xs text-amber-800">
                                     <i class="fa-solid fa-circle-exclamation text-amber-600 mr-1"></i>
-                                    <span>No teachers assigned to this course yet.</span>
+                                    <span>No staff assigned to this course yet.</span>
                                 </div>
                                 <button type="button" @click="redirectToAssignTeacher()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-sm transition whitespace-nowrap">
-                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Teacher
+                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Staff
                                 </button>
                             </div>
                             <p x-show="!addBatchConflictMessage && selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0" class="text-[11px] text-emerald-600 mt-1">
-                                <i class="fa-solid fa-circle-check mr-1"></i> Showing teachers assigned to this course.
+                                <i class="fa-solid fa-circle-check mr-1"></i> Showing staff assigned to this course.
                             </p>
                         </div>
                         <!-- 8. Class Room -->
@@ -949,10 +949,10 @@
 
                 <div class="bg-green-50 border border-green-100 rounded-lg p-4">
                     <div class="font-semibold text-green-900 border-b border-green-200 pb-2 mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-chalkboard-user text-green-600"></i> Teacher & Capacity
+                        <i class="fa-solid fa-chalkboard-user text-green-600"></i> Staff & Capacity
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div><span class="text-xs text-gray-500 block">Assigned Teacher</span><span class="font-medium text-gray-900" x-text="viewBatch.teacher_name"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Assigned Staff</span><span class="font-medium text-gray-900" x-text="viewBatch.teacher_name"></span></div>
                         <div><span class="text-xs text-gray-500 block">Batch Capacity</span><span class="font-medium text-gray-900" x-text="viewBatch.capacity"></span></div>
                     </div>
                 </div>
@@ -1126,26 +1126,26 @@
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="editCourseDurationHrs"></span> hrs)
                             </p>
                         </div>
-                        <!-- 7. Teacher details -->
+                        <!-- 7. Staff details -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Staff</label>
                             <select name="teacher_id" x-model="editBatch.teacher_id" @change="checkEditBatchConflict()" @click="if(editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0) redirectToAssignTeacherEdit()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="editBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
-                                <option value="" x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0">-- No teacher assigned (Click to assign) --</option>
-                                <option value="" x-show="!editBatch.course_id || getCourseTeacherCount(editBatch.course_id) > 0">-- Select Teacher --</option>
+                                <option value="" x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0">-- No staff assigned (Click to assign) --</option>
+                                <option value="" x-show="!editBatch.course_id || getCourseTeacherCount(editBatch.course_id) > 0">-- Select Staff --</option>
                                 <template x-for="teacher in getFilteredTeachers(editBatch.course_id, editBatch.teacher_id)" :key="'edit-' + teacher.user_id">
                                     <option :value="teacher.user_id" :selected="teacher.user_id == editBatch.teacher_id" x-text="teacher.name"></option>
                                 </template>
                             </select>
                             <p x-show="editBatchConflictMessage" class="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1.5">
-                                <i class="fa-solid fa-circle-exclamation text-red-500"></i> Teacher schedule conflict detected!
+                                <i class="fa-solid fa-circle-exclamation text-red-500"></i> Staff schedule conflict detected!
                             </p>
                             <div x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0" class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-between gap-2">
                                 <div class="text-xs text-amber-800">
                                     <i class="fa-solid fa-circle-exclamation text-amber-600 mr-1"></i>
-                                    <span>No teachers assigned to this course yet.</span>
+                                    <span>No staff assigned to this course yet.</span>
                                 </div>
                                 <button type="button" @click="redirectToAssignTeacherEdit()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-sm transition whitespace-nowrap">
-                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Teacher
+                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Staff
                                 </button>
                             </div>
                         </div>
@@ -1567,7 +1567,7 @@ function courseBatchData() {
         isCheckingConflict: false,
         isCheckingEditConflict: false,
 
-        // Teachers & Course mapping
+        // Staff & Course mapping
         selectedTeacherId: '',
 
         redirectToAssignTeacher() {

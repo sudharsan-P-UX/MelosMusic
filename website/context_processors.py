@@ -170,9 +170,13 @@ def menu_columns_processor(request):
             m_name = col.menu.menu_name
             # Exact name
             columns_by_name.setdefault(m_name, []).append(col)
-            # Normalized key: 'Student Master' -> 'student_master'
+            # Normalized key: 'Staff Master' -> 'staff_master'
             norm_key = m_name.lower().replace(' ', '_').replace('&', 'and').replace('-', '_')
             columns_by_name.setdefault(norm_key, []).append(col)
+            if 'staff' in norm_key:
+                columns_by_name.setdefault(norm_key.replace('staff', 'teacher'), []).append(col)
+            elif 'teacher' in norm_key:
+                columns_by_name.setdefault(norm_key.replace('teacher', 'staff'), []).append(col)
             # URL mapping
             if col.menu.url_page:
                 columns_by_name.setdefault(col.menu.url_page, []).append(col)

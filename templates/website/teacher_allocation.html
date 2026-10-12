@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block header %}Teacher Class Allocation{% endblock %}
+{% block header %}Staff Class Allocation{% endblock %}
 
 {% block content %}
 <div class="bg-white rounded-lg shadow min-h-screen" x-data="teacherAllocationData()">
     <!-- Header with Add Button -->
     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h2 class="text-lg font-medium text-gray-800">Teacher Class Allocations</h2>
+        <h2 class="text-lg font-medium text-gray-800">Staff Class Allocations</h2>
         <div class="flex items-center gap-2">
             <!-- Mobile Filter Toggle Button -->
             <button type="button" @click="showFilter = !showFilter" class="md:hidden flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded text-xs font-semibold shadow-sm hover:bg-indigo-100 transition">
@@ -15,7 +15,7 @@
                 <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
             </button>
             <button @click="showModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
-                <i class="fa-solid fa-plus mr-2"></i> Add Tr Allocation
+                <i class="fa-solid fa-plus mr-2"></i> Add Staff Allocation
             </button>
         </div>
     </div>
@@ -24,7 +24,7 @@
     <div :class="showFilter ? 'block' : 'hidden md:block'" class="px-6 py-4 border-b border-gray-200 bg-gray-50">
         <form method="GET" action="{% url 'teacher_allocation' %}" class="flex flex-wrap gap-4 items-end">
             <div class="relative">
-                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search Teacher or Course" class="border border-gray-300 rounded px-3 py-1.5 w-64 text-sm focus:outline-none focus:border-indigo-500 h-[36px]">
+                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search Staff or Course" class="border border-gray-300 rounded px-3 py-1.5 w-64 text-sm focus:outline-none focus:border-indigo-500 h-[36px]">
                 <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400"></i>
             </div>
             <div class="flex space-x-2">
@@ -50,9 +50,9 @@
                         <th class="py-3 px-4 font-semibold">{{ col.display_name }}</th>
                         {% endfor %}
                     {% else %}
-                        <th class="py-3 px-4 font-semibold">Teacher ID</th>
-                        <th class="py-3 px-4 font-semibold">Teacher Name</th>
-                        <th class="py-3 px-4 font-semibold">Teacher Phone</th>
+                        <th class="py-3 px-4 font-semibold">Staff ID</th>
+                        <th class="py-3 px-4 font-semibold">Staff Name</th>
+                        <th class="py-3 px-4 font-semibold">Staff Phone</th>
                         <th class="py-3 px-4 font-semibold">Course ID</th>
                         <th class="py-3 px-4 font-semibold">Course Name</th>
                         <th class="py-3 px-4 font-semibold">Batch ID</th>
@@ -150,7 +150,7 @@
                 {% empty %}
                 <tr>
                     <td colspan="11" class="py-8 text-center text-gray-500">
-                        No teacher allocations found.
+                        No staff allocations found.
                     </td>
                 </tr>
                 {% endfor %}
@@ -168,18 +168,18 @@
                 
                 <div class="bg-white px-6 pt-5 pb-4 border-b border-gray-200 overflow-y-auto flex-1">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl leading-6 font-bold text-gray-900"><i class="fa-solid fa-chalkboard-user text-indigo-600 mr-2"></i>Allocate Teacher</h3>
+                        <h3 class="text-xl leading-6 font-bold text-gray-900"><i class="fa-solid fa-chalkboard-user text-indigo-600 mr-2"></i>Allocate Staff</h3>
                         <button type="button" @click="showModal = false" class="text-gray-400 hover:text-gray-500"><i class="fa-solid fa-xmark text-xl"></i></button>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Teacher Selection -->
+                        <!-- Staff Selection -->
                         <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                            <h4 class="font-semibold text-indigo-800 mb-4 border-b border-indigo-200 pb-2">Teacher Selection</h4>
+                            <h4 class="font-semibold text-indigo-800 mb-4 border-b border-indigo-200 pb-2">Staff Selection</h4>
                             <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Teacher <span class="text-red-500">*</span></label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Staff <span class="text-red-500">*</span></label>
                                 <select name="teacher_id" x-model="selectedTeacherId" @change="fetchTeacherDetails(); checkAddConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
-                                    <option value="">-- Select Teacher --</option>
+                                    <option value="">-- Select Staff --</option>
                                     {% for t in teachers %}
                                     <option value="{{ t.user_id }}">{{ t.display_name }} ({{ t.user_code|default:"-" }})</option>
                                     {% endfor %}
@@ -187,7 +187,7 @@
                             </div>
                             
                             <div class="space-y-2 text-sm" x-show="teacherData.name">
-                                <div class="flex justify-between"><span class="text-gray-500">Teacher ID:</span> <span class="font-medium text-gray-900" x-text="teacherData.code"></span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">Staff ID:</span> <span class="font-medium text-gray-900" x-text="teacherData.code"></span></div>
                                 <div class="flex justify-between"><span class="text-gray-500">Name:</span> <span class="font-medium text-gray-900" x-text="teacherData.name"></span></div>
                                 <div class="flex justify-between"><span class="text-gray-500">Phone:</span> <span class="font-medium text-gray-900" x-text="teacherData.phone"></span></div>
                             </div>
@@ -236,26 +236,26 @@
         </div>
     </div>
 
-    <!-- View Teacher Allocation Modal -->
+    <!-- View Staff Allocation Modal -->
     <div x-show="showViewModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div @click.away="showViewModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                 <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fa-solid fa-eye text-blue-600"></i> Teacher Allocation Details
+                    <i class="fa-solid fa-eye text-blue-600"></i> Staff Allocation Details
                 </h3>
                 <button type="button" @click="showViewModal = false" class="text-gray-400 hover:text-gray-600">
                     <i class="fa-solid fa-xmark text-xl"></i>
                 </button>
             </div>
             <div class="p-6 overflow-y-auto space-y-4 text-sm flex-1">
-                <!-- Teacher Card -->
+                <!-- Staff Card -->
                 <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
                     <div class="font-semibold text-indigo-900 border-b border-indigo-200 pb-2 mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Teacher Information
+                        <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> Staff Information
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div><span class="text-xs text-gray-500 block">Teacher ID</span><span class="font-medium text-gray-900" x-text="viewData.teacher_code"></span></div>
-                        <div><span class="text-xs text-gray-500 block">Teacher Name</span><span class="font-medium text-gray-900" x-text="viewData.teacher_name"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Staff ID</span><span class="font-medium text-gray-900" x-text="viewData.teacher_code"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Staff Name</span><span class="font-medium text-gray-900" x-text="viewData.teacher_name"></span></div>
                         <div><span class="text-xs text-gray-500 block">Phone</span><span class="font-medium text-gray-900" x-text="viewData.teacher_phone"></span></div>
                         <div><span class="text-xs text-gray-500 block">Email</span><span class="font-medium text-gray-900" x-text="viewData.teacher_email || '-'"></span></div>
                     </div>
@@ -288,7 +288,7 @@
         </div>
     </div>
 
-    <!-- Edit Teacher Allocation Modal -->
+    <!-- Edit Staff Allocation Modal -->
     <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div @click.away="showEditModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
             <form method="POST" action="{% url 'teacher_allocation' %}" class="flex flex-col flex-1 overflow-hidden">
@@ -298,7 +298,7 @@
                 
                 <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                     <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <i class="fa-solid fa-pen-to-square text-amber-600"></i> Edit Teacher Allocation
+                        <i class="fa-solid fa-pen-to-square text-amber-600"></i> Edit Staff Allocation
                     </h3>
                     <button type="button" @click="showEditModal = false" class="text-gray-400 hover:text-gray-600">
                         <i class="fa-solid fa-xmark text-xl"></i>
@@ -318,18 +318,18 @@
                         </div>
                     </div>
 
-                    <!-- Teacher Selection -->
+                    <!-- Staff Selection -->
                     <div>
-                        <label class="block font-medium text-gray-700 mb-1">Select / Reassign Teacher <span class="text-red-500">*</span></label>
+                        <label class="block font-medium text-gray-700 mb-1">Select / Reassign Staff <span class="text-red-500">*</span></label>
                         <select name="teacher_id" x-model="editData.teacher_id" @change="fetchEditTeacherDetails(); checkEditConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                            <option value="">-- Select Teacher --</option>
+                            <option value="">-- Select Staff --</option>
                             {% for t in teachers %}
                             <option value="{{ t.user_id }}">{{ t.display_name }} ({{ t.user_code|default:"-" }})</option>
                             {% endfor %}
                         </select>
                         <div class="mt-3 text-xs text-gray-500 space-y-1 bg-gray-50 p-3 rounded border border-gray-200">
-                            <div>Teacher Name: <strong class="text-gray-800" x-text="editData.teacher_name"></strong></div>
-                            <div>Teacher ID: <strong class="text-gray-800" x-text="editData.teacher_code"></strong></div>
+                            <div>Staff Name: <strong class="text-gray-800" x-text="editData.teacher_name"></strong></div>
+                            <div>Staff ID: <strong class="text-gray-800" x-text="editData.teacher_code"></strong></div>
                             <div>Phone: <strong class="text-gray-800" x-text="editData.teacher_phone"></strong></div>
                         </div>
                     </div>
@@ -349,7 +349,7 @@
         </div>
     </div>
 
-    <!-- Delete Teacher Allocation Modal -->
+    <!-- Delete Staff Allocation Modal -->
     <div x-show="showDeleteModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div @click.away="showDeleteModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-md flex flex-col">
             <form method="POST" action="{% url 'teacher_allocation' %}">
@@ -359,7 +359,7 @@
                 
                 <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                     <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2 text-red-600">
-                        <i class="fa-solid fa-triangle-exclamation"></i> Remove Teacher Allocation
+                        <i class="fa-solid fa-triangle-exclamation"></i> Remove Staff Allocation
                     </h3>
                     <button type="button" @click="showDeleteModal = false" class="text-gray-400 hover:text-gray-600">
                         <i class="fa-solid fa-xmark text-xl"></i>
@@ -367,13 +367,13 @@
                 </div>
                 
                 <div class="p-6 text-sm text-gray-700 space-y-3">
-                    <p>Are you sure you want to remove the teacher allocation?</p>
+                    <p>Are you sure you want to remove the staff allocation?</p>
                     <div class="bg-red-50 border border-red-200 p-3 rounded text-xs space-y-1 text-red-900">
-                        <div>Teacher: <strong x-text="deleteData.teacher_name"></strong></div>
+                        <div>Staff: <strong x-text="deleteData.teacher_name"></strong></div>
                         <div>Batch: <strong x-text="deleteData.batch_name"></strong></div>
                         <div>Course: <strong x-text="deleteData.course_name"></strong></div>
                     </div>
-                    <p class="text-xs text-gray-500">This will unassign the teacher from this batch without deleting the batch itself.</p>
+                    <p class="text-xs text-gray-500">This will unassign the staff from this batch without deleting the batch itself.</p>
                 </div>
                 
                 <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">

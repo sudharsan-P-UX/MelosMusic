@@ -508,7 +508,7 @@
     <!-- Add Batch Modal -->
     <div x-show="showBatchModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div @click.away="showBatchModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-            <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+            <form method="POST" action="{% url 'courses' %}" @submit="if(addBatchConflictMessage || isCheckingConflict) { $event.preventDefault(); return false; }" class="flex flex-col flex-1 overflow-hidden">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add_batch">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 overflow-y-auto flex-1">
@@ -518,10 +518,12 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 1. Batch Name -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name <span class="text-red-500">*</span></label>
                             <input type="text" name="batch_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Batch A">
                         </div>
+                        <!-- 2. Course -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
                             <select name="course_id" required x-model="selectedCourseId" @change="calculateEndDate(); calculateEndTime(); onCourseChange()" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
@@ -531,36 +533,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                            <select name="teacher_id" x-model="selectedTeacherId" @change="checkAddBatchConflict()" @click="if(selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0) redirectToAssignTeacher()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
-                                <option value="" x-show="!selectedCourseId">-- Select Course First --</option>
-                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0">-- No teacher assigned (Click to assign) --</option>
-                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0">-- Select Teacher --</option>
-                                <template x-for="teacher in getFilteredTeachers(selectedCourseId)" :key="'add-' + teacher.user_id">
-                                    <option :value="teacher.user_id" :selected="teacher.user_id == selectedTeacherId" x-text="teacher.name"></option>
-                                </template>
-                            </select>
-                            <p x-show="!selectedCourseId" class="text-[11px] text-gray-400 mt-1">
-                                <i class="fa-solid fa-circle-info mr-1"></i> Select a course above to see assigned teachers.
-                            </p>
-                            <div x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0" class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-between gap-2">
-                                <div class="text-xs text-amber-800">
-                                    <i class="fa-solid fa-circle-exclamation text-amber-600 mr-1"></i>
-                                    <span>No teachers assigned to this course yet.</span>
-                                </div>
-                                <button type="button" @click="redirectToAssignTeacher()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-sm transition whitespace-nowrap">
-                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Teacher
-                                </button>
-                            </div>
-                            <p x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0" class="text-[11px] text-emerald-600 mt-1">
-                                <i class="fa-solid fa-circle-check mr-1"></i> Showing teachers assigned to this course.
-                            </p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                            <input type="number" name="capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 20">
-                        </div>
+                        <!-- 3. Start Date -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                             <div class="relative">
@@ -577,7 +550,7 @@
                                         @click="openPicker($refs.pickerAddStartDate)" 
                                         class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
                                         title="Calendar picker">
-                                    <i class="fa-regular fa-calendar-days text-sm"></i>
+                                <i class="fa-regular fa-calendar-days text-sm"></i>
                                 </button>
                                 <input type="date" 
                                        x-ref="pickerAddStartDate" 
@@ -586,6 +559,7 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        <!-- 4. End Date -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                             <div class="relative">
@@ -611,6 +585,7 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        <!-- 5. Start Time -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                             <div class="relative">
@@ -636,6 +611,7 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        <!-- 6. End Time -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
                             <div class="relative">
@@ -664,6 +640,42 @@
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="selectedCourseDurationHrs"></span> hrs)
                             </p>
                         </div>
+                        <!-- 7. Teacher details -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                            <select name="teacher_id" x-model="selectedTeacherId" @change="checkAddBatchConflict()" @click="if(selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0) redirectToAssignTeacher()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="addBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
+                                <option value="" x-show="!selectedCourseId">-- Select Course First --</option>
+                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0">-- No teacher assigned (Click to assign) --</option>
+                                <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0">-- Select Teacher --</option>
+                                <template x-for="teacher in getFilteredTeachers(selectedCourseId)" :key="'add-' + teacher.user_id">
+                                    <option :value="teacher.user_id" :selected="teacher.user_id == selectedTeacherId" x-text="teacher.name"></option>
+                                </template>
+                            </select>
+                            <p x-show="addBatchConflictMessage" class="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-exclamation text-red-500"></i> Teacher schedule conflict detected!
+                            </p>
+                            <p x-show="!addBatchConflictMessage && !selectedCourseId" class="text-[11px] text-gray-400 mt-1">
+                                <i class="fa-solid fa-circle-info mr-1"></i> Select a course above to see assigned teachers.
+                            </p>
+                            <div x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0" class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-between gap-2">
+                                <div class="text-xs text-amber-800">
+                                    <i class="fa-solid fa-circle-exclamation text-amber-600 mr-1"></i>
+                                    <span>No teachers assigned to this course yet.</span>
+                                </div>
+                                <button type="button" @click="redirectToAssignTeacher()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-sm transition whitespace-nowrap">
+                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Teacher
+                                </button>
+                            </div>
+                            <p x-show="!addBatchConflictMessage && selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0" class="text-[11px] text-emerald-600 mt-1">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Showing teachers assigned to this course.
+                            </p>
+                        </div>
+                        <!-- 8. Capacity -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                            <input type="number" name="capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 20">
+                        </div>
+                        <!-- 9. Calculated Duration -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Duration</label>
                             <div class="relative">
@@ -673,6 +685,7 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- 10. Status -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                             <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
@@ -689,8 +702,9 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                    <button type="submit" :disabled="Boolean(addBatchConflictMessage)" :class="addBatchConflictMessage ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                        Save Batch
+                    <button type="submit" :disabled="Boolean(addBatchConflictMessage) || isCheckingConflict" :class="(addBatchConflictMessage || isCheckingConflict) ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        <span x-show="!isCheckingConflict">Save Batch</span>
+                        <span x-show="isCheckingConflict"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Checking...</span>
                     </button>
                     <button type="button" @click="showBatchModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
                         Cancel
@@ -757,7 +771,7 @@
     <!-- Edit Batch Modal -->
     <div x-show="showEditBatchModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
         <div @click.away="showEditBatchModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-            <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+            <form method="POST" action="{% url 'courses' %}" @submit="if(editBatchConflictMessage || isCheckingEditConflict) { $event.preventDefault(); return false; }" class="flex flex-col flex-1 overflow-hidden">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="edit_batch">
                 <input type="hidden" name="batch_id" :value="editBatch.batch_id">
@@ -768,15 +782,18 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Batch Code -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Batch Code</label>
                             <input type="text" :value="editBatch.batch_code" disabled class="w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 cursor-not-allowed">
                         </div>
+                        <!-- 1. Batch Name -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name <span class="text-red-500">*</span></label>
                             <input type="text" name="batch_name" x-model="editBatch.batch_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
-                        <div>
+                        <!-- 2. Course -->
+                        <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
                             <select name="course_id" required x-model="editBatch.course_id" @change="onEditCourseChange(); calculateEditEndTime()" id="edit_batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 {% for course in courses %}
@@ -784,36 +801,7 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                            <select name="teacher_id" x-model="editBatch.teacher_id" @change="checkEditBatchConflict()" @click="if(editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0) redirectToAssignTeacherEdit()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
-                                <option value="" x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0">-- No teacher assigned (Click to assign) --</option>
-                                <option value="" x-show="!editBatch.course_id || getCourseTeacherCount(editBatch.course_id) > 0">-- Select Teacher --</option>
-                                <template x-for="teacher in getFilteredTeachers(editBatch.course_id, editBatch.teacher_id)" :key="'edit-' + teacher.user_id">
-                                    <option :value="teacher.user_id" :selected="teacher.user_id == editBatch.teacher_id" x-text="teacher.name"></option>
-                                </template>
-                            </select>
-                            <div x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0" class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-between gap-2">
-                                <div class="text-xs text-amber-800">
-                                    <i class="fa-solid fa-circle-exclamation text-amber-600 mr-1"></i>
-                                    <span>No teachers assigned to this course yet.</span>
-                                </div>
-                                <button type="button" @click="redirectToAssignTeacherEdit()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-sm transition whitespace-nowrap">
-                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Teacher
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                            <input type="number" name="capacity" x-model="editBatch.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" x-model="editBatch.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                        </div>
+                        <!-- 3. Start Date -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                             <div class="relative">
@@ -839,6 +827,7 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        <!-- 4. End Date -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
                             <div class="relative">
@@ -864,6 +853,7 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        <!-- 5. Start Time -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                             <div class="relative">
@@ -889,6 +879,7 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        <!-- 6. End Time -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
                             <div class="relative">
@@ -917,7 +908,36 @@
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="editCourseDurationHrs"></span> hrs)
                             </p>
                         </div>
-                        <div class="md:col-span-2">
+                        <!-- 7. Teacher details -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
+                            <select name="teacher_id" x-model="editBatch.teacher_id" @change="checkEditBatchConflict()" @click="if(editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0) redirectToAssignTeacherEdit()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="editBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
+                                <option value="" x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0">-- No teacher assigned (Click to assign) --</option>
+                                <option value="" x-show="!editBatch.course_id || getCourseTeacherCount(editBatch.course_id) > 0">-- Select Teacher --</option>
+                                <template x-for="teacher in getFilteredTeachers(editBatch.course_id, editBatch.teacher_id)" :key="'edit-' + teacher.user_id">
+                                    <option :value="teacher.user_id" :selected="teacher.user_id == editBatch.teacher_id" x-text="teacher.name"></option>
+                                </template>
+                            </select>
+                            <p x-show="editBatchConflictMessage" class="text-xs text-red-600 font-semibold mt-1.5 flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-exclamation text-red-500"></i> Teacher schedule conflict detected!
+                            </p>
+                            <div x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0" class="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-between gap-2">
+                                <div class="text-xs text-amber-800">
+                                    <i class="fa-solid fa-circle-exclamation text-amber-600 mr-1"></i>
+                                    <span>No teachers assigned to this course yet.</span>
+                                </div>
+                                <button type="button" @click="redirectToAssignTeacherEdit()" class="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow-sm transition whitespace-nowrap">
+                                    <i class="fa-solid fa-user-plus text-[10px]"></i> Assign Teacher
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 8. Capacity -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                            <input type="number" name="capacity" x-model="editBatch.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <!-- 9. Calculated Duration -->
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Duration</label>
                             <div class="relative">
                                 <input type="text" :value="editBatch.calculatedDuration" readonly class="w-full bg-gray-50 border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm text-indigo-700 font-semibold cursor-not-allowed">
@@ -925,6 +945,14 @@
                                     <i class="fa-regular fa-clock text-xs"></i>
                                 </div>
                             </div>
+                        </div>
+                        <!-- 10. Status -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select name="status" x-model="editBatch.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
                         </div>
                     </div>
 
@@ -935,8 +963,9 @@
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                    <button type="submit" :disabled="Boolean(editBatchConflictMessage)" :class="editBatchConflictMessage ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
-                        Update Batch
+                    <button type="submit" :disabled="Boolean(editBatchConflictMessage) || isCheckingEditConflict" :class="(editBatchConflictMessage || isCheckingEditConflict) ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        <span x-show="!isCheckingEditConflict">Update Batch</span>
+                        <span x-show="isCheckingEditConflict"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Checking...</span>
                     </button>
                     <button type="button" @click="showEditBatchModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
                         Cancel
@@ -1076,6 +1105,8 @@ function courseBatchData() {
         deleteBatch: {},
         addBatchConflictMessage: '',
         editBatchConflictMessage: '',
+        isCheckingConflict: false,
+        isCheckingEditConflict: false,
 
         // Teachers & Course mapping
         selectedTeacherId: '',
@@ -1125,6 +1156,7 @@ function courseBatchData() {
             this.endTime = '';
             this.calculatedDuration = '-';
             this.addBatchConflictMessage = '';
+            this.isCheckingConflict = false;
             this.showBatchModal = true;
         },
 
@@ -1185,6 +1217,7 @@ function courseBatchData() {
             this.editBatch.teacher_id = data.teacher_id ? String(data.teacher_id) : '';
             this.editBatch.calculatedDuration = this.computeDuration(data.start_time, data.end_time);
             this.editBatchConflictMessage = '';
+            this.isCheckingEditConflict = false;
             this.showEditBatchModal = true;
             this.$nextTick(() => { this.checkEditBatchConflict(); });
         },
@@ -1196,8 +1229,10 @@ function courseBatchData() {
         checkAddBatchConflict() {
             if (!this.selectedTeacherId || !this.startTime || !this.endTime) {
                 this.addBatchConflictMessage = '';
+                this.isCheckingConflict = false;
                 return;
             }
+            this.isCheckingConflict = true;
             const params = new URLSearchParams({
                 type: 'teacher',
                 teacher_id: this.selectedTeacherId,
@@ -1212,14 +1247,17 @@ function courseBatchData() {
                 .then(data => {
                     this.addBatchConflictMessage = data.has_conflict ? data.conflict_message : '';
                 })
-                .catch(() => { this.addBatchConflictMessage = ''; });
+                .catch(() => { this.addBatchConflictMessage = ''; })
+                .finally(() => { this.isCheckingConflict = false; });
         },
 
         checkEditBatchConflict() {
             if (!this.editBatch.teacher_id || !this.editBatch.start_time || !this.editBatch.end_time) {
                 this.editBatchConflictMessage = '';
+                this.isCheckingEditConflict = false;
                 return;
             }
+            this.isCheckingEditConflict = true;
             const params = new URLSearchParams({
                 type: 'teacher',
                 teacher_id: this.editBatch.teacher_id,
@@ -1235,7 +1273,8 @@ function courseBatchData() {
                 .then(data => {
                     this.editBatchConflictMessage = data.has_conflict ? data.conflict_message : '';
                 })
-                .catch(() => { this.editBatchConflictMessage = ''; });
+                .catch(() => { this.editBatchConflictMessage = ''; })
+                .finally(() => { this.isCheckingEditConflict = false; });
         },
 
         computeDuration(start, end) {

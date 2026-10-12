@@ -2403,6 +2403,8 @@ def times_overlap(s1, e1, s2, e2):
     t_e2 = parse_time_val(e2)
     if not t_s1 or not t_e1 or not t_s2 or not t_e2:
         return False
+    if t_s1 == t_s2 and t_e1 == t_e2:
+        return True
     # Strict inequality ensures back-to-back classes are allowed (e.g. 9:00-11:00 and 11:00-13:00)
     return (t_s1 < t_e2) and (t_e1 > t_s2)
 
@@ -2424,7 +2426,7 @@ def parse_course_days(days_str):
     if not days_str:
         return set(DAY_NAMES)
     s = str(days_str).lower()
-    if 'everyday' in s or 'all' in s:
+    if 'everyday' in s or 'all' in s or 'daily' in s:
         return set(DAY_NAMES)
     if 'monday to saturday' in s or 'mon to sat' in s:
         return {'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'}
@@ -2473,14 +2475,28 @@ def check_teacher_time_conflict(teacher_id, start_time, end_time, start_date=Non
         except (ValueError, TypeError):
             pass
 
+    d_sd = parse_date_val(start_date)
+    d_ed = parse_date_val(end_date)
+
     for b in batches:
         if times_overlap(t_s, t_e, b.start_time, b.end_time):
             if dates_overlap(start_date, end_date, b.start_date, b.end_date):
-                if check_days_overlap(course, b.course):
+                exact_same_slot = (
+                    t_s == b.start_time and
+                    t_e == b.end_time and
+                    (not d_sd or not b.start_date or d_sd == b.start_date) and
+                    (not d_ed or not b.end_date or d_ed == b.end_date)
+                )
+                if exact_same_slot or check_days_overlap(course, b.course):
                     t_str = f"{b.start_time.strftime('%I:%M %p')} - {b.end_time.strftime('%I:%M %p')}"
+                    d_str = ""
+                    if b.start_date and b.end_date:
+                        d_str = f", {b.start_date.strftime('%d/%m/%Y')} to {b.end_date.strftime('%d/%m/%Y')}"
+                    elif b.start_date:
+                        d_str = f", from {b.start_date.strftime('%d/%m/%Y')}"
                     teacher_name = b.teacher.display_name if b.teacher else "This teacher"
                     c_name = b.course.course_name if b.course else ""
-                    msg = f"Teacher {teacher_name} is already assigned to batch '{b.batch_name}' ({c_name}, {t_str}) during this time. A teacher cannot be assigned to multiple batches at the same time."
+                    msg = f"Teacher {teacher_name} is already assigned to batch '{b.batch_name}' ({c_name}, {t_str}{d_str}). A teacher cannot be assigned to multiple batches with the same or overlapping schedule."
                     return b, msg
     return None, None
 
@@ -2529,9 +2545,20 @@ def check_student_time_conflict(student_id, target_batch, exclude_enrollment_id=
         # Check 2: Time overlap with another batch
         if times_overlap(target_batch.start_time, target_batch.end_time, b.start_time, b.end_time):
             if dates_overlap(target_batch.start_date, target_batch.end_date, b.start_date, b.end_date):
-                if check_days_overlap(target_batch.course, b.course):
+                exact_same_slot = (
+                    target_batch.start_time == b.start_time and
+                    target_batch.end_time == b.end_time and
+                    (not target_batch.start_date or not b.start_date or target_batch.start_date == b.start_date) and
+                    (not target_batch.end_date or not b.end_date or target_batch.end_date == b.end_date)
+                )
+                if exact_same_slot or check_days_overlap(target_batch.course, b.course):
                     t_str = f"{b.start_time.strftime('%I:%M %p')} - {b.end_time.strftime('%I:%M %p')}"
-                    msg = f"Student {student_name} is already enrolled in batch '{b.batch_name}' ({c_name}, {t_str}) during this time. A student cannot be assigned to multiple batches at the same time."
+                    d_str = ""
+                    if b.start_date and b.end_date:
+                        d_str = f", {b.start_date.strftime('%d/%m/%Y')} to {b.end_date.strftime('%d/%m/%Y')}"
+                    elif b.start_date:
+                        d_str = f", from {b.start_date.strftime('%d/%m/%Y')}"
+                    msg = f"Student {student_name} is already enrolled in batch '{b.batch_name}' ({c_name}, {t_str}{d_str}). A student cannot be assigned to multiple batches at the same time."
                     return b, msg
     return None, None
 

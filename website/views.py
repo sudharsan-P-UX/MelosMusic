@@ -200,17 +200,26 @@ def students_view(request):
         joining_date = request.POST.get('joining_date')
         
         status = request.POST.get('status') == '1'
-        password = request.POST.get('password')
+        password = request.POST.get('password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
         
-        confirm_password = request.POST.get('confirm_password')
-        if password and password != confirm_password:
+        if not password:
+            messages.error(request, "Password is required.")
+            return redirect('students')
+
+        if password != confirm_password:
             messages.error(request, "Password and confirm password must match.")
             return redirect('students')
         
         days_list = request.POST.getlist('days')
         preferred_days = ', '.join(days_list) if days_list else request.POST.get('days', '')
         
-        parts = name.split(' ', 1)
+        clean_name = (name or '').strip()
+        clean_email = (email or '').strip()
+        clean_phone = (phone or '').strip()
+        normalized_name = ' '.join(clean_name.split())
+        
+        parts = normalized_name.split(' ', 1)
         fname = parts[0]
         lname = parts[1] if len(parts) > 1 else ""
         
@@ -221,33 +230,11 @@ def students_view(request):
                 user_code = f"S{int(last_student.user_code[1:]) + 1}"
             except: pass
             
-        # Uniqueness checks
-
-            
-        if User.objects.filter(first_name__iexact=fname).exists():
-
-            
-            messages.error(request, "Username (First Name) already exists.")
-
-            
-            return redirect('students')
-
-            
-        if User.objects.filter(email__iexact=email).exists():
-
-            
-            messages.error(request, "Email already exists.")
-
-            
-            return redirect('students')
-
-            
-        if User.objects.filter(phone=phone).exists():
-
-            
-            messages.error(request, "Phone already exists.")
-
-            
+        # Uniqueness checks: alert only if name, email, phone combination matches
+        from django.db.models import Q
+        name_q = Q(display_name__iexact=clean_name) | Q(display_name__iexact=normalized_name) | (Q(first_name__iexact=fname) & Q(last_name__iexact=lname))
+        if User.objects.filter(name_q, email__iexact=clean_email, phone=clean_phone).exists():
+            messages.error(request, "User already exists.")
             return redirect('students')
 
             
@@ -328,37 +315,27 @@ def update_student(request, student_id):
         try:
             student = User.objects.get(user_id=student_id)
             name = request.POST.get('student_name')
-            parts = name.split(' ', 1)
+            clean_name = (name or '').strip()
+            clean_email = (request.POST.get('email') or '').strip()
+            clean_phone = (request.POST.get('phone') or '').strip()
+            normalized_name = ' '.join(clean_name.split())
+
+            parts = normalized_name.split(' ', 1)
             fname = parts[0]
+            lname = parts[1] if len(parts) > 1 else ""
 
-            email = request.POST.get('email')
-
-            phone = request.POST.get('phone')
-
-            if User.objects.filter(first_name__iexact=fname).exclude(user_id=student_id).exists():
-
-                messages.error(request, "Username (First Name) already exists.")
-
+            from django.db.models import Q
+            name_q = Q(display_name__iexact=clean_name) | Q(display_name__iexact=normalized_name) | (Q(first_name__iexact=fname) & Q(last_name__iexact=lname))
+            if User.objects.filter(name_q, email__iexact=clean_email, phone=clean_phone).exclude(user_id=student_id).exists():
+                messages.error(request, "User already exists.")
                 return redirect('students')
 
-            if User.objects.filter(email__iexact=email).exclude(user_id=student_id).exists():
-
-                messages.error(request, "Email already exists.")
-
-                return redirect('students')
-
-            if User.objects.filter(phone=phone).exclude(user_id=student_id).exists():
-
-                messages.error(request, "Phone already exists.")
-
-                return redirect('students')
-
-            student.first_name = parts[0]
-            student.last_name = parts[1] if len(parts) > 1 else ""
+            student.first_name = fname
+            student.last_name = lname
             student.display_name = name
             
-            student.email = request.POST.get('email')
-            student.phone = request.POST.get('phone')
+            student.email = clean_email
+            student.phone = clean_phone
             student.is_active = request.POST.get('status') == '1'
             
             days_list = request.POST.getlist('days')
@@ -431,18 +408,27 @@ def teachers_view(request):
         phone = request.POST.get('phone')
         course_id = request.POST.get('course_id')
         status = request.POST.get('status') == '1'
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
+        password = request.POST.get('password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
         
         days_list = request.POST.getlist('days')
         preferred_days = ', '.join(days_list) if days_list else ''
         
-        # Simple validation
-        if password and password != confirm_password:
+        # Validation
+        if not password:
+            messages.error(request, "Password is required.")
+            return redirect('teachers')
+
+        if password != confirm_password:
             messages.error(request, "Password and confirm password must match.")
             return redirect('teachers')
         
-        parts = name.split(' ', 1)
+        clean_name = (name or '').strip()
+        clean_email = (email or '').strip()
+        clean_phone = (phone or '').strip()
+        normalized_name = ' '.join(clean_name.split())
+
+        parts = normalized_name.split(' ', 1)
         fname = parts[0]
         lname = parts[1] if len(parts) > 1 else ""
         
@@ -453,33 +439,11 @@ def teachers_view(request):
                 user_code = f"T{int(last_teacher.user_code[1:]) + 1}"
             except: pass
             
-        # Uniqueness checks
-
-            
-        if User.objects.filter(first_name__iexact=fname).exists():
-
-            
-            messages.error(request, "Username (First Name) already exists.")
-
-            
-            return redirect('teachers')
-
-            
-        if User.objects.filter(email__iexact=email).exists():
-
-            
-            messages.error(request, "Email already exists.")
-
-            
-            return redirect('teachers')
-
-            
-        if User.objects.filter(phone=phone).exists():
-
-            
-            messages.error(request, "Phone already exists.")
-
-            
+        # Uniqueness checks: alert only if name, email, phone combination matches
+        from django.db.models import Q
+        name_q = Q(display_name__iexact=clean_name) | Q(display_name__iexact=normalized_name) | (Q(first_name__iexact=fname) & Q(last_name__iexact=lname))
+        if User.objects.filter(name_q, email__iexact=clean_email, phone=clean_phone).exists():
+            messages.error(request, "User already exists.")
             return redirect('teachers')
 
             
@@ -603,37 +567,27 @@ def update_teacher(request, teacher_id):
         try:
             teacher = User.objects.get(user_id=teacher_id)
             name = request.POST.get('teacher_name')
-            parts = name.split(' ', 1)
+            clean_name = (name or '').strip()
+            clean_email = (request.POST.get('email') or '').strip()
+            clean_phone = (request.POST.get('phone') or '').strip()
+            normalized_name = ' '.join(clean_name.split())
+
+            parts = normalized_name.split(' ', 1)
             fname = parts[0]
+            lname = parts[1] if len(parts) > 1 else ""
 
-            email = request.POST.get('email')
-
-            phone = request.POST.get('phone')
-
-            if User.objects.filter(first_name__iexact=fname).exclude(user_id=teacher_id).exists():
-
-                messages.error(request, "Username (First Name) already exists.")
-
+            from django.db.models import Q
+            name_q = Q(display_name__iexact=clean_name) | Q(display_name__iexact=normalized_name) | (Q(first_name__iexact=fname) & Q(last_name__iexact=lname))
+            if User.objects.filter(name_q, email__iexact=clean_email, phone=clean_phone).exclude(user_id=teacher_id).exists():
+                messages.error(request, "User already exists.")
                 return redirect('teachers')
 
-            if User.objects.filter(email__iexact=email).exclude(user_id=teacher_id).exists():
-
-                messages.error(request, "Email already exists.")
-
-                return redirect('teachers')
-
-            if User.objects.filter(phone=phone).exclude(user_id=teacher_id).exists():
-
-                messages.error(request, "Phone already exists.")
-
-                return redirect('teachers')
-
-            teacher.first_name = parts[0]
-            teacher.last_name = parts[1] if len(parts) > 1 else ""
+            teacher.first_name = fname
+            teacher.last_name = lname
             teacher.display_name = name
             
-            teacher.email = request.POST.get('email')
-            teacher.phone = request.POST.get('phone')
+            teacher.email = clean_email
+            teacher.phone = clean_phone
             teacher.is_active = request.POST.get('status') == '1'
             
             days_list = request.POST.getlist('days')

@@ -18,6 +18,9 @@
         <button type="button" @click="tab = 'batches'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'batches', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'batches'}" class="pb-3 border-b-2 text-sm font-medium transition flex items-center">
             <i class="fa-solid fa-users-rectangle mr-2"></i> Batch Management
         </button>
+        <button type="button" @click="tab = 'classrooms'" :class="{'border-indigo-600 text-indigo-700 font-bold': tab === 'classrooms', 'border-transparent text-gray-500 hover:text-gray-700': tab !== 'classrooms'}" class="pb-3 border-b-2 text-sm font-medium transition flex items-center">
+            <i class="fa-solid fa-door-open mr-2"></i> Class Room
+        </button>
     </div>
 
     <!-- Courses Tab -->
@@ -124,6 +127,7 @@
                         <tr>
                             <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Batch</th>
                             <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course</th>
+                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Room</th>
                             <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Teacher</th>
                             <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Start Date</th>
                             <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">End Date</th>
@@ -144,6 +148,16 @@
                                 {% endif %}
                             </td>
                             <td class="py-3 px-4 font-semibold text-indigo-700">{{ batch.course.course_name }}</td>
+                            <td class="py-3 px-4 text-gray-700">
+                                {% if batch.classroom %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                    <i class="fa-solid fa-door-open mr-1 text-[10px]"></i> {{ batch.classroom.class_code }}
+                                </span>
+                                <div class="text-[11px] text-gray-500 mt-0.5 truncate max-w-[130px]" title="{{ batch.classroom.class_name }}">{{ batch.classroom.class_name }}</div>
+                                {% else %}
+                                <span class="text-gray-400 text-xs">-</span>
+                                {% endif %}
+                            </td>
                             <td class="py-3 px-4 text-gray-600">{{ batch.teacher.display_name|default:"Unassigned" }}</td>
                             <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
                                 {% if batch.start_date %}
@@ -182,6 +196,9 @@
                                         batch_code: '{{ batch.batch_code|default:"-"|escapejs }}',
                                         batch_name: '{{ batch.batch_name|escapejs }}',
                                         course_name: '{{ batch.course.course_name|escapejs }}',
+                                        classroom_code: '{{ batch.classroom.class_code|default:"-"|escapejs }}',
+                                        classroom_name: '{{ batch.classroom.class_name|default:"-"|escapejs }}',
+                                        classroom_location: '{% if batch.classroom %}{{ batch.classroom.build_name|default:"" }}{% if batch.classroom.block %}, {{ batch.classroom.block }}{% endif %}{% if batch.classroom.floor %}, {{ batch.classroom.floor }}{% endif %}{% if batch.classroom.class_no %}, Room {{ batch.classroom.class_no }}{% endif %}{% else %}-{% endif %}',
                                         teacher_name: '{{ batch.teacher.display_name|default:"Unassigned"|escapejs }}',
                                         teacher_code: '{{ batch.teacher.user_code|default:"-"|escapejs }}',
                                         start_date: '{{ batch.start_date|date:"d M Y"|default:"-"|escapejs }}',
@@ -199,6 +216,7 @@
                                         batch_code: '{{ batch.batch_code|default:""|escapejs }}',
                                         batch_name: '{{ batch.batch_name|escapejs }}',
                                         course_id: '{{ batch.course.course_id }}',
+                                        classroom_id: '{{ batch.classroom.classroom_id|default:"" }}',
                                         teacher_id: '{{ batch.teacher.user_id|default:"" }}',
                                         start_date: '{{ batch.start_date|date:"Y-m-d"|default:"" }}',
                                         end_date: '{{ batch.end_date|date:"Y-m-d"|default:"" }}',
@@ -221,7 +239,99 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="10" class="py-8 text-center text-gray-500">No batches available.</td></tr>
+                        <tr><td colspan="11" class="py-8 text-center text-gray-500">No batches available.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Room Tab -->
+    <div x-show="tab === 'classrooms'" style="display: none;" class="bg-white rounded-b-lg shadow-sm border border-gray-200 mb-8 p-6">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h3 class="text-lg font-bold text-gray-800">Class Room Master</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Manage physical classrooms, halls, and studio spaces</p>
+            </div>
+            {% if menu_access.add %}<button type="button" @click="openAddClassroom()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
+                <i class="fa-solid fa-plus mr-2"></i> Add Class Room
+            </button>{% endif %}
+        </div>
+
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="overflow-x-auto w-full">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Code</th>
+                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Name</th>
+                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Building Name</th>
+                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Block</th>
+                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Floor</th>
+                            <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class No</th>
+                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Capacity</th>
+                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-sm">
+                        {% for cr in classrooms %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 font-mono font-bold text-indigo-700">{{ cr.class_code }}</td>
+                            <td class="py-3 px-4 font-semibold text-gray-900">{{ cr.class_name }}</td>
+                            <td class="py-3 px-4 text-gray-600">{{ cr.build_name|default:"-" }}</td>
+                            <td class="py-3 px-4 text-gray-600">{{ cr.block|default:"-" }}</td>
+                            <td class="py-3 px-4 text-gray-600">{{ cr.floor|default:"-" }}</td>
+                            <td class="py-3 px-4 text-gray-600">{{ cr.class_no|default:"-" }}</td>
+                            <td class="py-3 px-4 text-center text-gray-600 font-medium">{{ cr.capacity|default:"-" }}</td>
+                            <td class="py-3 px-4 text-center">
+                                {% if cr.is_active %}
+                                <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">Active</span>
+                                {% else %}
+                                <span class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-center whitespace-nowrap">
+                                <div class="inline-flex items-center space-x-1.5">
+                                    <button type="button" @click="openViewClassroom({
+                                        classroom_id: '{{ cr.classroom_id }}',
+                                        class_code: '{{ cr.class_code|escapejs }}',
+                                        class_name: '{{ cr.class_name|escapejs }}',
+                                        build_name: '{{ cr.build_name|default:"-"|escapejs }}',
+                                        block: '{{ cr.block|default:"-"|escapejs }}',
+                                        floor: '{{ cr.floor|default:"-"|escapejs }}',
+                                        class_no: '{{ cr.class_no|default:"-"|escapejs }}',
+                                        capacity: '{{ cr.capacity|default:"-"|escapejs }}',
+                                        is_active: {% if cr.is_active %}true{% else %}false{% endif %}
+                                    })" class="w-8 h-8 flex items-center justify-center rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition" title="View Class Room">
+                                        <i class="fa-solid fa-eye text-sm"></i>
+                                    </button>
+                                    <button type="button" @click="openEditClassroom({
+                                        classroom_id: '{{ cr.classroom_id }}',
+                                        class_code: '{{ cr.class_code|escapejs }}',
+                                        class_name: '{{ cr.class_name|escapejs }}',
+                                        build_name: '{{ cr.build_name|default:""|escapejs }}',
+                                        block: '{{ cr.block|default:""|escapejs }}',
+                                        floor: '{{ cr.floor|default:""|escapejs }}',
+                                        class_no: '{{ cr.class_no|default:""|escapejs }}',
+                                        capacity: '{{ cr.capacity|default:"" }}',
+                                        status: '{% if cr.is_active %}active{% else %}inactive{% endif %}'
+                                    })" class="w-8 h-8 flex items-center justify-center rounded text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 transition" title="Edit Class Room">
+                                        <i class="fa-solid fa-pen-to-square text-sm"></i>
+                                    </button>
+                                    <button type="button" @click="openDeleteClassroom({
+                                        classroom_id: '{{ cr.classroom_id }}',
+                                        class_code: '{{ cr.class_code|escapejs }}',
+                                        class_name: '{{ cr.class_name|escapejs }}'
+                                    })" class="w-8 h-8 flex items-center justify-center rounded text-red-600 hover:text-red-800 hover:bg-red-50 transition" title="Delete Class Room">
+                                        <i class="fa-solid fa-trash text-sm"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="9" class="py-8 text-center text-gray-500">No class rooms available.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -670,12 +780,25 @@
                                 <i class="fa-solid fa-circle-check mr-1"></i> Showing teachers assigned to this course.
                             </p>
                         </div>
-                        <!-- 8. Capacity -->
+                        <!-- 8. Class Room -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Room</label>
+                            <select name="classroom_id" x-model="selectedClassroomId" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="">-- Select Class Room (Optional) --</option>
+                                {% for cr in classrooms %}
+                                <option value="{{ cr.classroom_id }}">{{ cr.class_code }} - {{ cr.class_name }}{% if cr.build_name %} ({{ cr.build_name }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-[11px] text-gray-400 mt-1">
+                                <i class="fa-solid fa-door-open mr-1"></i> Select allocated class room for this batch.
+                            </p>
+                        </div>
+                        <!-- 9. Capacity -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
                             <input type="number" name="capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 20">
                         </div>
-                        <!-- 9. Calculated Duration -->
+                        <!-- 10. Calculated Duration -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Duration</label>
                             <div class="relative">
@@ -685,7 +808,7 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- 10. Status -->
+                        <!-- 11. Status -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                             <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
@@ -747,6 +870,17 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div><span class="text-xs text-gray-500 block">Assigned Teacher</span><span class="font-medium text-gray-900" x-text="viewBatch.teacher_name"></span></div>
                         <div><span class="text-xs text-gray-500 block">Batch Capacity</span><span class="font-medium text-gray-900" x-text="viewBatch.capacity"></span></div>
+                    </div>
+                </div>
+
+                <div class="bg-purple-50 border border-purple-100 rounded-lg p-4">
+                    <div class="font-semibold text-purple-900 border-b border-purple-200 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-door-open text-purple-600"></i> Class Room Allocation
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><span class="text-xs text-gray-500 block">Class Code</span><span class="font-bold text-purple-900 font-mono" x-text="viewBatch.classroom_code || '-'"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Class Name</span><span class="font-medium text-gray-900" x-text="viewBatch.classroom_name || '-'"></span></div>
+                        <div class="col-span-2"><span class="text-xs text-gray-500 block">Location (Building / Block / Floor / Room No)</span><span class="font-medium text-gray-800" x-text="viewBatch.classroom_location || '-'"></span></div>
                     </div>
                 </div>
 
@@ -931,12 +1065,25 @@
                                 </button>
                             </div>
                         </div>
-                        <!-- 8. Capacity -->
+                        <!-- Class Room -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Room</label>
+                            <select name="classroom_id" x-model="editBatch.classroom_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="">-- Select Class Room (Optional) --</option>
+                                {% for cr in classrooms %}
+                                <option value="{{ cr.classroom_id }}">{{ cr.class_code }} - {{ cr.class_name }}{% if cr.build_name %} ({{ cr.build_name }}){% endif %}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-[11px] text-gray-400 mt-1">
+                                <i class="fa-solid fa-door-open mr-1"></i> Select allocated class room for this batch.
+                            </p>
+                        </div>
+                        <!-- Capacity -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
                             <input type="number" name="capacity" x-model="editBatch.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
-                        <!-- 9. Calculated Duration -->
+                        <!-- Calculated Duration -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Duration</label>
                             <div class="relative">
@@ -946,7 +1093,7 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- 10. Status -->
+                        <!-- Status -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                             <select name="status" x-model="editBatch.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
@@ -1003,6 +1150,208 @@
             </form>
         </div>
     </div>
+
+    <!-- ============================================================= -->
+    <!-- CLASS ROOM MODALS -->
+    <!-- ============================================================= -->
+
+    <!-- Add Class Room Modal -->
+    <div x-show="showClassroomModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showClassroomModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_classroom">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 overflow-y-auto flex-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg leading-6 font-bold text-gray-900"><i class="fa-solid fa-door-open text-indigo-600 mr-2"></i>Add New Class Room</h3>
+                        <button type="button" @click="showClassroomModal = false" class="text-gray-400 hover:text-gray-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Code <span class="text-xs text-gray-400">(Optional / Auto-generated)</span></label>
+                            <input type="text" name="class_code" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm uppercase font-mono" placeholder="e.g. CR101">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="class_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Piano Studio A">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Building Name</label>
+                            <input type="text" name="build_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Main Academy">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Block</label>
+                            <input type="text" name="block" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Block A">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+                            <input type="text" name="floor" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 1st Floor">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class No</label>
+                            <input type="text" name="class_no" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Room 102">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                            <input type="number" name="capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 25">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Save Class Room
+                    </button>
+                    <button type="button" @click="showClassroomModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Class Room Modal -->
+    <div x-show="showEditClassroomModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showEditClassroomModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+            <form method="POST" action="{% url 'courses' %}" class="flex flex-col flex-1 overflow-hidden">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_classroom">
+                <input type="hidden" name="classroom_id" :value="editClassroom.classroom_id">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-gray-200 overflow-y-auto flex-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg leading-6 font-bold text-gray-900"><i class="fa-solid fa-pen-to-square text-indigo-600 mr-2"></i>Edit Class Room</h3>
+                        <button type="button" @click="showEditClassroomModal = false" class="text-gray-400 hover:text-gray-500"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Code <span class="text-red-500">*</span></label>
+                            <input type="text" name="class_code" required x-model="editClassroom.class_code" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm uppercase font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="class_name" required x-model="editClassroom.class_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Building Name</label>
+                            <input type="text" name="build_name" x-model="editClassroom.build_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Block</label>
+                            <input type="text" name="block" x-model="editClassroom.block" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Floor</label>
+                            <input type="text" name="floor" x-model="editClassroom.floor" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class No</label>
+                            <input type="text" name="class_no" x-model="editClassroom.class_no" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
+                            <input type="number" name="capacity" x-model="editClassroom.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <select name="status" x-model="editClassroom.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Save Changes
+                    </button>
+                    <button type="button" @click="showEditClassroomModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Class Room Modal -->
+    <div x-show="showViewClassroomModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showViewClassroomModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-door-open text-indigo-600"></i> Class Room Details
+                </h3>
+                <button type="button" @click="showViewClassroomModal = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 text-sm flex-1">
+                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+                    <div class="flex justify-between items-center border-b border-indigo-200 pb-2 mb-3">
+                        <div class="font-bold text-indigo-900 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-door-closed text-indigo-600"></i>
+                            <span x-text="viewClassroom.class_name"></span>
+                        </div>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold" :class="viewClassroom.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" x-text="viewClassroom.is_active ? 'Active' : 'Inactive'"></span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><span class="text-xs text-gray-500 block">Class Code</span><span class="font-mono font-bold text-indigo-900" x-text="viewClassroom.class_code"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Capacity</span><span class="font-medium text-gray-900" x-text="viewClassroom.capacity || '-'"></span></div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-gray-600"></i> Location & Facility Details
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><span class="text-xs text-gray-500 block">Building Name</span><span class="font-medium text-gray-900" x-text="viewClassroom.build_name || '-'"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Block</span><span class="font-medium text-gray-900" x-text="viewClassroom.block || '-'"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Floor</span><span class="font-medium text-gray-900" x-text="viewClassroom.floor || '-'"></span></div>
+                        <div><span class="text-xs text-gray-500 block">Class No</span><span class="font-medium text-gray-900" x-text="viewClassroom.class_no || '-'"></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3 border-t bg-gray-50 flex justify-end">
+                <button type="button" @click="showViewClassroomModal = false" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Class Room Modal -->
+    <div x-show="showDeleteClassroomModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div @click.away="showDeleteClassroomModal = false" class="bg-white rounded-lg text-left overflow-hidden shadow-xl w-full max-w-md p-6">
+            <div class="flex items-center gap-3 text-red-600 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Delete Class Room</h3>
+                    <p class="text-xs text-gray-500">This action cannot be undone.</p>
+                </div>
+            </div>
+            <p class="text-sm text-gray-600 mb-6">
+                Are you sure you want to delete class room <strong class="text-gray-900" x-text="deleteClassroom.class_name"></strong> (<span class="font-mono text-xs text-indigo-700" x-text="deleteClassroom.class_code"></span>)?
+            </p>
+            <form method="POST" action="{% url 'courses' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_classroom">
+                <input type="hidden" name="classroom_id" :value="deleteClassroom.classroom_id">
+                <div class="flex justify-end gap-3">
+                    <button type="button" @click="showDeleteClassroomModal = false" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-trash text-xs"></i> Delete Class Room
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -1015,6 +1364,32 @@ function courseBatchData() {
         // Data arrays from server
         allCourses: {{ courses_json|safe|default:"[]" }},
         allTeachers: {{ teachers_json|safe|default:"[]" }},
+        allClassrooms: {{ classrooms_json|safe|default:"[]" }},
+
+        // Class Room Modals
+        showClassroomModal: false,
+        showViewClassroomModal: false,
+        showEditClassroomModal: false,
+        showDeleteClassroomModal: false,
+        viewClassroom: {},
+        editClassroom: {},
+        deleteClassroom: {},
+
+        openAddClassroom() {
+            this.showClassroomModal = true;
+        },
+        openViewClassroom(data) {
+            this.viewClassroom = data;
+            this.showViewClassroomModal = true;
+        },
+        openEditClassroom(data) {
+            this.editClassroom = { ...data };
+            this.showEditClassroomModal = true;
+        },
+        openDeleteClassroom(data) {
+            this.deleteClassroom = data;
+            this.showDeleteClassroomModal = true;
+        },
 
         // Course Modals
         showCourseModal: false,
@@ -1123,6 +1498,7 @@ function courseBatchData() {
 
         // Add Batch state & duration
         selectedCourseId: '',
+        selectedClassroomId: '',
         startDate: '',
         endDate: '',
         startTime: '',
@@ -1150,6 +1526,7 @@ function courseBatchData() {
         openAddBatch() {
             this.selectedCourseId = '';
             this.selectedTeacherId = '';
+            this.selectedClassroomId = '';
             this.startDate = '';
             this.endDate = '';
             this.startTime = '';
@@ -1215,6 +1592,7 @@ function courseBatchData() {
         openEditBatch(data) {
             this.editBatch = { ...data };
             this.editBatch.teacher_id = data.teacher_id ? String(data.teacher_id) : '';
+            this.editBatch.classroom_id = data.classroom_id ? String(data.classroom_id) : '';
             this.editBatch.calculatedDuration = this.computeDuration(data.start_time, data.end_time);
             this.editBatchConflictMessage = '';
             this.isCheckingEditConflict = false;

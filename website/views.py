@@ -987,7 +987,7 @@ def sync_batch_timetable(created_by_id=None):
             'sun': 'Sunday', 'sunday': 'Sunday'
         }
 
-        for batch in Batch.objects.select_related('course', 'teacher').filter(is_active=True):
+        for batch in Batch.objects.select_related('course', 'teacher', 'classroom').filter(is_active=True):
             if not (batch.start_time and batch.end_time and batch.teacher):
                 continue
 
@@ -1006,7 +1006,7 @@ def sync_batch_timetable(created_by_id=None):
             if not course_days:
                 course_days = list(all_class_days)
 
-            room = f"Studio {batch.batch_code}" if batch.batch_code else "Studio 1"
+            room = f"{batch.classroom.class_code} ({batch.classroom.class_name})" if batch.classroom else (f"Studio {batch.batch_code}" if batch.batch_code else "Studio 1")
 
             # Remove obsolete slots for days not in this course's schedule
             Timetable.objects.filter(batch=batch).exclude(day_of_week__in=course_days).delete()
@@ -3003,7 +3003,7 @@ def courses_batches_view(request):
 
         return redirect('login')
     
-    from academics.models import Course, Batch
+    from academics.models import Course, Batch, Classroom
     
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -3122,6 +3122,7 @@ def courses_batches_view(request):
                     
             course_id = request.POST.get('course_id')
             teacher_id = request.POST.get('teacher_id')
+            classroom_id = request.POST.get('classroom_id') or None
             start_date = request.POST.get('start_date') or None
             end_date = request.POST.get('end_date') or None
             start_time = request.POST.get('start_time') or None
@@ -3146,6 +3147,7 @@ def courses_batches_view(request):
                 batch_name=request.POST.get('batch_name'),
                 course_id=course_id,
                 teacher_id=teacher_id if teacher_id else None,
+                classroom_id=classroom_id,
                 start_date=start_date,
                 end_date=end_date,
                 start_time=start_time,
@@ -3167,6 +3169,7 @@ def courses_batches_view(request):
                 course_id = request.POST.get('course_id') or batch.course_id
                 course = Course.objects.filter(course_id=course_id).first() if course_id else batch.course
                 teacher_id = request.POST.get('teacher_id')
+                classroom_id = request.POST.get('classroom_id') or None
                 start_date = request.POST.get('start_date') or None
                 end_date = request.POST.get('end_date') or None
                 start_time = request.POST.get('start_time') or None
@@ -3190,6 +3193,7 @@ def courses_batches_view(request):
                 if course_id:
                     batch.course_id = course_id
                 batch.teacher_id = teacher_id if teacher_id else None
+                batch.classroom_id = classroom_id
                 batch.start_date = start_date
                 batch.end_date = end_date
                 batch.start_time = start_time
@@ -3219,11 +3223,87 @@ def courses_batches_view(request):
             except Exception as e:
                 messages.error(request, f'Error deleting batch: {str(e)}')
             return redirect('/courses/?tab=batches')
+        elif action == 'add_classroom':
+            class_code = (request.POST.get('class_code') or '').strip().upper()
+            if not class_code:
+                last_cr = Classroom.objects.exclude(class_code__isnull=True).exclude(class_code='').order_by('-classroom_id').first()
+                if last_cr and last_cr.class_code.startswith('CR'):
+                    try:
+                        num = int(last_cr.class_code[2:]) + 1
+                        class_code = f"CR{num}"
+                    except:
+                        class_code = "CR101"
+                else:
+                    class_code = "CR101"
+
+            if Classroom.objects.filter(class_code__iexact=class_code).exists():
+                messages.error(request, f"Class Code '{class_code}' already exists!")
+                return redirect('/courses/?tab=classrooms')
+
+            capacity = request.POST.get('capacity')
+            capacity_val = int(capacity) if capacity and str(capacity).strip().isdigit() else None
+
+            Classroom.objects.create(
+                class_code=class_code,
+                class_name=(request.POST.get('class_name') or '').strip(),
+                build_name=(request.POST.get('build_name') or '').strip() or None,
+                block=(request.POST.get('block') or '').strip() or None,
+                floor=(request.POST.get('floor') or '').strip() or None,
+                class_no=(request.POST.get('class_no') or '').strip() or None,
+                capacity=capacity_val,
+                is_active=(request.POST.get('status') == 'active'),
+                created_by=user.user_id
+            )
+            messages.success(request, 'Class Room added successfully!')
+            return redirect('/courses/?tab=classrooms')
+        elif action == 'edit_classroom':
+            classroom_id = request.POST.get('classroom_id')
+            try:
+                cr = Classroom.objects.get(classroom_id=classroom_id)
+                class_code = (request.POST.get('class_code') or '').strip().upper()
+                if not class_code:
+                    messages.error(request, "Class Code is required.")
+                    return redirect('/courses/?tab=classrooms')
+
+                if Classroom.objects.filter(class_code__iexact=class_code).exclude(classroom_id=classroom_id).exists():
+                    messages.error(request, f"Class Code '{class_code}' already exists!")
+                    return redirect('/courses/?tab=classrooms')
+
+                capacity = request.POST.get('capacity')
+                capacity_val = int(capacity) if capacity and str(capacity).strip().isdigit() else None
+
+                cr.class_code = class_code
+                cr.class_name = (request.POST.get('class_name') or '').strip()
+                cr.build_name = (request.POST.get('build_name') or '').strip() or None
+                cr.block = (request.POST.get('block') or '').strip() or None
+                cr.floor = (request.POST.get('floor') or '').strip() or None
+                cr.class_no = (request.POST.get('class_no') or '').strip() or None
+                cr.capacity = capacity_val
+                cr.is_active = (request.POST.get('status') == 'active')
+                cr.save()
+                sync_batch_timetable(user.user_id)
+                messages.success(request, 'Class Room updated successfully!')
+            except Exception as e:
+                messages.error(request, f'Error updating Class Room: {str(e)}')
+            return redirect('/courses/?tab=classrooms')
+        elif action == 'delete_classroom':
+            classroom_id = request.POST.get('classroom_id')
+            try:
+                b_count = Batch.objects.filter(classroom_id=classroom_id).count()
+                if b_count > 0:
+                    messages.error(request, f'Cannot delete Class Room because it is assigned to {b_count} batch(es). Please reassign those batches first.')
+                else:
+                    Classroom.objects.filter(classroom_id=classroom_id).delete()
+                    messages.success(request, 'Class Room deleted successfully!')
+            except Exception as e:
+                messages.error(request, f'Error deleting Class Room: {str(e)}')
+            return redirect('/courses/?tab=classrooms')
         return redirect('courses')
         
     courses = Course.objects.all().order_by('-course_id')
-    batches = Batch.objects.select_related('course', 'teacher').all().order_by('-batch_id')
+    batches = Batch.objects.select_related('course', 'teacher', 'classroom').all().order_by('-batch_id')
     teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('first_name', 'last_name')
+    classrooms = Classroom.objects.all().order_by('class_code')
     
     from academics.models import UserCourse
     import json
@@ -3257,6 +3337,21 @@ def courses_batches_view(request):
             'description': c.description or '',
         })
     courses_json = json.dumps(courses_list)
+
+    classrooms_list = []
+    for cr in classrooms:
+        classrooms_list.append({
+            'classroom_id': cr.classroom_id,
+            'class_code': cr.class_code or '',
+            'class_name': cr.class_name or '',
+            'build_name': cr.build_name or '',
+            'block': cr.block or '',
+            'floor': cr.floor or '',
+            'class_no': cr.class_no or '',
+            'capacity': cr.capacity if cr.capacity is not None else '',
+            'is_active': cr.is_active,
+        })
+    classrooms_json = json.dumps(classrooms_list)
     
     return render(request, 'website/courses_batches.html', {
         'user': user,
@@ -3266,6 +3361,8 @@ def courses_batches_view(request):
         'batches': batches,
         'teachers': teachers,
         'teachers_json': teachers_json,
+        'classrooms': classrooms,
+        'classrooms_json': classrooms_json,
     })
 
 def admin_dashboard_view(request):
@@ -4000,7 +4097,7 @@ def api_get_batch_details(request):
     batch_id = request.GET.get('id')
     try:
         from academics.models import Batch, StudentEnrollment
-        batch = Batch.objects.get(batch_id=batch_id)
+        batch = Batch.objects.select_related('course', 'teacher', 'classroom').get(batch_id=batch_id)
         enrolled_count = StudentEnrollment.objects.filter(batch=batch, status=1).count()
         remaining = (batch.capacity or 0) - enrolled_count
         
@@ -4010,6 +4107,9 @@ def api_get_batch_details(request):
             'course_name': batch.course.course_name,
             'batch_code': batch.batch_code,
             'batch_name': batch.batch_name,
+            'classroom_id': batch.classroom.classroom_id if batch.classroom else '',
+            'classroom_code': batch.classroom.class_code if batch.classroom else '',
+            'classroom_name': batch.classroom.class_name if batch.classroom else '',
             'teacher_id': batch.teacher.user_id if batch.teacher else '',
             'teacher_name': batch.teacher.display_name if batch.teacher else '',
             'teacher_phone': batch.teacher.phone if batch.teacher else '',

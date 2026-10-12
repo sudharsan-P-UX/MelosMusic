@@ -58,11 +58,31 @@ class UserAttendance(models.Model):
     class Meta:
         db_table = 'UserAttendance'
 
+class Classroom(models.Model):
+    classroom_id = models.AutoField(primary_key=True, db_column='ClassroomId')
+    class_code = models.CharField(max_length=50, unique=True, db_column='ClassCode')
+    class_name = models.CharField(max_length=255, db_column='ClassName')
+    build_name = models.CharField(max_length=255, null=True, blank=True, db_column='BuildName')
+    block = models.CharField(max_length=100, null=True, blank=True, db_column='Block')
+    floor = models.CharField(max_length=100, null=True, blank=True, db_column='Floor')
+    class_no = models.CharField(max_length=100, null=True, blank=True, db_column='ClassNo')
+    capacity = models.IntegerField(null=True, blank=True, db_column='Capacity')
+    is_active = models.BooleanField(default=True, db_column='IsActive')
+    created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
+    created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')
+
+    class Meta:
+        db_table = 'Classroom'
+
+    def __str__(self):
+        return f"{self.class_code} - {self.class_name}"
+
 class Batch(models.Model):
     batch_id = models.AutoField(primary_key=True, db_column='BatchId')
     batch_code = models.CharField(max_length=50, null=True, blank=True, db_column='BatchCode')
     batch_name = models.CharField(max_length=255, db_column='BatchName')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='CourseId')
+    classroom = models.ForeignKey(Classroom, on_delete=models.SET_NULL, null=True, blank=True, db_column='ClassroomId', related_name='batches')
     teacher = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, db_column='TeacherId')
     start_date = models.DateField(db_column='StartDate', null=True)
     end_date = models.DateField(db_column='EndDate', null=True)

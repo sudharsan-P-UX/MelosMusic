@@ -533,7 +533,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                            <select name="teacher_id" x-model="selectedTeacherId" @click="if(selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0) redirectToAssignTeacher()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <select name="teacher_id" x-model="selectedTeacherId" @change="checkAddBatchConflict()" @click="if(selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0) redirectToAssignTeacher()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="" x-show="!selectedCourseId">-- Select Course First --</option>
                                 <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0">-- No teacher assigned (Click to assign) --</option>
                                 <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0">-- Select Teacher --</option>
@@ -563,11 +563,11 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                            <input type="date" name="start_date" x-model="startDate" @change="calculateEndDate" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <input type="date" name="start_date" x-model="startDate" @change="calculateEndDate(); checkAddBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                            <input type="date" name="end_date" x-model="endDate" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <input type="date" name="end_date" x-model="endDate" @change="checkAddBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
@@ -597,9 +597,15 @@
                             </select>
                         </div>
                     </div>
+
+                    <!-- Conflict Warning Banner -->
+                    <div x-show="addBatchConflictMessage" class="mt-4 p-3.5 bg-red-50 border border-red-300 rounded-lg text-red-800 text-xs flex items-center gap-2.5">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg flex-shrink-0"></i>
+                        <span x-text="addBatchConflictMessage" class="font-semibold"></span>
+                    </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="submit" :disabled="Boolean(addBatchConflictMessage)" :class="addBatchConflictMessage ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
                         Save Batch
                     </button>
                     <button type="button" @click="showBatchModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
@@ -696,7 +702,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Teacher</label>
-                            <select name="teacher_id" x-model="editBatch.teacher_id" @click="if(editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0) redirectToAssignTeacherEdit()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <select name="teacher_id" x-model="editBatch.teacher_id" @change="checkEditBatchConflict()" @click="if(editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0) redirectToAssignTeacherEdit()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="" x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0">-- No teacher assigned (Click to assign) --</option>
                                 <option value="" x-show="!editBatch.course_id || getCourseTeacherCount(editBatch.course_id) > 0">-- Select Teacher --</option>
                                 <template x-for="teacher in getFilteredTeachers(editBatch.course_id, editBatch.teacher_id)" :key="'edit-' + teacher.user_id">
@@ -726,11 +732,11 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                            <input type="date" name="start_date" x-model="editBatch.start_date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <input type="date" name="start_date" x-model="editBatch.start_date" @change="checkEditBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                            <input type="date" name="end_date" x-model="editBatch.end_date" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <input type="date" name="end_date" x-model="editBatch.end_date" @change="checkEditBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
@@ -753,9 +759,15 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Conflict Warning Banner -->
+                    <div x-show="editBatchConflictMessage" class="mt-4 p-3.5 bg-red-50 border border-red-300 rounded-lg text-red-800 text-xs flex items-center gap-2.5">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg flex-shrink-0"></i>
+                        <span x-text="editBatchConflictMessage" class="font-semibold"></span>
+                    </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
-                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="submit" :disabled="Boolean(editBatchConflictMessage)" :class="editBatchConflictMessage ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
                         Update Batch
                     </button>
                     <button type="button" @click="showEditBatchModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
@@ -894,6 +906,8 @@ function courseBatchData() {
         viewBatch: {},
         editBatch: {},
         deleteBatch: {},
+        addBatchConflictMessage: '',
+        editBatchConflictMessage: '',
 
         // Teachers & Course mapping
         selectedTeacherId: '',
@@ -942,6 +956,7 @@ function courseBatchData() {
             this.startTime = '';
             this.endTime = '';
             this.calculatedDuration = '-';
+            this.addBatchConflictMessage = '';
             this.showBatchModal = true;
         },
 
@@ -965,6 +980,7 @@ function courseBatchData() {
             const cId = parseInt(this.selectedCourseId, 10);
             if (!cId) {
                 this.selectedTeacherId = '';
+                this.checkAddBatchConflict();
                 return;
             }
             const matching = this.allTeachers.filter(t => t.course_ids && t.course_ids.includes(cId));
@@ -978,6 +994,7 @@ function courseBatchData() {
             } else {
                 this.selectedTeacherId = '';
             }
+            this.checkAddBatchConflict();
         },
 
         onEditCourseChange() {
@@ -988,6 +1005,7 @@ function courseBatchData() {
             if (!stillValid && matching.length === 1) {
                 this.editBatch.teacher_id = String(matching[0].user_id);
             }
+            this.checkEditBatchConflict();
         },
 
         openViewBatch(data) {
@@ -998,11 +1016,58 @@ function courseBatchData() {
             this.editBatch = { ...data };
             this.editBatch.teacher_id = data.teacher_id ? String(data.teacher_id) : '';
             this.editBatch.calculatedDuration = this.computeDuration(data.start_time, data.end_time);
+            this.editBatchConflictMessage = '';
             this.showEditBatchModal = true;
+            this.$nextTick(() => { this.checkEditBatchConflict(); });
         },
         openDeleteBatch(data) {
             this.deleteBatch = data;
             this.showDeleteBatchModal = true;
+        },
+
+        checkAddBatchConflict() {
+            if (!this.selectedTeacherId || !this.startTime || !this.endTime) {
+                this.addBatchConflictMessage = '';
+                return;
+            }
+            const params = new URLSearchParams({
+                type: 'teacher',
+                teacher_id: this.selectedTeacherId,
+                start_time: this.startTime,
+                end_time: this.endTime,
+                start_date: this.startDate || '',
+                end_date: this.endDate || '',
+                course_id: this.selectedCourseId || ''
+            });
+            fetch(`/api/check-conflict/?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.addBatchConflictMessage = data.has_conflict ? data.conflict_message : '';
+                })
+                .catch(() => { this.addBatchConflictMessage = ''; });
+        },
+
+        checkEditBatchConflict() {
+            if (!this.editBatch.teacher_id || !this.editBatch.start_time || !this.editBatch.end_time) {
+                this.editBatchConflictMessage = '';
+                return;
+            }
+            const params = new URLSearchParams({
+                type: 'teacher',
+                teacher_id: this.editBatch.teacher_id,
+                start_time: this.editBatch.start_time,
+                end_time: this.editBatch.end_time,
+                start_date: this.editBatch.start_date || '',
+                end_date: this.editBatch.end_date || '',
+                course_id: this.editBatch.course_id || '',
+                exclude_batch_id: this.editBatch.batch_id || ''
+            });
+            fetch(`/api/check-conflict/?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.editBatchConflictMessage = data.has_conflict ? data.conflict_message : '';
+                })
+                .catch(() => { this.editBatchConflictMessage = ''; });
         },
 
         computeDuration(start, end) {
@@ -1027,10 +1092,12 @@ function courseBatchData() {
 
         onTimeChange() {
             this.calculatedDuration = this.computeDuration(this.startTime, this.endTime);
+            this.checkAddBatchConflict();
         },
 
         onEditTimeChange() {
             this.editBatch.calculatedDuration = this.computeDuration(this.editBatch.start_time, this.editBatch.end_time);
+            this.checkEditBatchConflict();
         },
 
         calculateEndDate() {

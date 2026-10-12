@@ -189,7 +189,7 @@
                             <h4 class="font-semibold text-indigo-800 mb-4 border-b border-indigo-200 pb-2">Student Selection</h4>
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Select Student <span class="text-red-500">*</span></label>
-                                <select name="student_id" x-model="selectedStudentId" @change="fetchStudentDetails" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                <select name="student_id" x-model="selectedStudentId" @change="fetchStudentDetails(); checkAddConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                     <option value="">-- Select Student --</option>
                                     {% for s in students %}
                                     <option value="{{ s.user_id }}">{{ s.display_name }} ({{ s.user_code|default:"-" }})</option>
@@ -209,7 +209,7 @@
                             <h4 class="font-semibold text-green-800 mb-4 border-b border-green-200 pb-2">Batch / Course Selection</h4>
                             <div class="mb-4">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Select Batch <span class="text-red-500">*</span></label>
-                                <select name="batch_id" x-model="selectedBatchId" @change="fetchBatchDetails" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-green-500 text-sm bg-white">
+                                <select name="batch_id" x-model="selectedBatchId" @change="fetchBatchDetails(); checkAddConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-green-500 text-sm bg-white">
                                     <option value="">-- Select Batch --</option>
                                     {% for b in batches %}
                                     <option value="{{ b.batch_id }}">{{ b.batch_name }} ({{ b.course.course_name }})</option>
@@ -239,10 +239,16 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Conflict Warning Banner -->
+                    <div x-show="addConflictMessage" class="mt-4 p-3.5 bg-red-50 border border-red-300 rounded-lg text-red-800 text-xs flex items-center gap-2.5">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg flex-shrink-0"></i>
+                        <span x-text="addConflictMessage" class="font-semibold"></span>
+                    </div>
                 </div>
                 
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 grid grid-cols-2 gap-3 sm:flex sm:flex-row-reverse rounded-b-lg border-t border-gray-200">
-                    <button type="submit" :disabled="batchData.remaining_capacity <= 0 && selectedBatchId != ''" :class="batchData.remaining_capacity <= 0 && selectedBatchId != '' ? 'opacity-50 cursor-not-allowed' : ''" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:gap-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    <button type="submit" :disabled="Boolean(addConflictMessage) || (batchData.remaining_capacity <= 0 && selectedBatchId != '')" :class="(addConflictMessage || (batchData.remaining_capacity <= 0 && selectedBatchId != '')) ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-indigo-600 hover:bg-indigo-700'" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:gap-0 sm:ml-3 sm:w-auto sm:text-sm">
                         Confirm Allocation
                     </button>
                     <button type="button" @click="showModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:gap-0 sm:ml-3 sm:w-auto sm:text-sm">
@@ -337,7 +343,7 @@
                         <!-- Student Selection -->
                         <div>
                             <label class="block font-medium text-gray-700 mb-1">Student <span class="text-red-500">*</span></label>
-                            <select name="student_id" x-model="editData.student_id" @change="fetchEditStudentDetails" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <select name="student_id" x-model="editData.student_id" @change="fetchEditStudentDetails(); checkEditConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                 <option value="">-- Select Student --</option>
                                 {% for s in students %}
                                 <option value="{{ s.user_id }}">{{ s.display_name }} ({{ s.user_code|default:"-" }})</option>
@@ -352,7 +358,7 @@
                         <!-- Batch Selection -->
                         <div>
                             <label class="block font-medium text-gray-700 mb-1">Batch / Course <span class="text-red-500">*</span></label>
-                            <select name="batch_id" x-model="editData.batch_id" @change="fetchEditBatchDetails" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <select name="batch_id" x-model="editData.batch_id" @change="fetchEditBatchDetails(); checkEditConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                 <option value="">-- Select Batch --</option>
                                 {% for b in batches %}
                                 <option value="{{ b.batch_id }}">{{ b.batch_name }} ({{ b.course.course_name }})</option>
@@ -366,11 +372,17 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Conflict Warning Banner -->
+                    <div x-show="editConflictMessage" class="mt-4 p-3.5 bg-red-50 border border-red-300 rounded-lg text-red-800 text-xs flex items-center gap-2.5">
+                        <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg flex-shrink-0"></i>
+                        <span x-text="editConflictMessage" class="font-semibold"></span>
+                    </div>
                 </div>
                 
                 <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
                     <button type="button" @click="showEditModal = false" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 text-sm font-medium transition">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium shadow transition">Update Allocation</button>
+                    <button type="submit" :disabled="Boolean(editConflictMessage)" :class="editConflictMessage ? 'opacity-50 cursor-not-allowed bg-red-600' : 'bg-amber-600 hover:bg-amber-700'" class="px-4 py-2 text-white rounded-md text-sm font-medium shadow transition">Update Allocation</button>
                 </div>
             </form>
         </div>
@@ -422,6 +434,8 @@ function allocationData() {
         showDeleteModal: false,
         selectedStudentId: '',
         selectedBatchId: '',
+        addConflictMessage: '',
+        editConflictMessage: '',
         studentData: { code: '', name: '', phone: '' },
         batchData: { 
             course_id: '', course_name: '', batch_code: '', 
@@ -451,6 +465,7 @@ function allocationData() {
 
         openEdit(data) {
             this.editData = Object.assign({}, data);
+            this.editConflictMessage = '';
             this.showEditModal = true;
         },
 
@@ -459,9 +474,36 @@ function allocationData() {
             this.showDeleteModal = true;
         },
 
+        checkAddConflict() {
+            if (!this.selectedStudentId || !this.selectedBatchId) {
+                this.addConflictMessage = '';
+                return;
+            }
+            fetch(`/api/check-conflict/?type=student&student_id=${this.selectedStudentId}&batch_id=${this.selectedBatchId}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.addConflictMessage = data.has_conflict ? data.conflict_message : '';
+                })
+                .catch(() => { this.addConflictMessage = ''; });
+        },
+
+        checkEditConflict() {
+            if (!this.editData.student_id || !this.editData.batch_id) {
+                this.editConflictMessage = '';
+                return;
+            }
+            fetch(`/api/check-conflict/?type=student&student_id=${this.editData.student_id}&batch_id=${this.editData.batch_id}&exclude_enrollment_id=${this.editData.enrollment_id || ''}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.editConflictMessage = data.has_conflict ? data.conflict_message : '';
+                })
+                .catch(() => { this.editConflictMessage = ''; });
+        },
+
         fetchStudentDetails() {
             if (!this.selectedStudentId) {
                 this.studentData = { code: '', name: '', phone: '' };
+                this.addConflictMessage = '';
                 return;
             }
             fetch(`/api/get-student/?id=${this.selectedStudentId}`)
@@ -480,6 +522,7 @@ function allocationData() {
         fetchBatchDetails() {
             if (!this.selectedBatchId) {
                 this.batchData = { course_id: '', course_name: '', batch_code: '', teacher_name: '', teacher_phone: '', start_time: '', end_time: '', remaining_capacity: 0 };
+                this.addConflictMessage = '';
                 return;
             }
             fetch(`/api/get-batch/?id=${this.selectedBatchId}`)
@@ -492,7 +535,10 @@ function allocationData() {
         },
 
         fetchEditStudentDetails() {
-            if (!this.editData.student_id) return;
+            if (!this.editData.student_id) {
+                this.editConflictMessage = '';
+                return;
+            }
             fetch(`/api/get-student/?id=${this.editData.student_id}`)
                 .then(res => res.json())
                 .then(data => {
@@ -505,7 +551,10 @@ function allocationData() {
         },
 
         fetchEditBatchDetails() {
-            if (!this.editData.batch_id) return;
+            if (!this.editData.batch_id) {
+                this.editConflictMessage = '';
+                return;
+            }
             fetch(`/api/get-batch/?id=${this.editData.batch_id}`)
                 .then(res => res.json())
                 .then(data => {

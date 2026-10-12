@@ -2315,6 +2315,171 @@ def fee_collection_view(request):
     })
 
 
+# =====================================================================
+# TIME & SCHEDULE CONFLICT HELPERS FOR TEACHERS AND STUDENTS
+# =====================================================================
+from datetime import datetime, date, time
+
+def parse_time_val(val):
+    if not val:
+        return None
+    if isinstance(val, time):
+        return val
+    val_str = str(val).strip()
+    for fmt in ('%H:%M:%S', '%H:%M', '%I:%M %p', '%I:%M%p'):
+        try:
+            return datetime.strptime(val_str, fmt).time()
+        except ValueError:
+            pass
+    return None
+
+def parse_date_val(val):
+    if not val:
+        return None
+    if isinstance(val, date):
+        return val
+    val_str = str(val).strip()
+    for fmt in ('%Y-%m-%d', '%d/%m/%Y', '%d-%m-%Y', '%Y/%m/%d'):
+        try:
+            return datetime.strptime(val_str, fmt).date()
+        except ValueError:
+            pass
+    return None
+
+def times_overlap(s1, e1, s2, e2):
+    t_s1 = parse_time_val(s1)
+    t_e1 = parse_time_val(e1)
+    t_s2 = parse_time_val(s2)
+    t_e2 = parse_time_val(e2)
+    if not t_s1 or not t_e1 or not t_s2 or not t_e2:
+        return False
+    # Strict inequality ensures back-to-back classes are allowed (e.g. 9:00-11:00 and 11:00-13:00)
+    return (t_s1 < t_e2) and (t_e1 > t_s2)
+
+def dates_overlap(sd1, ed1, sd2, ed2):
+    d_sd1 = parse_date_val(sd1)
+    d_ed1 = parse_date_val(ed1)
+    d_sd2 = parse_date_val(sd2)
+    d_ed2 = parse_date_val(ed2)
+
+    if d_ed1 and d_sd2 and d_ed1 < d_sd2:
+        return False
+    if d_ed2 and d_sd1 and d_ed2 < d_sd1:
+        return False
+    return True
+
+DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+def parse_course_days(days_str):
+    if not days_str:
+        return set(DAY_NAMES)
+    s = str(days_str).lower()
+    if 'everyday' in s or 'all' in s:
+        return set(DAY_NAMES)
+    if 'monday to saturday' in s or 'mon to sat' in s:
+        return {'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'}
+    if 'monday to friday' in s or 'weekdays' in s:
+        return {'monday', 'tuesday', 'wednesday', 'thursday', 'friday'}
+    if 'weekend' in s:
+        return {'saturday', 'sunday'}
+    found = set()
+    for d in DAY_NAMES:
+        if d in s or d[:3] in s:
+            found.add(d)
+    return found if found else set(DAY_NAMES)
+
+def check_days_overlap(course1, course2):
+    if not course1 or not course2:
+        return True
+    days1 = parse_course_days(getattr(course1, 'days', ''))
+    days2 = parse_course_days(getattr(course2, 'days', ''))
+    return bool(days1.intersection(days2))
+
+def check_teacher_time_conflict(teacher_id, start_time, end_time, start_date=None, end_date=None, course=None, exclude_batch_id=None):
+    """
+    Checks if teacher is already assigned to another active batch with overlapping time.
+    Returns (conflicting_batch, error_message) or (None, None).
+    """
+    from academics.models import Batch
+    from users.models import User
+
+    if not teacher_id or not start_time or not end_time:
+        return None, None
+
+    t_s = parse_time_val(start_time)
+    t_e = parse_time_val(end_time)
+    if not t_s or not t_e:
+        return None, None
+
+    batches = Batch.objects.filter(
+        teacher_id=teacher_id,
+        is_active=True
+    ).exclude(start_time__isnull=True).exclude(end_time__isnull=True).select_related('course', 'teacher')
+
+    if exclude_batch_id:
+        try:
+            exclude_batch_id = int(exclude_batch_id)
+            batches = batches.exclude(batch_id=exclude_batch_id)
+        except (ValueError, TypeError):
+            pass
+
+    for b in batches:
+        if times_overlap(t_s, t_e, b.start_time, b.end_time):
+            if dates_overlap(start_date, end_date, b.start_date, b.end_date):
+                if check_days_overlap(course, b.course):
+                    t_str = f"{b.start_time.strftime('%I:%M %p')} - {b.end_time.strftime('%I:%M %p')}"
+                    teacher_name = b.teacher.display_name if b.teacher else "This teacher"
+                    c_name = b.course.course_name if b.course else ""
+                    msg = f"Teacher {teacher_name} is already assigned to batch '{b.batch_name}' ({c_name}, {t_str}) during this time. A teacher cannot be assigned to multiple batches at the same time."
+                    return b, msg
+    return None, None
+
+def check_student_time_conflict(student_id, target_batch, exclude_enrollment_id=None):
+    """
+    Checks if student is already enrolled in another active batch with overlapping time.
+    Returns (conflicting_batch, error_message) or (None, None).
+    """
+    from academics.models import Batch, StudentEnrollment
+    from users.models import User
+
+    if not student_id or not target_batch:
+        return None, None
+
+    if not isinstance(target_batch, Batch):
+        target_batch = Batch.objects.filter(batch_id=target_batch).select_related('course').first()
+
+    if not target_batch or not target_batch.start_time or not target_batch.end_time:
+        return None, None
+
+    enrollments = StudentEnrollment.objects.filter(
+        student_id=student_id,
+        status=1,
+        batch__isnull=False,
+        batch__is_active=True
+    ).exclude(batch__start_time__isnull=True).exclude(batch__end_time__isnull=True).select_related('batch', 'batch__course', 'student')
+
+    if exclude_enrollment_id:
+        try:
+            exclude_enrollment_id = int(exclude_enrollment_id)
+            enrollments = enrollments.exclude(enrollment_id=exclude_enrollment_id)
+        except (ValueError, TypeError):
+            pass
+
+    for enr in enrollments:
+        b = enr.batch
+        if b.batch_id == target_batch.batch_id:
+            continue
+        if times_overlap(target_batch.start_time, target_batch.end_time, b.start_time, b.end_time):
+            if dates_overlap(target_batch.start_date, target_batch.end_date, b.start_date, b.end_date):
+                if check_days_overlap(target_batch.course, b.course):
+                    t_str = f"{b.start_time.strftime('%I:%M %p')} - {b.end_time.strftime('%I:%M %p')}"
+                    student_name = enr.student.display_name if enr.student else "This student"
+                    c_name = b.course.course_name if b.course else ""
+                    msg = f"Student {student_name} is already enrolled in batch '{b.batch_name}' ({c_name}, {t_str}) during this time. A student cannot be assigned to multiple batches at the same time."
+                    return b, msg
+    return None, None
+
+
 def assign_fees_view(request):
     if 'user_id' not in request.session:
         return redirect('login')
@@ -2353,6 +2518,17 @@ def assign_fees_view(request):
             course = Course.objects.filter(course_id=course_id).first() if course_id else None
             batch = Batch.objects.filter(batch_id=batch_id).first() if batch_id else None
             
+            if batch:
+                existing_enr = StudentEnrollment.objects.filter(student=student, course=course).first() if course else None
+                clash_batch, clash_msg = check_student_time_conflict(
+                    student_id=student.user_id,
+                    target_batch=batch,
+                    exclude_enrollment_id=existing_enr.enrollment_id if existing_enr else None
+                )
+                if clash_batch:
+                    messages.error(request, clash_msg)
+                    return redirect('assign_fees')
+
             sf, created = StudentFee.objects.update_or_create(
                 student=student,
                 course=course,
@@ -2863,15 +3039,34 @@ def courses_batches_view(request):
                     
             course_id = request.POST.get('course_id')
             teacher_id = request.POST.get('teacher_id')
+            start_date = request.POST.get('start_date') or None
+            end_date = request.POST.get('end_date') or None
+            start_time = request.POST.get('start_time') or None
+            end_time = request.POST.get('end_time') or None
+            course = Course.objects.filter(course_id=course_id).first() if course_id else None
+
+            if teacher_id and start_time and end_time:
+                clash_b, clash_m = check_teacher_time_conflict(
+                    teacher_id=teacher_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                    start_date=start_date,
+                    end_date=end_date,
+                    course=course
+                )
+                if clash_b:
+                    messages.error(request, clash_m)
+                    return redirect('/courses/?tab=batches')
+
             Batch.objects.create(
                 batch_code=batch_code,
                 batch_name=request.POST.get('batch_name'),
                 course_id=course_id,
                 teacher_id=teacher_id if teacher_id else None,
-                start_date=request.POST.get('start_date') or None,
-                end_date=request.POST.get('end_date') or None,
-                start_time=request.POST.get('start_time') or None,
-                end_time=request.POST.get('end_time') or None,
+                start_date=start_date,
+                end_date=end_date,
+                start_time=start_time,
+                end_time=end_time,
                 capacity=request.POST.get('capacity') or None,
                 is_active=request.POST.get('status') == 'active',
                 created_by=user.user_id
@@ -2886,16 +3081,36 @@ def courses_batches_view(request):
             batch_id = request.POST.get('batch_id')
             try:
                 batch = Batch.objects.get(batch_id=batch_id)
+                course_id = request.POST.get('course_id') or batch.course_id
+                course = Course.objects.filter(course_id=course_id).first() if course_id else batch.course
+                teacher_id = request.POST.get('teacher_id')
+                start_date = request.POST.get('start_date') or None
+                end_date = request.POST.get('end_date') or None
+                start_time = request.POST.get('start_time') or None
+                end_time = request.POST.get('end_time') or None
+
+                if teacher_id and start_time and end_time:
+                    clash_b, clash_m = check_teacher_time_conflict(
+                        teacher_id=teacher_id,
+                        start_time=start_time,
+                        end_time=end_time,
+                        start_date=start_date,
+                        end_date=end_date,
+                        course=course,
+                        exclude_batch_id=batch.batch_id
+                    )
+                    if clash_b:
+                        messages.error(request, clash_m)
+                        return redirect('/courses/?tab=batches')
+
                 batch.batch_name = request.POST.get('batch_name')
-                course_id = request.POST.get('course_id')
                 if course_id:
                     batch.course_id = course_id
-                teacher_id = request.POST.get('teacher_id')
                 batch.teacher_id = teacher_id if teacher_id else None
-                batch.start_date = request.POST.get('start_date') or None
-                batch.end_date = request.POST.get('end_date') or None
-                batch.start_time = request.POST.get('start_time') or None
-                batch.end_time = request.POST.get('end_time') or None
+                batch.start_date = start_date
+                batch.end_date = end_date
+                batch.start_time = start_time
+                batch.end_time = end_time
                 batch.capacity = request.POST.get('capacity') or None
                 batch.is_active = (request.POST.get('status') == 'active')
                 batch.save()
@@ -3304,12 +3519,23 @@ def student_course_view(request):
             batch_id = request.POST.get('batch_id')
             try:
                 enrollment = StudentEnrollment.objects.get(enrollment_id=enrollment_id)
-                if student_id:
-                    enrollment.student = User.objects.get(user_id=student_id)
-                if batch_id:
-                    batch = Batch.objects.get(batch_id=batch_id)
-                    enrollment.batch = batch
-                    enrollment.course = batch.course
+                target_student = User.objects.get(user_id=student_id) if student_id else enrollment.student
+                target_batch = Batch.objects.get(batch_id=batch_id) if batch_id else enrollment.batch
+
+                if target_batch:
+                    clash_b, clash_m = check_student_time_conflict(
+                        student_id=target_student.user_id,
+                        target_batch=target_batch,
+                        exclude_enrollment_id=enrollment.enrollment_id
+                    )
+                    if clash_b:
+                        messages.error(request, clash_m)
+                        return redirect('student_course')
+
+                enrollment.student = target_student
+                if target_batch:
+                    enrollment.batch = target_batch
+                    enrollment.course = target_batch.course
                 enrollment.save()
                 
                 # Sync fee
@@ -3415,6 +3641,16 @@ def student_allocation_view(request):
                 
                 # Check if already enrolled in this course
                 existing = StudentEnrollment.objects.filter(student=student, course=batch.course).first()
+
+                clash_b, clash_m = check_student_time_conflict(
+                    student_id=student.user_id,
+                    target_batch=batch,
+                    exclude_enrollment_id=existing.enrollment_id if existing else None
+                )
+                if clash_b:
+                    messages.error(request, clash_m)
+                    return redirect('student_allocation')
+
                 if existing:
                     existing.batch = batch
                     existing.save()
@@ -3462,12 +3698,23 @@ def student_allocation_view(request):
             batch_id = request.POST.get('batch_id')
             try:
                 enrollment = StudentEnrollment.objects.get(enrollment_id=enrollment_id)
-                if student_id:
-                    enrollment.student = User.objects.get(user_id=student_id)
-                if batch_id:
-                    batch = Batch.objects.get(batch_id=batch_id)
-                    enrollment.batch = batch
-                    enrollment.course = batch.course
+                target_student = User.objects.get(user_id=student_id) if student_id else enrollment.student
+                target_batch = Batch.objects.get(batch_id=batch_id) if batch_id else enrollment.batch
+
+                if target_batch:
+                    clash_b, clash_m = check_student_time_conflict(
+                        student_id=target_student.user_id,
+                        target_batch=target_batch,
+                        exclude_enrollment_id=enrollment.enrollment_id
+                    )
+                    if clash_b:
+                        messages.error(request, clash_m)
+                        return redirect('student_allocation')
+
+                enrollment.student = target_student
+                if target_batch:
+                    enrollment.batch = target_batch
+                    enrollment.course = target_batch.course
                 enrollment.save()
                 
                 # Sync fee
@@ -3707,9 +3954,26 @@ def teacher_allocation_view(request):
             try:
                 teacher = User.objects.get(user_id=teacher_id)
                 batch = Batch.objects.get(batch_id=batch_id)
-                
+
+                clash_b, clash_m = check_teacher_time_conflict(
+                    teacher_id=teacher.user_id,
+                    start_time=batch.start_time,
+                    end_time=batch.end_time,
+                    start_date=batch.start_date,
+                    end_date=batch.end_date,
+                    course=batch.course,
+                    exclude_batch_id=batch.batch_id
+                )
+                if clash_b:
+                    messages.error(request, clash_m)
+                    return redirect('teacher_allocation')
+
                 batch.teacher = teacher
                 batch.save()
+                if batch.course_id:
+                    from academics.models import UserCourse
+                    UserCourse.objects.get_or_create(user_id=teacher.user_id, course_id=batch.course_id, defaults={'is_active': True})
+                sync_batch_timetable(user.user_id)
                 messages.success(request, 'Teacher allocated successfully.')
             except Exception as e:
                 messages.error(request, f'Error allocating teacher: {str(e)}')
@@ -3720,8 +3984,26 @@ def teacher_allocation_view(request):
             try:
                 batch = Batch.objects.get(batch_id=batch_id)
                 teacher = User.objects.get(user_id=teacher_id)
+
+                clash_b, clash_m = check_teacher_time_conflict(
+                    teacher_id=teacher.user_id,
+                    start_time=batch.start_time,
+                    end_time=batch.end_time,
+                    start_date=batch.start_date,
+                    end_date=batch.end_date,
+                    course=batch.course,
+                    exclude_batch_id=batch.batch_id
+                )
+                if clash_b:
+                    messages.error(request, clash_m)
+                    return redirect('teacher_allocation')
+
                 batch.teacher = teacher
                 batch.save()
+                if batch.course_id:
+                    from academics.models import UserCourse
+                    UserCourse.objects.get_or_create(user_id=teacher.user_id, course_id=batch.course_id, defaults={'is_active': True})
+                sync_batch_timetable(user.user_id)
                 messages.success(request, 'Teacher allocation updated successfully.')
             except Exception as e:
                 messages.error(request, f'Error updating teacher allocation: {str(e)}')
@@ -3732,6 +4014,7 @@ def teacher_allocation_view(request):
                 batch = Batch.objects.get(batch_id=batch_id)
                 batch.teacher = None
                 batch.save()
+                sync_batch_timetable(user.user_id)
                 messages.success(request, 'Teacher allocation removed successfully.')
             except Exception as e:
                 messages.error(request, f'Error removing teacher allocation: {str(e)}')
@@ -3776,6 +4059,64 @@ def api_get_teacher_details(request):
         })
     except:
         return JsonResponse({'success': False})
+
+def api_check_conflict(request):
+    check_type = request.GET.get('type')  # 'teacher' or 'student'
+    
+    if check_type == 'teacher':
+        teacher_id = request.GET.get('teacher_id')
+        batch_id = request.GET.get('batch_id')
+        start_time = request.GET.get('start_time')
+        end_time = request.GET.get('end_time')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        course_id = request.GET.get('course_id')
+        exclude_batch_id = request.GET.get('exclude_batch_id')
+        
+        from academics.models import Batch, Course
+        course = Course.objects.filter(course_id=course_id).first() if course_id else None
+        
+        if batch_id:
+            target_batch = Batch.objects.filter(batch_id=batch_id).select_related('course').first()
+            if target_batch:
+                start_time = target_batch.start_time
+                end_time = target_batch.end_time
+                start_date = target_batch.start_date
+                end_date = target_batch.end_date
+                course = target_batch.course
+                if not exclude_batch_id:
+                    exclude_batch_id = target_batch.batch_id
+
+        clash_batch, msg = check_teacher_time_conflict(
+            teacher_id=teacher_id,
+            start_time=start_time,
+            end_time=end_time,
+            start_date=start_date,
+            end_date=end_date,
+            course=course,
+            exclude_batch_id=exclude_batch_id
+        )
+        return JsonResponse({
+            'has_conflict': bool(clash_batch),
+            'conflict_message': msg or ''
+        })
+
+    elif check_type == 'student':
+        student_id = request.GET.get('student_id')
+        batch_id = request.GET.get('batch_id')
+        exclude_enrollment_id = request.GET.get('exclude_enrollment_id')
+        
+        clash_batch, msg = check_student_time_conflict(
+            student_id=student_id,
+            target_batch=batch_id,
+            exclude_enrollment_id=exclude_enrollment_id
+        )
+        return JsonResponse({
+            'has_conflict': bool(clash_batch),
+            'conflict_message': msg or ''
+        })
+
+    return JsonResponse({'has_conflict': False, 'conflict_message': ''})
 
 def attendance_log_view(request):
     if 'user_id' not in request.session:

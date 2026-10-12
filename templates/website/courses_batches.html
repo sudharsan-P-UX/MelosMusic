@@ -125,6 +125,8 @@
                             <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Batch</th>
                             <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course</th>
                             <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Teacher</th>
+                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Start Date</th>
+                            <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">End Date</th>
                             <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Timing</th>
                             <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Duration</th>
                             <th class="py-3 px-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Capacity</th>
@@ -135,11 +137,32 @@
                     <tbody class="divide-y divide-gray-100 text-sm">
                         {% for batch in batches %}
                         <tr class="hover:bg-gray-50 transition">
-                            <td class="py-3 px-4 font-medium text-gray-800">{{ batch.batch_code|default:batch.batch_name }}</td>
+                            <td class="py-3 px-4 font-medium text-gray-800">
+                                <div class="font-bold text-gray-900">{{ batch.batch_name }}</div>
+                                {% if batch.batch_code %}
+                                <div class="text-[11px] font-mono text-gray-500">{{ batch.batch_code }}</div>
+                                {% endif %}
+                            </td>
                             <td class="py-3 px-4 font-semibold text-indigo-700">{{ batch.course.course_name }}</td>
                             <td class="py-3 px-4 text-gray-600">{{ batch.teacher.display_name|default:"Unassigned" }}</td>
-                            <td class="py-3 px-4 text-center text-gray-600">{% if batch.start_time and batch.end_time %}{{ batch.start_time|time:"g:i A" }} - {{ batch.end_time|time:"g:i A" }}{% else %}-{% endif %}</td>
-                            <td class="py-3 px-4 text-center font-medium">
+                            <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
+                                {% if batch.start_date %}
+                                <span class="inline-flex items-center text-gray-700">
+                                    <i class="fa-regular fa-calendar mr-1 text-[10px] text-gray-400"></i>
+                                    {{ batch.start_date|date:"d M Y" }}
+                                </span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
+                                {% if batch.end_date %}
+                                <span class="inline-flex items-center text-gray-700">
+                                    <i class="fa-regular fa-calendar-check mr-1 text-[10px] text-gray-400"></i>
+                                    {{ batch.end_date|date:"d M Y" }}
+                                </span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-center text-gray-600 whitespace-nowrap">{% if batch.start_time and batch.end_time %}{{ batch.start_time|time:"g:i A" }} - {{ batch.end_time|time:"g:i A" }}{% else %}-{% endif %}</td>
+                            <td class="py-3 px-4 text-center font-medium whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">
                                     <i class="fa-regular fa-clock mr-1 text-[11px]"></i> {{ batch.duration_display }}
                                 </span>
@@ -198,7 +221,7 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="8" class="py-8 text-center text-gray-500">No batches available.</td></tr>
+                        <tr><td colspan="10" class="py-8 text-center text-gray-500">No batches available.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

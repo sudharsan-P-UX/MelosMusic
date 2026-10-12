@@ -32,8 +32,12 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="w-full md:w-48">
-            <input type="date" name="date" value="{{ selected_date }}" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+        <div class="w-full md:w-48 relative">
+            <input type="text" inputmode="numeric" name="date" id="t_filter_date" value="{{ selected_date }}" placeholder="YYYY-MM-DD" oninput="formatDateTimeInput(this, 'date')" onblur="formatDateTimeInput(this, 'date', true)" class="w-full border border-gray-300 text-gray-700 rounded-md pl-3 pr-8 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+            <button type="button" onclick="triggerPicker('t_filter_date_picker')" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Calendar picker">
+                <i class="fa-regular fa-calendar-days text-xs"></i>
+            </button>
+            <input type="date" id="t_filter_date_picker" onchange="document.getElementById('t_filter_date').value = this.value" class="sr-only">
         </div>
         <div class="w-full md:w-40">
             <select name="approval_status" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
@@ -209,11 +213,23 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-medium text-gray-700 mb-1">From Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="from_date" id="t_from_date" required onchange="checkTFromDate(this)" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="relative">
+                            <input type="text" inputmode="numeric" name="from_date" id="t_from_date" required placeholder="YYYY-MM-DD" oninput="formatDateTimeInput(this, 'date'); checkTFromDate(this)" onblur="formatDateTimeInput(this, 'date', true); checkTFromDate(this)" onchange="checkTFromDate(this)" class="w-full border border-gray-300 rounded-md pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <button type="button" onclick="triggerPicker('t_from_date_picker')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Calendar picker">
+                                <i class="fa-regular fa-calendar-days text-sm"></i>
+                            </button>
+                            <input type="date" id="t_from_date_picker" onchange="document.getElementById('t_from_date').value = this.value; checkTFromDate(document.getElementById('t_from_date'))" class="sr-only">
+                        </div>
                     </div>
                     <div>
                         <label class="block font-medium text-gray-700 mb-1">To Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="to_date" id="t_to_date" required onchange="checkTToDate(this)" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="relative">
+                            <input type="text" inputmode="numeric" name="to_date" id="t_to_date" required placeholder="YYYY-MM-DD" oninput="formatDateTimeInput(this, 'date'); checkTToDate(this)" onblur="formatDateTimeInput(this, 'date', true); checkTToDate(this)" onchange="checkTToDate(this)" class="w-full border border-gray-300 rounded-md pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <button type="button" onclick="triggerPicker('t_to_date_picker')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Calendar picker">
+                                <i class="fa-regular fa-calendar-days text-sm"></i>
+                            </button>
+                            <input type="date" id="t_to_date_picker" onchange="document.getElementById('t_to_date').value = this.value; checkTToDate(document.getElementById('t_to_date'))" class="sr-only">
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -240,11 +256,23 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-medium text-gray-700 mb-1">Check In</label>
-                        <input type="time" name="check_in_time" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="relative">
+                            <input type="text" inputmode="numeric" name="check_in_time" id="t_check_in_time" placeholder="HH:MM" oninput="formatDateTimeInput(this, 'time')" onblur="formatDateTimeInput(this, 'time', true)" class="w-full border border-gray-300 rounded-md pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <button type="button" onclick="triggerPicker('t_check_in_time_picker')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Time picker">
+                                <i class="fa-regular fa-clock text-sm"></i>
+                            </button>
+                            <input type="time" id="t_check_in_time_picker" onchange="document.getElementById('t_check_in_time').value = this.value" class="sr-only">
+                        </div>
                     </div>
                     <div>
                         <label class="block font-medium text-gray-700 mb-1">Check Out</label>
-                        <input type="time" name="check_out_time" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="relative">
+                            <input type="text" inputmode="numeric" name="check_out_time" id="t_check_out_time" placeholder="HH:MM" oninput="formatDateTimeInput(this, 'time')" onblur="formatDateTimeInput(this, 'time', true)" class="w-full border border-gray-300 rounded-md pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <button type="button" onclick="triggerPicker('t_check_out_time_picker')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Time picker">
+                                <i class="fa-regular fa-clock text-sm"></i>
+                            </button>
+                            <input type="time" id="t_check_out_time_picker" onchange="document.getElementById('t_check_out_time').value = this.value" class="sr-only">
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -328,11 +356,23 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-medium text-gray-700 mb-1">Check In</label>
-                        <input type="time" name="check_in_time" id="t_update_check_in" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="relative">
+                            <input type="text" inputmode="numeric" name="check_in_time" id="t_update_check_in" placeholder="HH:MM" oninput="formatDateTimeInput(this, 'time')" onblur="formatDateTimeInput(this, 'time', true)" class="w-full border border-gray-300 rounded-md pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <button type="button" onclick="triggerPicker('t_update_check_in_picker')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Time picker">
+                                <i class="fa-regular fa-clock text-sm"></i>
+                            </button>
+                            <input type="time" id="t_update_check_in_picker" onchange="document.getElementById('t_update_check_in').value = this.value" class="sr-only">
+                        </div>
                     </div>
                     <div>
                         <label class="block font-medium text-gray-700 mb-1">Check Out</label>
-                        <input type="time" name="check_out_time" id="t_update_check_out" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div class="relative">
+                            <input type="text" inputmode="numeric" name="check_out_time" id="t_update_check_out" placeholder="HH:MM" oninput="formatDateTimeInput(this, 'time')" onblur="formatDateTimeInput(this, 'time', true)" class="w-full border border-gray-300 rounded-md pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <button type="button" onclick="triggerPicker('t_update_check_out_picker')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Time picker">
+                                <i class="fa-regular fa-clock text-sm"></i>
+                            </button>
+                            <input type="time" id="t_update_check_out_picker" onchange="document.getElementById('t_update_check_out').value = this.value" class="sr-only">
+                        </div>
                     </div>
                 </div>
 

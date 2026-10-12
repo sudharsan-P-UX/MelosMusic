@@ -563,19 +563,103 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                            <input type="date" name="start_date" x-model="startDate" @change="calculateEndDate(); checkAddBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="start_date" 
+                                       x-model="startDate" 
+                                       placeholder="YYYY-MM-DD" 
+                                       @input="startDate = formatBatchDate($event.target.value); calculateEndDate(); checkAddBatchConflict()" 
+                                       @blur="startDate = formatBatchDate(startDate, true); calculateEndDate(); checkAddBatchConflict()"
+                                       @change="calculateEndDate(); checkAddBatchConflict()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerAddStartDate)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Calendar picker">
+                                    <i class="fa-regular fa-calendar-days text-sm"></i>
+                                </button>
+                                <input type="date" 
+                                       x-ref="pickerAddStartDate" 
+                                       :value="startDate" 
+                                       @change="startDate = $event.target.value; calculateEndDate(); checkAddBatchConflict()" 
+                                       class="sr-only">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                            <input type="date" name="end_date" x-model="endDate" @change="checkAddBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="end_date" 
+                                       x-model="endDate" 
+                                       placeholder="YYYY-MM-DD" 
+                                       @input="endDate = formatBatchDate($event.target.value); checkAddBatchConflict()" 
+                                       @blur="endDate = formatBatchDate(endDate, true); checkAddBatchConflict()"
+                                       @change="checkAddBatchConflict()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerAddEndDate)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Calendar picker">
+                                    <i class="fa-regular fa-calendar-days text-sm"></i>
+                                </button>
+                                <input type="date" 
+                                       x-ref="pickerAddEndDate" 
+                                       :value="endDate" 
+                                       @change="endDate = $event.target.value; checkAddBatchConflict()" 
+                                       class="sr-only">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                            <input type="time" name="start_time" x-model="startTime" @input="calculateEndTime(); onTimeChange()" @change="calculateEndTime(); onTimeChange()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="start_time" 
+                                       x-model="startTime" 
+                                       placeholder="HH:MM (e.g. 09:00)" 
+                                       @input="startTime = formatBatchTime($event.target.value); calculateEndTime(); onTimeChange()" 
+                                       @blur="startTime = formatBatchTime(startTime, true); calculateEndTime(); onTimeChange()"
+                                       @change="calculateEndTime(); onTimeChange()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerAddStartTime)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Time picker">
+                                    <i class="fa-regular fa-clock text-sm"></i>
+                                </button>
+                                <input type="time" 
+                                       x-ref="pickerAddStartTime" 
+                                       :value="startTime" 
+                                       @change="startTime = $event.target.value; calculateEndTime(); onTimeChange()" 
+                                       class="sr-only">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                            <input type="time" name="end_time" x-model="endTime" @input="onTimeChange()" @change="onTimeChange()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="end_time" 
+                                       x-model="endTime" 
+                                       placeholder="HH:MM (e.g. 11:00)" 
+                                       @input="endTime = formatBatchTime($event.target.value); onTimeChange()" 
+                                       @blur="endTime = formatBatchTime(endTime, true); onTimeChange()"
+                                       @change="onTimeChange()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerAddEndTime)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Time picker">
+                                    <i class="fa-regular fa-clock text-sm"></i>
+                                </button>
+                                <input type="time" 
+                                       x-ref="pickerAddEndTime" 
+                                       :value="endTime" 
+                                       @change="endTime = $event.target.value; onTimeChange()" 
+                                       class="sr-only">
+                            </div>
                             <p x-show="selectedCourseDurationHrs > 0 && startTime" class="text-[11px] text-indigo-600 font-medium mt-1">
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="selectedCourseDurationHrs"></span> hrs)
                             </p>
@@ -732,19 +816,103 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                            <input type="date" name="start_date" x-model="editBatch.start_date" @change="checkEditBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="start_date" 
+                                       x-model="editBatch.start_date" 
+                                       placeholder="YYYY-MM-DD" 
+                                       @input="editBatch.start_date = formatBatchDate($event.target.value); checkEditBatchConflict()" 
+                                       @blur="editBatch.start_date = formatBatchDate(editBatch.start_date, true); checkEditBatchConflict()"
+                                       @change="checkEditBatchConflict()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerEditStartDate)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Calendar picker">
+                                    <i class="fa-regular fa-calendar-days text-sm"></i>
+                                </button>
+                                <input type="date" 
+                                       x-ref="pickerEditStartDate" 
+                                       :value="editBatch.start_date" 
+                                       @change="editBatch.start_date = $event.target.value; checkEditBatchConflict()" 
+                                       class="sr-only">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                            <input type="date" name="end_date" x-model="editBatch.end_date" @change="checkEditBatchConflict()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="end_date" 
+                                       x-model="editBatch.end_date" 
+                                       placeholder="YYYY-MM-DD" 
+                                       @input="editBatch.end_date = formatBatchDate($event.target.value); checkEditBatchConflict()" 
+                                       @blur="editBatch.end_date = formatBatchDate(editBatch.end_date, true); checkEditBatchConflict()"
+                                       @change="checkEditBatchConflict()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerEditEndDate)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Calendar picker">
+                                    <i class="fa-regular fa-calendar-days text-sm"></i>
+                                </button>
+                                <input type="date" 
+                                       x-ref="pickerEditEndDate" 
+                                       :value="editBatch.end_date" 
+                                       @change="editBatch.end_date = $event.target.value; checkEditBatchConflict()" 
+                                       class="sr-only">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                            <input type="time" name="start_time" x-model="editBatch.start_time" @input="calculateEditEndTime(); onEditTimeChange()" @change="calculateEditEndTime(); onEditTimeChange()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="start_time" 
+                                       x-model="editBatch.start_time" 
+                                       placeholder="HH:MM (e.g. 09:00)" 
+                                       @input="editBatch.start_time = formatBatchTime($event.target.value); calculateEditEndTime(); onEditTimeChange()" 
+                                       @blur="editBatch.start_time = formatBatchTime(editBatch.start_time, true); calculateEditEndTime(); onEditTimeChange()"
+                                       @change="calculateEditEndTime(); onEditTimeChange()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerEditStartTime)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Time picker">
+                                    <i class="fa-regular fa-clock text-sm"></i>
+                                </button>
+                                <input type="time" 
+                                       x-ref="pickerEditStartTime" 
+                                       :value="editBatch.start_time" 
+                                       @change="editBatch.start_time = $event.target.value; calculateEditEndTime(); onEditTimeChange()" 
+                                       class="sr-only">
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                            <input type="time" name="end_time" x-model="editBatch.end_time" @input="onEditTimeChange()" @change="onEditTimeChange()" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <div class="relative">
+                                <input type="text" 
+                                       inputmode="numeric" 
+                                       name="end_time" 
+                                       x-model="editBatch.end_time" 
+                                       placeholder="HH:MM (e.g. 11:00)" 
+                                       @input="editBatch.end_time = formatBatchTime($event.target.value); onEditTimeChange()" 
+                                       @blur="editBatch.end_time = formatBatchTime(editBatch.end_time, true); onEditTimeChange()"
+                                       @change="onEditTimeChange()" 
+                                       class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button type="button" 
+                                        @click="openPicker($refs.pickerEditEndTime)" 
+                                        class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
+                                        title="Time picker">
+                                    <i class="fa-regular fa-clock text-sm"></i>
+                                </button>
+                                <input type="time" 
+                                       x-ref="pickerEditEndTime" 
+                                       :value="editBatch.end_time" 
+                                       @change="editBatch.end_time = $event.target.value; onEditTimeChange()" 
+                                       class="sr-only">
+                            </div>
                             <p x-show="editCourseDurationHrs > 0 && editBatch.start_time" class="text-[11px] text-indigo-600 font-medium mt-1">
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="editCourseDurationHrs"></span> hrs)
                             </p>
@@ -1154,6 +1322,69 @@ function courseBatchData() {
             const endM = totalMinutes % 60;
             this.editBatch.end_time = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
             this.onEditTimeChange();
+        },
+
+        openPicker(refEl) {
+            if (!refEl) return;
+            if (typeof refEl.showPicker === 'function') {
+                try {
+                    refEl.showPicker();
+                    return;
+                } catch (e) {}
+            }
+            refEl.focus();
+            refEl.click();
+        },
+
+        formatBatchTime(val, isBlur = false) {
+            if (!val) return '';
+            let digits = val.replace(/[^0-9]/g, '');
+            if (digits.length === 0) return '';
+            if (isBlur) {
+                if (digits.length === 1) return `0${digits}:00`;
+                if (digits.length === 2) {
+                    let h = parseInt(digits, 10);
+                    if (h > 23) h = 23;
+                    return `${String(h).padStart(2, '0')}:00`;
+                }
+                if (digits.length === 3) {
+                    let h = parseInt(digits.slice(0, 1), 10);
+                    let m = parseInt(digits.slice(1), 10);
+                    if (m > 59) m = 59;
+                    return `0${h}:${String(m).padStart(2, '0')}`;
+                }
+            }
+            if (digits.length <= 2) {
+                let h = parseInt(digits, 10);
+                if (digits.length === 2 && h > 23) digits = '23';
+                return digits;
+            }
+            let h = parseInt(digits.slice(0, 2), 10);
+            if (h > 23) h = 23;
+            let m = digits.slice(2, 4);
+            if (m.length === 2 && parseInt(m, 10) > 59) m = '59';
+            return `${String(h).padStart(2, '0')}:${m}`;
+        },
+
+        formatBatchDate(val, isBlur = false) {
+            if (!val) return '';
+            let digits = val.replace(/[^0-9]/g, '');
+            if (digits.length === 0) return '';
+            if (digits.length <= 4) return digits;
+            if (digits.length <= 6) {
+                let y = digits.slice(0, 4);
+                let m = digits.slice(4);
+                if (m.length === 2 && parseInt(m, 10) > 12) m = '12';
+                return `${y}-${m}`;
+            }
+            let y = digits.slice(0, 4);
+            let m = digits.slice(4, 6);
+            if (parseInt(m, 10) > 12) m = '12';
+            if (parseInt(m, 10) === 0) m = '01';
+            let d = digits.slice(6, 8);
+            if (d.length === 2 && parseInt(d, 10) > 31) d = '31';
+            if (d.length === 2 && parseInt(d, 10) === 0) d = '01';
+            return `${y}-${m}-${d}`;
         }
     };
 }

@@ -116,8 +116,76 @@
         </div>
     </main>
 
-    <!-- Restore Sidebar Scroll Position -->
+    <!-- Restore Sidebar Scroll Position & Mobile DateTime Helpers -->
     <script>
+        function triggerPicker(pickerId) {
+            const el = document.getElementById(pickerId);
+            if (!el) return;
+            if (typeof el.showPicker === 'function') {
+                try {
+                    el.showPicker();
+                    return;
+                } catch (e) {}
+            }
+            el.focus();
+            el.click();
+        }
+
+        function formatDateTimeInput(input, type, isBlur = false) {
+            if (!input) return;
+            let val = input.value;
+            if (!val) return;
+            let digits = val.replace(/[^0-9]/g, '');
+            if (digits.length === 0) return;
+
+            if (type === 'time') {
+                if (isBlur) {
+                    if (digits.length === 1) { input.value = `0${digits}:00`; return; }
+                    if (digits.length === 2) {
+                        let h = parseInt(digits, 10);
+                        if (h > 23) h = 23;
+                        input.value = `${String(h).padStart(2, '0')}:00`;
+                        return;
+                    }
+                    if (digits.length === 3) {
+                        let h = parseInt(digits.slice(0, 1), 10);
+                        let m = parseInt(digits.slice(1), 10);
+                        if (m > 59) m = 59;
+                        input.value = `0${h}:${String(m).padStart(2, '0')}`;
+                        return;
+                    }
+                }
+                if (digits.length <= 2) {
+                    let h = parseInt(digits, 10);
+                    if (digits.length === 2 && h > 23) digits = '23';
+                    input.value = digits;
+                    return;
+                }
+                let h = parseInt(digits.slice(0, 2), 10);
+                if (h > 23) h = 23;
+                let m = digits.slice(2, 4);
+                if (m.length === 2 && parseInt(m, 10) > 59) m = '59';
+                input.value = `${String(h).padStart(2, '0')}:${m}`;
+            } else if (type === 'date') {
+                if (digits.length <= 4) { input.value = digits; return; }
+                if (digits.length <= 6) {
+                    let y = digits.slice(0, 4);
+                    let m = digits.slice(4);
+                    if (m.length === 2 && parseInt(m, 10) > 12) m = '12';
+                    input.value = `${y}-${m}`;
+                    return;
+                }
+                let y = digits.slice(0, 4);
+                let m = digits.slice(4, 6);
+                if (parseInt(m, 10) > 12) m = '12';
+                if (parseInt(m, 10) === 0) m = '01';
+                let d = digits.slice(6, 8);
+                if (d.length === 2 && parseInt(d, 10) > 31) d = '31';
+                if (d.length === 2 && parseInt(d, 10) === 0) d = '01';
+                input.value = `${y}-${m}-${d}`;
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() { 
             const sidebar = document.getElementById('sidebar-nav');
             if (sidebar) {

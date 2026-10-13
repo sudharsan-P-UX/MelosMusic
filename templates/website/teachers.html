@@ -15,7 +15,7 @@
                     <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
                     <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
                 </button>
-                {% if menu_access.add %}<button type="button" onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded shadow-sm text-sm h-[34px] flex items-center">
+                {% if menu_access.add and not is_staff_role %}<button type="button" onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-4 rounded shadow-sm text-sm h-[34px] flex items-center">
                     <i class="fa-solid fa-plus mr-1.5"></i> Add Staff
                 </button>{% endif %}
             </div>
@@ -102,7 +102,7 @@
                         </button>
                         {% endif %}
                         <!-- Delete Button -->
-                        {% if menu_access.delete %}
+                        {% if menu_access.delete and not is_staff_role %}
                         <a href="{% url 'delete_teacher' teacher.user_id %}" onclick="return confirm('Are you sure you want to delete {{ teacher.display_name }}?')" class="text-red-500 hover:text-red-700 transition" title="Delete">
                             <i class="fa-solid fa-trash-can"></i>
                         </a>

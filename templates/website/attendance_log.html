@@ -94,7 +94,7 @@
                             {% endif %}
                         </td>
                         <td class="py-3 px-4 text-center">
-                            {% if l.manager_approval_status != 'Pending' %}
+                            {% if l.manager_approval_status != 'Pending' and not is_staff_role %}
                             <form method="POST" action="?tab={{ tab }}" class="flex items-center justify-center">
                                 {% csrf_token %}
                                 <input type="hidden" name="tab" value="{{ tab }}">

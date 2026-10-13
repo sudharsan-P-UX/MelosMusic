@@ -14,9 +14,11 @@
                 <span x-text="showFilter ? 'Hide Filter' : 'Filter'">Filter</span>
                 <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="{'rotate-180': showFilter}"></i>
             </button>
+            {% if menu_access.add and not is_staff_role %}
             <button @click="showModal = true" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium transition shadow-sm flex items-center text-sm">
                 <i class="fa-solid fa-plus mr-2"></i> Add Staff Allocation
             </button>
+            {% endif %}
         </div>
     </div>
 
@@ -123,7 +125,7 @@
                             })" class="w-7 h-7 flex items-center justify-center rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition" title="View Allocation">
                                 <i class="fa-solid fa-eye text-sm"></i>
                             </button>
-                            {% if menu_access.edit %}
+                            {% if menu_access.edit and not is_staff_role %}
                             <button type="button" @click="openEdit({
                                 batch_id: '{{ alloc.batch_id }}',
                                 teacher_id: '{{ alloc.teacher.user_id }}',
@@ -138,7 +140,7 @@
                                 <i class="fa-solid fa-pen-to-square text-sm"></i>
                             </button>
                             {% endif %}
-                            {% if menu_access.delete %}
+                            {% if menu_access.delete and not is_staff_role %}
                             <button type="button" @click="openDelete({
                                 batch_id: '{{ alloc.batch_id }}',
                                 teacher_name: '{{ alloc.teacher.display_name|escapejs }}',

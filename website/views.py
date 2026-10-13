@@ -398,7 +398,16 @@ def teachers_view(request):
     rg, _ = RoleGroup.objects.get_or_create(role_group_name="Teachers")
     teacher_role, _ = Role.objects.get_or_create(role_name="Teacher", defaults={'role_group': rg})
     
+    is_staff_role = bool(user.role and (
+        user.role.role_name.lower() in ('teacher', 'staff') or
+        (user.role.role_group and user.role.role_group.role_group_name.lower() in ('teachers', 'staff'))
+    ))
+    
     if request.method == 'POST':
+        if is_staff_role:
+            messages.error(request, "Staff members cannot add new staff accounts.")
+            return redirect('teachers')
+
         if not has_permission(request, 'add', 'Staff Master'):
             messages.error(request, "You do not have permission to add staff records.")
             return redirect('teachers')
@@ -521,6 +530,8 @@ def teachers_view(request):
         return redirect('teachers')
         
     teachers = User.objects.filter(role=teacher_role).order_by('-user_id')
+    if is_staff_role:
+        teachers = teachers.filter(user_id=user.user_id)
     
     # Filter logic for teachers
     search = request.GET.get('search', '')
@@ -552,13 +563,28 @@ def teachers_view(request):
         'courses': courses,
         'batches': batches,
         'teachers': teachers,
-        'page_title': 'Staff Portfolio'
+        'page_title': 'Staff Portfolio',
+        'is_staff_role': is_staff_role,
     })
 
 def update_teacher(request, teacher_id):
     if 'user_id' not in request.session:
         return redirect('login')
         
+    try:
+        user = User.objects.get(user_id=request.session['user_id'])
+    except User.DoesNotExist:
+        request.session.flush()
+        return redirect('login')
+
+    is_staff_role = bool(user.role and (
+        user.role.role_name.lower() in ('teacher', 'staff') or
+        (user.role.role_group and user.role.role_group.role_group_name.lower() in ('teachers', 'staff'))
+    ))
+    if is_staff_role and int(teacher_id) != user.user_id:
+        messages.error(request, "You can only edit your own details.")
+        return redirect('teachers')
+
     if not has_permission(request, 'edit', 'Staff Master'):
         messages.error(request, "You do not have permission to edit staff records.")
         return redirect('teachers')
@@ -673,6 +699,20 @@ def update_teacher(request, teacher_id):
 def delete_teacher(request, teacher_id):
     if 'user_id' not in request.session:
         return redirect('login')
+    try:
+        user = User.objects.get(user_id=request.session['user_id'])
+    except User.DoesNotExist:
+        request.session.flush()
+        return redirect('login')
+
+    is_staff_role = bool(user.role and (
+        user.role.role_name.lower() in ('teacher', 'staff') or
+        (user.role.role_group and user.role.role_group.role_group_name.lower() in ('teachers', 'staff'))
+    ))
+    if is_staff_role:
+        messages.error(request, "Staff members cannot delete staff records.")
+        return redirect('teachers')
+
     if not has_permission(request, 'delete', 'Staff Master'):
         messages.error(request, "You do not have permission to delete staff records.")
         return redirect('teachers')
@@ -2014,6 +2054,11 @@ def teacher_attendance_view(request):
         return redirect('login')
     from academics.models import TeacherAttendance, TeacherAttendanceDetail
     
+    is_staff_role = bool(user.role and (
+        user.role.role_name.lower() in ('teacher', 'staff') or
+        (user.role.role_group and user.role.role_group.role_group_name.lower() in ('teachers', 'staff'))
+    ))
+    
     if request.method == 'POST':
         action = request.POST.get('action')
         if action in ('mark_teacher_attendance', 'apply_leave'):
@@ -2035,7 +2080,10 @@ def teacher_attendance_view(request):
             check_in_time = request.POST.get('check_in_time') or None
             check_out_time = request.POST.get('check_out_time') or None
             remarks = request.POST.get('remarks') or request.POST.get('request_type', '')
-            teacher = User.objects.filter(user_id=teacher_id).first() if teacher_id else None
+            if is_staff_role:
+                teacher = user
+            else:
+                teacher = User.objects.filter(user_id=teacher_id).first() if teacher_id else None
             if from_date and teacher:
                 from datetime import datetime, timedelta
                 d_from = datetime.strptime(str(from_date).strip(), '%Y-%m-%d').date()
@@ -2076,6 +2124,9 @@ def teacher_attendance_view(request):
                 messages.success(request, f'Attendance marked for {teacher.display_name or teacher.first_name} ({count} day{"s" if count > 1 else ""})! Status: Pending Approval.')
             return redirect('teacher_attendance')
         elif action in ('approve_teacher_attendance', 'reject_teacher_attendance'):
+            if is_staff_role:
+                messages.error(request, 'Staff members cannot approve attendance records.')
+                return redirect('teacher_attendance')
             detail_id = request.POST.get('detail_id')
             if detail_id:
                 new_app = 'Approved' if action == 'approve_teacher_attendance' else 'Rejected'
@@ -2100,6 +2151,9 @@ def teacher_attendance_view(request):
             if detail_id:
                 detail = TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).first()
                 if detail:
+                    if is_staff_role and detail.teacher_id != user.user_id:
+                        messages.error(request, 'You can only update your own attendance records.')
+                        return redirect('teacher_attendance')
                     if detail.approval_status != 'Pending':
                         messages.error(request, f'Cannot update attendance that has already been {detail.approval_status.lower()}. Only pending records can be updated.')
                         return redirect('teacher_attendance')
@@ -2109,9 +2163,10 @@ def teacher_attendance_view(request):
                             detail.attendance_status = int(status)
                         except (ValueError, TypeError):
                             pass
-                    approval_status = request.POST.get('approval_status')
-                    if approval_status in ('Pending', 'Approved', 'Rejected'):
-                        detail.approval_status = approval_status
+                    if not is_staff_role:
+                        approval_status = request.POST.get('approval_status')
+                        if approval_status in ('Pending', 'Approved', 'Rejected'):
+                            detail.approval_status = approval_status
                     check_in = request.POST.get('check_in_time')
                     check_out = request.POST.get('check_out_time')
                     detail.check_in_time = check_in if check_in else None
@@ -2140,6 +2195,9 @@ def teacher_attendance_view(request):
             if detail_id:
                 detail = TeacherAttendanceDetail.objects.filter(teacher_attendance_detail_id=detail_id).first()
                 if detail:
+                    if is_staff_role and detail.teacher_id != user.user_id:
+                        messages.error(request, 'You can only delete your own attendance records.')
+                        return redirect('teacher_attendance')
                     if detail.approval_status != 'Pending':
                         messages.error(request, f'Cannot delete attendance record that has already been {detail.approval_status.lower()}. Only pending records can be deleted.')
                         return redirect('teacher_attendance')
@@ -2155,12 +2213,14 @@ def teacher_attendance_view(request):
     selected_date = request.GET.get('date', '')
     selected_approval_status = request.GET.get('approval_status', '')
     
-    teachers = User.objects.filter(role__role_name__iexact='teacher', is_active=True)
-    
-    details = TeacherAttendanceDetail.objects.select_related('teacher_attendance', 'teacher').order_by('-teacher_attendance__attendance_date')
-    
-    if selected_teacher:
-        details = details.filter(teacher_id=selected_teacher)
+    if is_staff_role:
+        teachers = User.objects.filter(user_id=user.user_id)
+        details = TeacherAttendanceDetail.objects.filter(teacher=user).select_related('teacher_attendance', 'teacher').order_by('-teacher_attendance__attendance_date')
+    else:
+        teachers = User.objects.filter(role__role_name__iexact='teacher', is_active=True)
+        details = TeacherAttendanceDetail.objects.select_related('teacher_attendance', 'teacher').order_by('-teacher_attendance__attendance_date')
+        if selected_teacher:
+            details = details.filter(teacher_id=selected_teacher)
         
     if selected_date:
         details = details.filter(teacher_attendance__attendance_date=selected_date)
@@ -2176,7 +2236,8 @@ def teacher_attendance_view(request):
         'selected_teacher': selected_teacher,
         'selected_date': selected_date,
         'selected_approval_status': selected_approval_status,
-        'allocated_batches': allocated_batches
+        'allocated_batches': allocated_batches,
+        'is_staff_role': is_staff_role,
     })
 
 
@@ -4362,7 +4423,15 @@ def teacher_allocation_view(request):
     from academics.models import Course, Batch
     from django.db.models import Q
     
+    is_staff_role = bool(user.role and (
+        user.role.role_name.lower() in ('teacher', 'staff') or
+        (user.role.role_group and user.role.role_group.role_group_name.lower() in ('teachers', 'staff'))
+    ))
+    
     if request.method == 'POST':
+        if is_staff_role:
+            messages.error(request, 'Staff members cannot modify staff allocations.')
+            return redirect('teacher_allocation')
         action = request.POST.get('action')
         if action == 'allocate_teacher':
             if not has_permission(request, 'add', 'Staff Class Allocation'):
@@ -4457,6 +4526,11 @@ def teacher_allocation_view(request):
             
     # GET Request
     allocations = Batch.objects.select_related('course', 'teacher').exclude(teacher__isnull=True).order_by('-created_date')
+    if is_staff_role:
+        allocations = allocations.filter(teacher=user)
+        teachers = User.objects.filter(user_id=user.user_id)
+    else:
+        teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
     
     # Filter logic
     search = request.GET.get('search', '')
@@ -4469,7 +4543,6 @@ def teacher_allocation_view(request):
         )
         
     # Pre-fetch for the modal dropdowns
-    teachers = User.objects.filter(role__role_name='Teacher', is_active=True).order_by('display_name')
     batches = Batch.objects.select_related('course').filter(is_active=True).order_by('batch_name')
     
     return render(request, 'website/teacher_allocation.html', {
@@ -4478,6 +4551,7 @@ def teacher_allocation_view(request):
         'allocations': allocations,
         'teachers': teachers,
         'batches': batches,
+        'is_staff_role': is_staff_role,
     })
 
 from django.http import JsonResponse
@@ -4620,25 +4694,26 @@ def attendance_log_view(request):
 
     from users.models import User
     try:
-        try:
-
-            user = User.objects.get(user_id=request.session['user_id'])
-
-        except User.DoesNotExist:
-
-            request.session.flush()
-
-            return redirect('login')
+        user = User.objects.get(user_id=request.session['user_id'])
     except User.DoesNotExist:
+        request.session.flush()
         return redirect('login')
         
     from academics.models import LeaveRequest
+    
+    is_staff_role = bool(user.role and (
+        user.role.role_name.lower() in ('teacher', 'staff') or
+        (user.role.role_group and user.role.role_group.role_group_name.lower() in ('teachers', 'staff'))
+    ))
     
     if request.method == 'POST':
         action = request.POST.get('action')
         request_id = request.POST.get('leave_request_id')
         if action == 'Revoke' and request_id:
             lr = LeaveRequest.objects.get(leave_request_id=request_id)
+            if is_staff_role and lr.user_id != user.user_id:
+                messages.error(request, 'You can only revoke your own leave requests.')
+                return redirect(f'/attendance-log/?tab={request.POST.get("tab", request.GET.get("tab", "students"))}')
             lr.manager_approval_status = 'Pending'
             lr.manager_approval_on = None
             lr.save()
@@ -4676,6 +4751,8 @@ def attendance_log_view(request):
         leave_qs = leave_qs.filter(user_type='Student')
     else:
         leave_qs = leave_qs.filter(user_type='Teacher')
+        if is_staff_role:
+            leave_qs = leave_qs.filter(user=user)
         
     if filter_status:
         leave_qs = leave_qs.filter(manager_approval_status=filter_status)
@@ -4695,6 +4772,7 @@ def attendance_log_view(request):
         'user': user,
         'tab': tab,
         'leaves': leaves,
+        'is_staff_role': is_staff_role,
     }
     return render(request, 'website/attendance_log.html', context)
 
@@ -4704,21 +4782,22 @@ def attendance_approval_view(request):
 
     from users.models import User
     try:
-        try:
-
-            user = User.objects.get(user_id=request.session['user_id'])
-
-        except User.DoesNotExist:
-
-            request.session.flush()
-
-            return redirect('login')
+        user = User.objects.get(user_id=request.session['user_id'])
     except User.DoesNotExist:
+        request.session.flush()
         return redirect('login')
         
     from academics.models import LeaveRequest
     
+    is_staff_role = bool(user.role and (
+        user.role.role_name.lower() in ('teacher', 'staff') or
+        (user.role.role_group and user.role.role_group.role_group_name.lower() in ('teachers', 'staff'))
+    ))
+    
     if request.method == 'POST':
+        if is_staff_role:
+            messages.error(request, 'Staff members cannot approve/reject attendance requests.')
+            return redirect(f'/attendance-approval/?tab={request.POST.get("tab", request.GET.get("tab", "students"))}')
         action = request.POST.get('action')
         request_id = request.POST.get('leave_request_id')
         if action in ['Approve', 'Reject'] and request_id:
@@ -4758,6 +4837,8 @@ def attendance_approval_view(request):
         leave_qs = leave_qs.filter(user_type='Student')
     else:
         leave_qs = leave_qs.filter(user_type='Teacher')
+        if is_staff_role:
+            leave_qs = leave_qs.filter(user=user)
         
     if filter_status:
         leave_qs = leave_qs.filter(manager_approval_status=filter_status)
@@ -4777,6 +4858,7 @@ def attendance_approval_view(request):
         'user': user,
         'tab': tab,
         'leaves': leaves,
+        'is_staff_role': is_staff_role,
     }
     return render(request, 'website/attendance_approval.html', context)
 

@@ -779,107 +779,152 @@ def enrollment_management_view(request):
     })
 
 def events_dashboard_view(request):
+    from django.db import close_old_connections
+    close_old_connections()
+    
     if 'user_id' not in request.session:
         return redirect('login')
         
     try:
-
-        
         user = User.objects.get(user_id=request.session['user_id'])
-
-        
     except User.DoesNotExist:
-
-        
         request.session.flush()
-
-        
         return redirect('login')
     
     from events.models import EventMaster, EventParticipant, EventVenue, EventAttendance
+    from users.models import Role
     from django.contrib import messages
+    import json
     
     if request.method == 'POST':
         action = request.POST.get('action')
         
-        # RBAC Check for POST actions
-        if action == 'save_settings':
-            import json, os
-            from django.conf import settings
-            
-            phone_length = request.POST.get('phone_length', 10)
-            email_length = request.POST.get('email_length', 255)
-            password_expire = request.POST.get('password_expire', 90)
-            attendance_from_date = request.POST.get('attendance_from_date', '').strip()
-            attendance_to_date = request.POST.get('attendance_to_date', '').strip()
-            
-            data = {
-                'phone_length': int(phone_length) if phone_length else 10,
-                'email_length': int(email_length) if email_length else 255,
-                'password_expire': int(password_expire) if password_expire else 90,
-                'attendance_from_date': attendance_from_date,
-                'attendance_to_date': attendance_to_date,
-            }
-            path = os.path.join(settings.BASE_DIR, 'security_settings.json')
-            with open(path, 'w') as fh:
-                json.dump(data, fh, indent=4)
-            
-            messages.success(request, 'Settings saved successfully.')
-            return redirect('/admin-dashboard/?tab=settings')
-            
-        if action == 'create_user' and not admin_access.add_access:
-            messages.error(request, 'You do not have permission to add records.')
-            return redirect('/admin-dashboard/')
-            
-        if action == 'save_permissions' and not admin_access.edit_access:
-            messages.error(request, 'You do not have permission to edit records.')
-            return redirect('/admin-dashboard/')
-            
-        if action == 'save_menu_orders':
-            if not admin_access.edit_access:
-                messages.error(request, 'You do not have permission to edit records.')
-                return redirect('/admin-dashboard/?tab=menu')
-            
-            for key, value in request.POST.items():
-                if key.startswith('order_'):
-                    menu_id = key.replace('order_', '')
-                    try:
-                        menu = MasterMenu.objects.get(menu_id=menu_id)
-                        menu.display_order = int(value)
-                        menu.save()
-                    except Exception as e:
-                        pass
-            
-            messages.success(request, 'Menu order updated successfully!')
-            return redirect('/admin-dashboard/?tab=menu')
+        # --- Event Actions ---
+        if action in ['create_event', 'edit_event', 'save_event', 'add_event']:
+            event_id = request.POST.get('event_id')
+            event_name = request.POST.get('event_name', '').strip()
+            event_type = request.POST.get('event_type', '').strip()
+            event_date = request.POST.get('event_date')
+            start_time = request.POST.get('start_time')
+            end_time = request.POST.get('end_time')
+            venue_id = request.POST.get('venue_id')
+            status = request.POST.get('status', '1')
+            description = request.POST.get('description', '').strip()
+            organizer = request.POST.get('organizer', '').strip()
+            contact_person = request.POST.get('contact_person', '').strip()
+            contact_phone = request.POST.get('contact_phone', '').strip()
+            reg_start = request.POST.get('registration_start_date') or None
+            reg_end = request.POST.get('registration_end_date') or None
+            max_participants = request.POST.get('max_participants') or None
 
-        if action == 'save_menu':
-            if request.POST.get('menu_id') and not admin_access.edit_access:
-                messages.error(request, 'You do not have permission to edit records.')
-                return redirect('/admin-dashboard/?tab=menu')
-            elif not request.POST.get('menu_id') and not admin_access.add_access:
-                messages.error(request, 'You do not have permission to add records.')
-                return redirect('/admin-dashboard/?tab=menu')
-                
-        if action == 'delete_menu' and not admin_access.delete_access:
-            messages.error(request, 'You do not have permission to delete records.')
-            return redirect('/admin-dashboard/?tab=menu')
+            venue = None
+            if venue_id and venue_id != '0':
+                try:
+                    venue = EventVenue.objects.get(venue_id=venue_id)
+                except:
+                    pass
 
+            try:
+                if event_id:
+                    ev = EventMaster.objects.get(event_id=event_id)
+                    ev.event_name = event_name
+                    ev.event_type = event_type
+                    ev.event_date = event_date
+                    ev.start_time = start_time
+                    ev.end_time = end_time
+                    ev.venue = venue
+                    ev.status = int(status) if status else 1
+                    ev.description = description
+                    ev.organizer = organizer
+                    ev.contact_person = contact_person
+                    ev.contact_phone = contact_phone
+                    ev.registration_start_date = reg_start
+                    ev.registration_end_date = reg_end
+                    ev.max_participants = int(max_participants) if max_participants else None
+                    ev.save()
+                    messages.success(request, f'Event "{ev.event_name}" updated successfully!')
+                else:
+                    ev = EventMaster.objects.create(
+                        event_name=event_name,
+                        event_type=event_type,
+                        event_date=event_date,
+                        start_time=start_time,
+                        end_time=end_time,
+                        venue=venue,
+                        status=int(status) if status else 1,
+                        description=description,
+                        organizer=organizer,
+                        contact_person=contact_person,
+                        contact_phone=contact_phone,
+                        registration_start_date=reg_start,
+                        registration_end_date=reg_end,
+                        max_participants=int(max_participants) if max_participants else None,
+                        created_by=user
+                    )
+                    messages.success(request, f'Event "{ev.event_name}" created successfully!')
+            except Exception as e:
+                messages.error(request, f'Error saving event: {e}')
+            return redirect('/events/?tab=list')
+
+        if action == 'delete_event':
+            event_id = request.POST.get('event_id')
+            if event_id:
+                try:
+                    ev = EventMaster.objects.get(event_id=event_id)
+                    name = ev.event_name
+                    ev.delete()
+                    messages.success(request, f'Event "{name}" deleted successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error deleting event: {e}')
+            return redirect('/events/?tab=list')
+
+        # --- Venue Actions ---
         if action == 'add_venue':
-            venue_name = request.POST.get('venue_name')
-            capacity = request.POST.get('capacity')
-            address = request.POST.get('address')
-            
-            capacity_val = capacity if capacity else None
-            
-            EventVenue.objects.create(
-                venue_name=venue_name,
-                capacity=capacity_val,
-                address=address
-            )
-            messages.success(request, 'Venue added successfully!')
+            venue_name = request.POST.get('venue_name', '').strip()
+            capacity = request.POST.get('capacity', '').strip()
+            address = request.POST.get('address', '').strip()
+            if venue_name:
+                try:
+                    EventVenue.objects.create(
+                        venue_name=venue_name,
+                        capacity=int(capacity) if capacity else None,
+                        address=address or None
+                    )
+                    messages.success(request, f'Venue "{venue_name}" added successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error adding venue: {e}')
             return redirect('/events/?tab=venue')
 
+        if action == 'edit_venue':
+            venue_id = request.POST.get('venue_id')
+            venue_name = request.POST.get('venue_name', '').strip()
+            capacity = request.POST.get('capacity', '').strip()
+            address = request.POST.get('address', '').strip()
+            if venue_id and venue_name:
+                try:
+                    v = EventVenue.objects.get(venue_id=venue_id)
+                    v.venue_name = venue_name
+                    v.capacity = int(capacity) if capacity else None
+                    v.address = address or None
+                    v.save()
+                    messages.success(request, f'Venue "{v.venue_name}" updated successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error updating venue: {e}')
+            return redirect('/events/?tab=venue')
+
+        if action == 'delete_venue':
+            venue_id = request.POST.get('venue_id')
+            if venue_id:
+                try:
+                    v = EventVenue.objects.get(venue_id=venue_id)
+                    name = v.venue_name
+                    v.delete()
+                    messages.success(request, f'Venue "{name}" deleted successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error deleting venue: {e}')
+            return redirect('/events/?tab=venue')
+
+        # --- Participant Actions ---
         if action == 'add_participant':
             event_id = request.POST.get('event_id')
             user_id = request.POST.get('user_id')
@@ -888,16 +933,55 @@ def events_dashboard_view(request):
                 try:
                     ev = EventMaster.objects.get(event_id=event_id)
                     u = User.objects.get(user_id=user_id)
-                    EventParticipant.objects.create(
+                    role_obj = None
+                    if role_id:
+                        try:
+                            role_obj = Role.objects.get(role_id=role_id)
+                        except:
+                            pass
+                    if not role_obj:
+                        role_obj = u.role
+                    EventParticipant.objects.get_or_create(
                         event=ev,
                         user=u,
-                        role_id=role_id if role_id else None
+                        defaults={'role': role_obj}
                     )
-                    messages.success(request, 'Participant added successfully!')
+                    messages.success(request, f'Participant {u.display_name or u.first_name} added to {ev.event_name}!')
                 except Exception as e:
                     messages.error(request, f'Error adding participant: {e}')
-            return redirect(f'/events/?tab=registration' + (f'&event_id={event_id}' if event_id else ''))
+            return redirect(f'/events/?tab=registration&event_id={event_id}' if event_id else '/events/?tab=registration')
 
+        if action == 'edit_participant':
+            participant_id = request.POST.get('participant_id')
+            role_id = request.POST.get('role_id')
+            event_id = request.POST.get('event_id')
+            if participant_id:
+                try:
+                    p = EventParticipant.objects.get(event_participant_id=participant_id)
+                    if role_id:
+                        try:
+                            p.role = Role.objects.get(role_id=role_id)
+                            p.save()
+                        except:
+                            pass
+                    messages.success(request, 'Participant details updated successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error updating participant: {e}')
+            return redirect(f'/events/?tab=registration&event_id={event_id}' if event_id else '/events/?tab=registration')
+
+        if action == 'delete_participant':
+            participant_id = request.POST.get('participant_id')
+            event_id = request.POST.get('event_id')
+            if participant_id:
+                try:
+                    p = EventParticipant.objects.get(event_participant_id=participant_id)
+                    p.delete()
+                    messages.success(request, 'Participant removed successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error removing participant: {e}')
+            return redirect(f'/events/?tab=registration&event_id={event_id}' if event_id else '/events/?tab=registration')
+
+        # --- Staff Assignment Actions ---
         if action == 'assign_staff':
             event_id = request.POST.get('event_id')
             user_id = request.POST.get('user_id')
@@ -906,17 +990,64 @@ def events_dashboard_view(request):
                 try:
                     ev = EventMaster.objects.get(event_id=event_id)
                     u = User.objects.get(user_id=user_id)
-                    EventParticipant.objects.create(
+                    role_obj = None
+                    if role_id:
+                        try:
+                            role_obj = Role.objects.get(role_id=role_id)
+                        except:
+                            pass
+                    if not role_obj:
+                        role_obj = u.role
+                    EventParticipant.objects.get_or_create(
                         event=ev,
                         user=u,
-                        role_id=role_id if role_id else None
+                        defaults={'role': role_obj}
                     )
-                    messages.success(request, 'Staff assigned successfully!')
+                    messages.success(request, f'Staff {u.display_name or u.first_name} assigned to {ev.event_name}!')
                 except Exception as e:
                     messages.error(request, f'Error assigning staff: {e}')
             return redirect('/events/?tab=assignments')
-    
-    events = EventMaster.objects.all().order_by('-event_date')
+
+        if action == 'delete_staff_assignment':
+            participant_id = request.POST.get('participant_id')
+            if participant_id:
+                try:
+                    p = EventParticipant.objects.get(event_participant_id=participant_id)
+                    p.delete()
+                    messages.success(request, 'Staff assignment removed successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error removing staff assignment: {e}')
+            return redirect('/events/?tab=assignments')
+
+        # --- Attendance Actions ---
+        if action == 'save_attendance':
+            event_id = request.POST.get('event_id')
+            if event_id:
+                try:
+                    ev = EventMaster.objects.get(event_id=event_id)
+                    participants_list = EventParticipant.objects.filter(event=ev)
+                    saved_count = 0
+                    for p in participants_list:
+                        status_key = f'attendance_status_{p.user_id}'
+                        remarks_key = f'remarks_{p.user_id}'
+                        if status_key in request.POST:
+                            st_val = int(request.POST[status_key])
+                            rem_val = request.POST.get(remarks_key, '').strip()
+                            EventAttendance.objects.update_or_create(
+                                event=ev,
+                                user=p.user,
+                                defaults={
+                                    'attendance_status': st_val,
+                                    'remarks': rem_val
+                                }
+                            )
+                            saved_count += 1
+                    messages.success(request, f'Attendance marked successfully for {saved_count} participant(s)!')
+                except Exception as e:
+                    messages.error(request, f'Error saving attendance: {e}')
+            return redirect(f'/events/?tab=attendance&event_id={event_id}' if event_id else '/events/?tab=attendance')
+
+    events = EventMaster.objects.all().order_by('-event_date', 'event_id')
     
     search = request.GET.get('search')
     if search:
@@ -937,18 +1068,31 @@ def events_dashboard_view(request):
     to_date = request.GET.get('to_date')
     if to_date:
         events = events.filter(event_date__lte=to_date)
-    venues = EventVenue.objects.all()
-    participants = EventParticipant.objects.all().select_related('event', 'user', 'role')
-    attendance = EventAttendance.objects.all().select_related('event', 'user')
+        
+    venues = EventVenue.objects.all().order_by('venue_name')
+    all_participants = EventParticipant.objects.all().select_related('event', 'user', 'role', 'user__role')
     
-    from users.models import Role
     staff_users = User.objects.filter(is_active=True, role__role_name__icontains='teacher').order_by('display_name', 'first_name')
     students = User.objects.filter(is_active=True, role__role_name__icontains='student').order_by('display_name', 'first_name')
-    roles = Role.objects.all()
-    staff_assignments = EventParticipant.objects.filter(user__role__role_name__icontains='teacher').select_related('event', 'user', 'role')
+    roles = Role.objects.all().order_by('role_name')
+    staff_assignments = EventParticipant.objects.filter(user__role__role_name__icontains='teacher').select_related('event', 'user', 'role', 'user__role')
     
-    tab = request.GET.get('tab', 'calendar')
-    
+    tab = request.GET.get('tab', 'list')
+    if tab == 'upcoming':
+        tab = 'list'
+        
+    tab_titles = {
+        'list': 'Event List',
+        'upcoming': 'Event List',
+        'calendar': 'Event Calendar',
+        'registration': 'Event Registration',
+        'assignments': 'Staff Assignments',
+        'venue': 'Venue Management',
+        'attendance': 'Event Attendance',
+        'reports': 'Event Reports',
+        'details': 'Event Details'
+    }
+    page_title = tab_titles.get(tab, 'Event Scheduling')
     event_id = request.GET.get('event_id')
     selected_event = None
     if event_id:
@@ -956,25 +1100,128 @@ def events_dashboard_view(request):
             selected_event = EventMaster.objects.get(event_id=event_id)
         except:
             pass
-    elif events.exists():
+    if not selected_event and events.exists():
         selected_event = events.first()
-        
+
+    # Filtered participants for registration tab
+    if selected_event:
+        participants = EventParticipant.objects.filter(event=selected_event).select_related('event', 'user', 'role', 'user__role').order_by('registration_date')
+    else:
+        participants = all_participants.order_by('-registration_date')
+
+    # Participant counts by category for current event/all
+    student_participants_count = participants.filter(user__role__role_name__icontains='student').count()
+    staff_participants_count = participants.filter(user__role__role_name__icontains='teacher').count()
+    guest_participants_count = participants.exclude(user__role__role_name__icontains='student').exclude(user__role__role_name__icontains='teacher').count()
+    total_participants_count = participants.count()
+
+    # Attendance data for selected_event
+    attendance_rows = []
+    att_present_count = 0
+    att_absent_count = 0
+    att_unmarked_count = 0
+    
+    if selected_event:
+        event_parts = EventParticipant.objects.filter(event=selected_event).select_related('user', 'role', 'user__role')
+        event_atts = {att.user_id: att for att in EventAttendance.objects.filter(event=selected_event)}
+        for p in event_parts:
+            att = event_atts.get(p.user_id)
+            att_status = att.attendance_status if att else None
+            remarks = att.remarks if att else ''
+            if att_status == 1:
+                att_present_count += 1
+            elif att_status == 2:
+                att_absent_count += 1
+            else:
+                att_unmarked_count += 1
+            attendance_rows.append({
+                'participant_id': p.event_participant_id,
+                'user': p.user,
+                'role': p.role,
+                'status': att_status,
+                'remarks': remarks
+            })
+
+    # Reports Data
+    report_events = EventMaster.objects.all()
+    rep_from = request.GET.get('from_date')
+    rep_to = request.GET.get('to_date')
+    rep_type = request.GET.get('type')
+    if rep_from:
+        report_events = report_events.filter(event_date__gte=rep_from)
+    if rep_to:
+        report_events = report_events.filter(event_date__lte=rep_to)
+    if rep_type and rep_type != 'All Types':
+        report_events = report_events.filter(event_type=rep_type)
+
+    report_total_events = report_events.count()
+    report_total_participants = EventParticipant.objects.filter(event__in=report_events).count()
+    report_total_attended = EventAttendance.objects.filter(event__in=report_events, attendance_status=1).count()
+    report_attendance_rate = round((report_total_attended / report_total_participants * 100), 1) if report_total_participants > 0 else 0
+
+    all_ev_types = ['Performance', 'Workshop', 'Competition', 'Meeting', 'Masterclass']
+    type_counts = {}
+    for t in all_ev_types:
+        type_counts[t] = report_events.filter(event_type=t).count()
+
+    recent_summary = []
+    for ev in report_events.order_by('-event_date')[:10]:
+        ev_parts_count = EventParticipant.objects.filter(event=ev).count()
+        ev_att_count = EventAttendance.objects.filter(event=ev, attendance_status=1).count()
+        recent_summary.append({
+            'event': ev,
+            'participants_count': ev_parts_count,
+            'attendance_count': ev_att_count,
+        })
+
+    # Calendar events JSON for Alpine.js dynamic calendar navigation
+    all_events_for_calendar = EventMaster.objects.all().order_by('event_date')
+    calendar_events = []
+    for ev in all_events_for_calendar:
+        calendar_events.append({
+            'id': ev.event_id,
+            'name': ev.event_name,
+            'type': ev.event_type or 'General',
+            'date': ev.event_date.strftime('%Y-%m-%d') if ev.event_date else '',
+            'day': ev.event_date.day if ev.event_date else 0,
+            'month': ev.event_date.month if ev.event_date else 0,
+            'year': ev.event_date.year if ev.event_date else 0,
+            'time': ev.start_time.strftime('%I:%M %p') if ev.start_time else '',
+            'venue': ev.venue.venue_name if ev.venue else 'TBA / Online',
+            'status': ev.status
+        })
+
     edit_mode = request.GET.get('edit', 'false') == 'true'
     
     return render(request, 'website/events_dashboard.html', {
         'edit_mode': edit_mode,
         'user': user,
-        'page_title': 'Event Scheduling',
+        'page_title': page_title,
         'events': events,
         'venues': venues,
         'participants': participants,
-        'attendance': attendance,
+        'all_participants': all_participants,
+        'student_participants_count': student_participants_count,
+        'staff_participants_count': staff_participants_count,
+        'guest_participants_count': guest_participants_count,
+        'total_participants_count': total_participants_count,
         'staff_users': staff_users,
         'students': students,
         'roles': roles,
         'staff_assignments': staff_assignments,
         'active_tab': tab,
-        'selected_event': selected_event
+        'selected_event': selected_event,
+        'attendance_rows': attendance_rows,
+        'att_present_count': att_present_count,
+        'att_absent_count': att_absent_count,
+        'att_unmarked_count': att_unmarked_count,
+        'report_total_events': report_total_events,
+        'report_total_participants': report_total_participants,
+        'report_total_attended': report_total_attended,
+        'report_attendance_rate': report_attendance_rate,
+        'type_counts': type_counts,
+        'recent_summary': recent_summary,
+        'calendar_events_json': json.dumps(calendar_events)
     })
 
 def create_event_view(request):
@@ -1108,7 +1355,7 @@ def generic_page(request, page_name):
         'attendance': 'Attendance',
         'fees': 'Fees',
         'events': 'Event Scheduling',
-        'courses': 'Courses & Batches',
+        'courses': 'Course and Batches',
         'teachers': 'Staff Portfolio',
         'timetable': 'Timetable',
         'notifications': 'Notifications / Reminders',
@@ -3697,7 +3944,7 @@ def courses_batches_view(request):
     
     return render(request, 'website/courses_batches.html', {
         'user': user,
-        'page_title': 'Courses & Batches',
+        'page_title': 'Course and Batches',
         'courses': courses,
         'courses_json': courses_json,
         'batches': batches,

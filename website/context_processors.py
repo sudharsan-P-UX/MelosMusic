@@ -115,15 +115,20 @@ def has_permission(request, action='view', menu_identifier=None, parent_fallback
                 return bool(getattr(access, field, False))
 
         if parent_fallback:
-            p_menu = (
-                MasterMenu.objects.filter(menu_name__iexact=parent_fallback).first() or
-                MasterMenu.objects.filter(url_page__iexact=parent_fallback).first()
-            )
-            if p_menu:
-                p_access = RoleAccess.objects.filter(role=user.role, menu=p_menu).first()
-                if p_access is not None:
-                    field = f"{action}_access"
-                    return bool(getattr(p_access, field, False))
+            fallbacks = [parent_fallback]
+            if 'course' in parent_fallback.lower() or 'batch' in parent_fallback.lower():
+                fallbacks.extend(['Course and Batches', 'Courses & Batches', 'Courses and Batches', '/courses/'])
+            for fb in fallbacks:
+                p_menu = (
+                    MasterMenu.objects.filter(menu_name__iexact=fb).first() or
+                    MasterMenu.objects.filter(url_page__iexact=fb).first() or
+                    MasterMenu.objects.filter(menu_name__icontains=fb).first()
+                )
+                if p_menu:
+                    p_access = RoleAccess.objects.filter(role=user.role, menu=p_menu).first()
+                    if p_access is not None:
+                        field = f"{action}_access"
+                        return bool(getattr(p_access, field, False))
 
         # Fallback if no explicit RoleAccess record exists
         if user.role.role_name.lower() == 'superadmin':
@@ -221,6 +226,28 @@ def user_permissions(request):
             elif 'teacher' in key2:
                 perms[key2.replace('teacher', 'staff')] = p
                 
+        # Map combined Course and Batches permissions to individual tab keys
+        cb_perms = (
+            perms.get('Course_and_Batches') or 
+            perms.get('Courses_and_Batches') or 
+            perms.get('course_and_batches') or 
+            perms.get('courses_and_batches') or 
+            perms.get('course_batches') or 
+            perms.get('courses_batches')
+        )
+        if cb_perms:
+            perms.setdefault('course_master', cb_perms)
+            perms.setdefault('batch_master', cb_perms)
+            perms.setdefault('class_room', cb_perms)
+            perms.setdefault('classroom', cb_perms)
+            perms.setdefault('Course_Master', cb_perms)
+            perms.setdefault('Batch_Master', cb_perms)
+            perms.setdefault('Class_Room', cb_perms)
+            perms.setdefault('Course_and_Batches', cb_perms)
+            perms.setdefault('Courses_and_Batches', cb_perms)
+            perms.setdefault('course_and_batches', cb_perms)
+            perms.setdefault('courses_and_batches', cb_perms)
+
         return {'user_perms': perms}
     except Exception as e:
         print(f"Error loading user perms: {e}")
@@ -296,6 +323,16 @@ def menu_columns_processor(request):
                 if '?tab=' in col.menu.url_page:
                     tab_val = col.menu.url_page.split('?tab=')[-1].split('&')[0]
                     columns_by_name.setdefault(f"tab_{tab_val}", []).append(col)
+
+        cb_cols = (
+            columns_by_name.get('Course and Batches') or 
+            columns_by_name.get('Courses & Batches') or 
+            columns_by_name.get('course_and_batches') or 
+            columns_by_name.get('courses_and_batches') or []
+        )
+        if cb_cols:
+            columns_by_name.setdefault('course_master', cb_cols)
+            columns_by_name.setdefault('Course Master', cb_cols)
 
         # Current page columns
         current_cols = []

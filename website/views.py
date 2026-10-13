@@ -839,6 +839,42 @@ def events_dashboard_view(request):
             )
             messages.success(request, 'Venue added successfully!')
             return redirect('/events/?tab=venue')
+
+        if action == 'add_participant':
+            event_id = request.POST.get('event_id')
+            user_id = request.POST.get('user_id')
+            role_id = request.POST.get('role_id')
+            if event_id and user_id:
+                try:
+                    ev = EventMaster.objects.get(event_id=event_id)
+                    u = User.objects.get(user_id=user_id)
+                    EventParticipant.objects.create(
+                        event=ev,
+                        user=u,
+                        role_id=role_id if role_id else None
+                    )
+                    messages.success(request, 'Participant added successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error adding participant: {e}')
+            return redirect(f'/events/?tab=registration' + (f'&event_id={event_id}' if event_id else ''))
+
+        if action == 'assign_staff':
+            event_id = request.POST.get('event_id')
+            user_id = request.POST.get('user_id')
+            role_id = request.POST.get('role_id')
+            if event_id and user_id:
+                try:
+                    ev = EventMaster.objects.get(event_id=event_id)
+                    u = User.objects.get(user_id=user_id)
+                    EventParticipant.objects.create(
+                        event=ev,
+                        user=u,
+                        role_id=role_id if role_id else None
+                    )
+                    messages.success(request, 'Staff assigned successfully!')
+                except Exception as e:
+                    messages.error(request, f'Error assigning staff: {e}')
+            return redirect('/events/?tab=assignments')
     
     events = EventMaster.objects.all().order_by('-event_date')
     
@@ -862,8 +898,14 @@ def events_dashboard_view(request):
     if to_date:
         events = events.filter(event_date__lte=to_date)
     venues = EventVenue.objects.all()
-    participants = EventParticipant.objects.all()
-    attendance = EventAttendance.objects.all()
+    participants = EventParticipant.objects.all().select_related('event', 'user', 'role')
+    attendance = EventAttendance.objects.all().select_related('event', 'user')
+    
+    from users.models import Role
+    staff_users = User.objects.filter(is_active=True, role__role_name__icontains='teacher').order_by('display_name', 'first_name')
+    students = User.objects.filter(is_active=True, role__role_name__icontains='student').order_by('display_name', 'first_name')
+    roles = Role.objects.all()
+    staff_assignments = EventParticipant.objects.filter(user__role__role_name__icontains='teacher').select_related('event', 'user', 'role')
     
     tab = request.GET.get('tab', 'calendar')
     
@@ -887,6 +929,10 @@ def events_dashboard_view(request):
         'venues': venues,
         'participants': participants,
         'attendance': attendance,
+        'staff_users': staff_users,
+        'students': students,
+        'roles': roles,
+        'staff_assignments': staff_assignments,
         'active_tab': tab,
         'selected_event': selected_event
     })

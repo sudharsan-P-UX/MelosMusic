@@ -2755,6 +2755,101 @@ def check_student_time_conflict(student_id, target_batch, exclude_enrollment_id=
                     return b, msg
     return None, None
 
+def check_classroom_time_conflict(classroom_id, start_time, end_time, start_date=None, end_date=None, course=None, exclude_batch_id=None):
+    """
+    Checks if a classroom is already allocated to another active batch with overlapping schedule.
+    Returns (conflicting_batch, error_message) or (None, None).
+    """
+    from academics.models import Batch, Classroom
+
+    if not classroom_id or not start_time or not end_time:
+        return None, None
+
+    t_s = parse_time_val(start_time)
+    t_e = parse_time_val(end_time)
+    if not t_s or not t_e:
+        return None, None
+
+    batches = Batch.objects.filter(
+        classroom_id=classroom_id,
+        is_active=True
+    ).exclude(start_time__isnull=True).exclude(end_time__isnull=True).select_related('course', 'classroom')
+
+    if exclude_batch_id:
+        try:
+            exclude_batch_id = int(exclude_batch_id)
+            batches = batches.exclude(batch_id=exclude_batch_id)
+        except (ValueError, TypeError):
+            pass
+
+    d_sd = parse_date_val(start_date)
+    d_ed = parse_date_val(end_date)
+
+    for b in batches:
+        if times_overlap(t_s, t_e, b.start_time, b.end_time):
+            if dates_overlap(start_date, end_date, b.start_date, b.end_date):
+                exact_same_slot = (
+                    t_s == b.start_time and
+                    t_e == b.end_time and
+                    (not d_sd or not b.start_date or d_sd == b.start_date) and
+                    (not d_ed or not b.end_date or d_ed == b.end_date)
+                )
+                if exact_same_slot or check_days_overlap(course, b.course):
+                    t_str = f"{b.start_time.strftime('%I:%M %p')} - {b.end_time.strftime('%I:%M %p')}"
+                    d_str = ""
+                    if b.start_date and b.end_date:
+                        d_str = f", {b.start_date.strftime('%d/%m/%Y')} to {b.end_date.strftime('%d/%m/%Y')}"
+                    elif b.start_date:
+                        d_str = f", from {b.start_date.strftime('%d/%m/%Y')}"
+                    cr_name = f"{b.classroom.class_code} - {b.classroom.class_name}" if b.classroom else "This class room"
+                    c_name = b.course.course_name if b.course else ""
+                    msg = f"Class Room '{cr_name}' is already allocated to batch '{b.batch_name}' ({c_name}, {t_str}{d_str}). A class room cannot be assigned to multiple batches with overlapping schedule."
+                    return b, msg
+    return None, None
+
+def get_available_classrooms_list(start_time, end_time, start_date=None, end_date=None, course=None, exclude_batch_id=None):
+    from academics.models import Classroom
+    all_classrooms = Classroom.objects.filter(is_active=True).order_by('class_code')
+    if not start_time or not end_time:
+        return [
+            {
+                'classroom_id': cr.classroom_id,
+                'class_code': cr.class_code or '',
+                'class_name': cr.class_name or '',
+                'build_name': cr.build_name or '',
+                'block': cr.block or '',
+                'floor': cr.floor or '',
+                'class_no': cr.class_no or '',
+                'capacity': cr.capacity if cr.capacity is not None else '',
+                'is_active': cr.is_active,
+            }
+            for cr in all_classrooms
+        ]
+
+    available = []
+    for cr in all_classrooms:
+        clash_b, _ = check_classroom_time_conflict(
+            classroom_id=cr.classroom_id,
+            start_time=start_time,
+            end_time=end_time,
+            start_date=start_date,
+            end_date=end_date,
+            course=course,
+            exclude_batch_id=exclude_batch_id
+        )
+        if not clash_b:
+            available.append({
+                'classroom_id': cr.classroom_id,
+                'class_code': cr.class_code or '',
+                'class_name': cr.class_name or '',
+                'build_name': cr.build_name or '',
+                'block': cr.block or '',
+                'floor': cr.floor or '',
+                'class_no': cr.class_no or '',
+                'capacity': cr.capacity if cr.capacity is not None else '',
+                'is_active': cr.is_active,
+            })
+    return available
 
 def assign_fees_view(request):
     if 'user_id' not in request.session:
@@ -3347,6 +3442,19 @@ def courses_batches_view(request):
                     messages.error(request, clash_m)
                     return redirect('/courses/?tab=batches')
 
+            if classroom_id and start_time and end_time:
+                clash_cr_b, clash_cr_m = check_classroom_time_conflict(
+                    classroom_id=classroom_id,
+                    start_time=start_time,
+                    end_time=end_time,
+                    start_date=start_date,
+                    end_date=end_date,
+                    course=course
+                )
+                if clash_cr_b:
+                    messages.error(request, clash_cr_m)
+                    return redirect('/courses/?tab=batches')
+
             Batch.objects.create(
                 batch_code=batch_code,
                 batch_name=request.POST.get('batch_name'),
@@ -3395,6 +3503,20 @@ def courses_batches_view(request):
                     )
                     if clash_b:
                         messages.error(request, clash_m)
+                        return redirect('/courses/?tab=batches')
+
+                if classroom_id and start_time and end_time:
+                    clash_cr_b, clash_cr_m = check_classroom_time_conflict(
+                        classroom_id=classroom_id,
+                        start_time=start_time,
+                        end_time=end_time,
+                        start_date=start_date,
+                        end_date=end_date,
+                        course=course,
+                        exclude_batch_id=batch.batch_id
+                    )
+                    if clash_cr_b:
+                        messages.error(request, clash_cr_m)
                         return redirect('/courses/?tab=batches')
 
                 batch.batch_name = request.POST.get('batch_name')
@@ -4686,7 +4808,61 @@ def api_check_conflict(request):
             'conflict_message': msg or ''
         })
 
+    elif check_type == 'classroom':
+        classroom_id = request.GET.get('classroom_id')
+        start_time = request.GET.get('start_time')
+        end_time = request.GET.get('end_time')
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        course_id = request.GET.get('course_id')
+        exclude_batch_id = request.GET.get('exclude_batch_id')
+
+        from academics.models import Course
+        course = Course.objects.filter(course_id=course_id).first() if course_id else None
+
+        clash_batch, msg = check_classroom_time_conflict(
+            classroom_id=classroom_id,
+            start_time=start_time,
+            end_time=end_time,
+            start_date=start_date,
+            end_date=end_date,
+            course=course,
+            exclude_batch_id=exclude_batch_id
+        )
+        return JsonResponse({
+            'has_conflict': bool(clash_batch),
+            'conflict_message': msg or ''
+        })
+
     return JsonResponse({'has_conflict': False, 'conflict_message': ''})
+
+def api_get_available_classrooms(request):
+    start_time = request.GET.get('start_time')
+    end_time = request.GET.get('end_time')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    course_id = request.GET.get('course_id')
+    exclude_batch_id = request.GET.get('exclude_batch_id')
+
+    from academics.models import Course, Classroom
+    course = Course.objects.filter(course_id=course_id).first() if course_id else None
+
+    avail_list = get_available_classrooms_list(
+        start_time=start_time,
+        end_time=end_time,
+        start_date=start_date,
+        end_date=end_date,
+        course=course,
+        exclude_batch_id=exclude_batch_id
+    )
+    total_all = Classroom.objects.filter(is_active=True).count()
+
+    return JsonResponse({
+        'success': True,
+        'available_classrooms': avail_list,
+        'total_available': len(avail_list),
+        'total_all': total_all,
+    })
 
 def attendance_log_view(request):
     if 'user_id' not in request.session:

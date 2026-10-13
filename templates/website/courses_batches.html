@@ -732,7 +732,7 @@
                         <!-- 2. Course -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required x-model="selectedCourseId" @change="calculateEndDate(); calculateEndTime(); onCourseChange()" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <select name="course_id" required x-model="selectedCourseId" @change="calculateEndDate(); calculateEndTime(); onCourseChange(); fetchAvailableClassrooms()" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="" data-duration="0" data-duration-hrs="0">-- Select Course --</option>
                                 {% for course in courses %}
                                 <option value="{{ course.course_id }}" data-duration="{{ course.duration_months|default:0 }}" data-duration-hrs="{{ course.duration_hrs|default:0 }}">{{ course.course_name }}</option>
@@ -748,9 +748,9 @@
                                        name="start_date" 
                                        x-model="startDate" 
                                        placeholder="YYYY-MM-DD" 
-                                       @input="startDate = formatBatchDate($event.target.value); calculateEndDate(); checkAddBatchConflict()" 
-                                       @blur="startDate = formatBatchDate(startDate, true); calculateEndDate(); checkAddBatchConflict()"
-                                       @change="calculateEndDate(); checkAddBatchConflict()" 
+                                       @input="startDate = formatBatchDate($event.target.value); calculateEndDate(); checkAddBatchConflict(); fetchAvailableClassrooms()" 
+                                       @blur="startDate = formatBatchDate(startDate, true); calculateEndDate(); checkAddBatchConflict(); fetchAvailableClassrooms()"
+                                       @change="calculateEndDate(); checkAddBatchConflict(); fetchAvailableClassrooms()" 
                                        class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <button type="button" 
                                         @click="openPicker($refs.pickerAddStartDate)" 
@@ -761,7 +761,7 @@
                                 <input type="date" 
                                        x-ref="pickerAddStartDate" 
                                        :value="startDate" 
-                                       @change="startDate = $event.target.value; calculateEndDate(); checkAddBatchConflict()" 
+                                       @change="startDate = $event.target.value; calculateEndDate(); checkAddBatchConflict(); fetchAvailableClassrooms()" 
                                        class="sr-only">
                             </div>
                         </div>
@@ -774,9 +774,9 @@
                                        name="end_date" 
                                        x-model="endDate" 
                                        placeholder="YYYY-MM-DD" 
-                                       @input="endDate = formatBatchDate($event.target.value); checkAddBatchConflict()" 
-                                       @blur="endDate = formatBatchDate(endDate, true); checkAddBatchConflict()"
-                                       @change="checkAddBatchConflict()" 
+                                       @input="endDate = formatBatchDate($event.target.value); checkAddBatchConflict(); fetchAvailableClassrooms()" 
+                                       @blur="endDate = formatBatchDate(endDate, true); checkAddBatchConflict(); fetchAvailableClassrooms()"
+                                       @change="checkAddBatchConflict(); fetchAvailableClassrooms()" 
                                        class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <button type="button" 
                                         @click="openPicker($refs.pickerAddEndDate)" 
@@ -787,7 +787,7 @@
                                 <input type="date" 
                                        x-ref="pickerAddEndDate" 
                                        :value="endDate" 
-                                       @change="endDate = $event.target.value; checkAddBatchConflict()" 
+                                       @change="endDate = $event.target.value; checkAddBatchConflict(); fetchAvailableClassrooms()" 
                                        class="sr-only">
                             </div>
                         </div>
@@ -878,15 +878,28 @@
                         </div>
                         <!-- 8. Class Room -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Room</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Class Room</label>
+                                <span x-show="isLoadingClassrooms" class="text-[11px] text-indigo-600 font-medium flex items-center gap-1">
+                                    <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Checking availability...
+                                </span>
+                            </div>
                             <select name="classroom_id" x-model="selectedClassroomId" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
-                                <option value="">-- Select Class Room (Optional) --</option>
-                                {% for cr in classrooms %}
-                                <option value="{{ cr.classroom_id }}">{{ cr.class_code }} - {{ cr.class_name }}{% if cr.build_name %} ({{ cr.build_name }}){% endif %}</option>
-                                {% endfor %}
+                                <option value="" x-show="!startTime || !endTime">-- Select Class Room (Optional) --</option>
+                                <option value="" x-show="startTime && endTime && availableClassrooms.length > 0">-- Select Available Class Room (Optional) --</option>
+                                <option value="" x-show="startTime && endTime && classroomAvailabilityChecked && availableClassrooms.length === 0">-- No Class Rooms Available --</option>
+                                <template x-for="cr in availableClassrooms" :key="'add-cr-' + cr.classroom_id">
+                                    <option :value="cr.classroom_id" :selected="String(cr.classroom_id) === String(selectedClassroomId)" x-text="cr.class_code + ' - ' + cr.class_name + (cr.build_name ? ' (' + cr.build_name + ')' : '')"></option>
+                                </template>
                             </select>
-                            <p class="text-[11px] text-gray-400 mt-1">
-                                <i class="fa-solid fa-door-open mr-1"></i> Select allocated class room for this batch.
+                            <p x-show="startTime && endTime && classroomAvailabilityChecked && availableClassrooms.length > 0" class="text-[11px] text-emerald-600 font-medium mt-1">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Showing <span x-text="availableClassrooms.length"></span> available class room(s) for this time slot.
+                            </p>
+                            <p x-show="startTime && endTime && classroomAvailabilityChecked && availableClassrooms.length === 0" class="text-[11px] text-red-600 font-medium mt-1">
+                                <i class="fa-solid fa-circle-exclamation mr-1"></i> All class rooms are occupied during this time slot.
+                            </p>
+                            <p x-show="!startTime || !endTime" class="text-[11px] text-gray-400 mt-1">
+                                <i class="fa-solid fa-door-open mr-1"></i> Set start & end time to filter available class rooms.
                             </p>
                         </div>
                         <!-- 9. Capacity -->
@@ -1025,7 +1038,7 @@
                         <!-- 2. Course -->
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required x-model="editBatch.course_id" @change="onEditCourseChange(); calculateEditEndTime()" id="edit_batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <select name="course_id" required x-model="editBatch.course_id" @change="onEditCourseChange(); calculateEditEndTime(); fetchEditAvailableClassrooms()" id="edit_batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 {% for course in courses %}
                                 <option value="{{ course.course_id }}">{{ course.course_name }}</option>
                                 {% endfor %}
@@ -1040,9 +1053,9 @@
                                        name="start_date" 
                                        x-model="editBatch.start_date" 
                                        placeholder="YYYY-MM-DD" 
-                                       @input="editBatch.start_date = formatBatchDate($event.target.value); checkEditBatchConflict()" 
-                                       @blur="editBatch.start_date = formatBatchDate(editBatch.start_date, true); checkEditBatchConflict()"
-                                       @change="checkEditBatchConflict()" 
+                                       @input="editBatch.start_date = formatBatchDate($event.target.value); checkEditBatchConflict(); fetchEditAvailableClassrooms()" 
+                                       @blur="editBatch.start_date = formatBatchDate(editBatch.start_date, true); checkEditBatchConflict(); fetchEditAvailableClassrooms()"
+                                       @change="checkEditBatchConflict(); fetchEditAvailableClassrooms()" 
                                        class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <button type="button" 
                                         @click="openPicker($refs.pickerEditStartDate)" 
@@ -1053,7 +1066,7 @@
                                 <input type="date" 
                                        x-ref="pickerEditStartDate" 
                                        :value="editBatch.start_date" 
-                                       @change="editBatch.start_date = $event.target.value; checkEditBatchConflict()" 
+                                       @change="editBatch.start_date = $event.target.value; checkEditBatchConflict(); fetchEditAvailableClassrooms()" 
                                        class="sr-only">
                             </div>
                         </div>
@@ -1066,9 +1079,9 @@
                                        name="end_date" 
                                        x-model="editBatch.end_date" 
                                        placeholder="YYYY-MM-DD" 
-                                       @input="editBatch.end_date = formatBatchDate($event.target.value); checkEditBatchConflict()" 
-                                       @blur="editBatch.end_date = formatBatchDate(editBatch.end_date, true); checkEditBatchConflict()"
-                                       @change="checkEditBatchConflict()" 
+                                       @input="editBatch.end_date = formatBatchDate($event.target.value); checkEditBatchConflict(); fetchEditAvailableClassrooms()" 
+                                       @blur="editBatch.end_date = formatBatchDate(editBatch.end_date, true); checkEditBatchConflict(); fetchEditAvailableClassrooms()"
+                                       @change="checkEditBatchConflict(); fetchEditAvailableClassrooms()" 
                                        class="w-full border border-gray-300 rounded-md pl-3 pr-9 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <button type="button" 
                                         @click="openPicker($refs.pickerEditEndDate)" 
@@ -1163,15 +1176,28 @@
                         </div>
                         <!-- Class Room -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Room</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Class Room</label>
+                                <span x-show="isLoadingEditClassrooms" class="text-[11px] text-indigo-600 font-medium flex items-center gap-1">
+                                    <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Checking availability...
+                                </span>
+                            </div>
                             <select name="classroom_id" x-model="editBatch.classroom_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
-                                <option value="">-- Select Class Room (Optional) --</option>
-                                {% for cr in classrooms %}
-                                <option value="{{ cr.classroom_id }}">{{ cr.class_code }} - {{ cr.class_name }}{% if cr.build_name %} ({{ cr.build_name }}){% endif %}</option>
-                                {% endfor %}
+                                <option value="" x-show="!editBatch.start_time || !editBatch.end_time">-- Select Class Room (Optional) --</option>
+                                <option value="" x-show="editBatch.start_time && editBatch.end_time && editAvailableClassrooms.length > 0">-- Select Available Class Room (Optional) --</option>
+                                <option value="" x-show="editBatch.start_time && editBatch.end_time && editClassroomAvailabilityChecked && editAvailableClassrooms.length === 0">-- No Class Rooms Available --</option>
+                                <template x-for="cr in editAvailableClassrooms" :key="'edit-cr-' + cr.classroom_id">
+                                    <option :value="cr.classroom_id" :selected="String(cr.classroom_id) === String(editBatch.classroom_id)" x-text="cr.class_code + ' - ' + cr.class_name + (cr.build_name ? ' (' + cr.build_name + ')' : '')"></option>
+                                </template>
                             </select>
-                            <p class="text-[11px] text-gray-400 mt-1">
-                                <i class="fa-solid fa-door-open mr-1"></i> Select allocated class room for this batch.
+                            <p x-show="editBatch.start_time && editBatch.end_time && editClassroomAvailabilityChecked && editAvailableClassrooms.length > 0" class="text-[11px] text-emerald-600 font-medium mt-1">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Showing <span x-text="editAvailableClassrooms.length"></span> available class room(s) for this time slot.
+                            </p>
+                            <p x-show="editBatch.start_time && editBatch.end_time && editClassroomAvailabilityChecked && editAvailableClassrooms.length === 0" class="text-[11px] text-red-600 font-medium mt-1">
+                                <i class="fa-solid fa-circle-exclamation mr-1"></i> All class rooms are occupied during this time slot.
+                            </p>
+                            <p x-show="!editBatch.start_time || !editBatch.end_time" class="text-[11px] text-gray-400 mt-1">
+                                <i class="fa-solid fa-door-open mr-1"></i> Set start & end time to filter available class rooms.
                             </p>
                         </div>
                         <!-- Capacity -->
@@ -1579,6 +1605,14 @@ function courseBatchData() {
         isCheckingConflict: false,
         isCheckingEditConflict: false,
 
+        // Classroom availability
+        availableClassrooms: {{ classrooms_json|safe|default:"[]" }},
+        editAvailableClassrooms: {{ classrooms_json|safe|default:"[]" }},
+        isLoadingClassrooms: false,
+        isLoadingEditClassrooms: false,
+        classroomAvailabilityChecked: false,
+        editClassroomAvailabilityChecked: false,
+
         // Staff & Course mapping
         selectedTeacherId: '',
 
@@ -1630,6 +1664,9 @@ function courseBatchData() {
             this.calculatedDuration = '-';
             this.addBatchConflictMessage = '';
             this.isCheckingConflict = false;
+            this.availableClassrooms = [...this.allClassrooms];
+            this.classroomAvailabilityChecked = false;
+            this.isLoadingClassrooms = false;
             this.showBatchModal = true;
         },
 
@@ -1679,6 +1716,7 @@ function courseBatchData() {
                 this.editBatch.teacher_id = String(matching[0].user_id);
             }
             this.checkEditBatchConflict();
+            this.fetchEditAvailableClassrooms();
         },
 
         openViewBatch(data) {
@@ -1692,8 +1730,16 @@ function courseBatchData() {
             this.editBatch.calculatedDuration = this.computeDuration(data.start_time, data.end_time);
             this.editBatchConflictMessage = '';
             this.isCheckingEditConflict = false;
+            this.editAvailableClassrooms = [...this.allClassrooms];
+            this.editClassroomAvailabilityChecked = false;
+            this.isLoadingEditClassrooms = false;
             this.showEditBatchModal = true;
-            this.$nextTick(() => { this.checkEditBatchConflict(); });
+            this.$nextTick(() => { 
+                this.checkEditBatchConflict(); 
+                if (this.editBatch.start_time && this.editBatch.end_time) {
+                    this.fetchEditAvailableClassrooms();
+                }
+            });
         },
         openDeleteBatch(data) {
             this.deleteBatch = data;
@@ -1771,14 +1817,87 @@ function courseBatchData() {
             return '0 Mins';
         },
 
+        fetchAvailableClassrooms() {
+            if (!this.startTime || !this.endTime) {
+                this.availableClassrooms = [...this.allClassrooms];
+                this.classroomAvailabilityChecked = false;
+                this.isLoadingClassrooms = false;
+                return;
+            }
+            this.isLoadingClassrooms = true;
+            const params = new URLSearchParams({
+                start_time: this.startTime,
+                end_time: this.endTime,
+                start_date: this.startDate || '',
+                end_date: this.endDate || '',
+                course_id: this.selectedCourseId || ''
+            });
+            fetch(`/api/get-available-classrooms/?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && Array.isArray(data.available_classrooms)) {
+                        this.availableClassrooms = data.available_classrooms;
+                        this.classroomAvailabilityChecked = true;
+                        if (this.selectedClassroomId) {
+                            const stillValid = this.availableClassrooms.some(c => String(c.classroom_id) === String(this.selectedClassroomId));
+                            if (!stillValid) {
+                                this.selectedClassroomId = '';
+                            }
+                        }
+                    }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    this.isLoadingClassrooms = false;
+                });
+        },
+
+        fetchEditAvailableClassrooms() {
+            if (!this.editBatch.start_time || !this.editBatch.end_time) {
+                this.editAvailableClassrooms = [...this.allClassrooms];
+                this.editClassroomAvailabilityChecked = false;
+                this.isLoadingEditClassrooms = false;
+                return;
+            }
+            this.isLoadingEditClassrooms = true;
+            const params = new URLSearchParams({
+                start_time: this.editBatch.start_time,
+                end_time: this.editBatch.end_time,
+                start_date: this.editBatch.start_date || '',
+                end_date: this.editBatch.end_date || '',
+                course_id: this.editBatch.course_id || '',
+                exclude_batch_id: this.editBatch.batch_id || ''
+            });
+            fetch(`/api/get-available-classrooms/?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && Array.isArray(data.available_classrooms)) {
+                        this.editAvailableClassrooms = data.available_classrooms;
+                        this.editClassroomAvailabilityChecked = true;
+                        if (this.editBatch.classroom_id) {
+                            const stillValid = this.editAvailableClassrooms.some(c => String(c.classroom_id) === String(this.editBatch.classroom_id));
+                            if (!stillValid) {
+                                this.editBatch.classroom_id = '';
+                            }
+                        }
+                    }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    this.isLoadingEditClassrooms = false;
+                });
+        },
+
         onTimeChange() {
             this.calculatedDuration = this.computeDuration(this.startTime, this.endTime);
             this.checkAddBatchConflict();
+            this.fetchAvailableClassrooms();
         },
 
         onEditTimeChange() {
             this.editBatch.calculatedDuration = this.computeDuration(this.editBatch.start_time, this.editBatch.end_time);
             this.checkEditBatchConflict();
+            this.fetchEditAvailableClassrooms();
         },
 
         calculateEndDate() {

@@ -37,6 +37,7 @@ urlpatterns = [
 
     path('api/get-batch/', views.api_get_batch_details, name='api_get_batch'),
     path('api/check-conflict/', views.api_check_conflict, name='api_check_conflict'),
+    path('api/get-available-classrooms/', views.api_get_available_classrooms, name='api_get_available_classrooms'),
     path('students/update/<int:student_id>/', views.update_student, name='update_student'),
     path('students/delete/<int:student_id>/', views.delete_student, name='delete_student'),
     path('teachers/', views.teachers_view, name='teachers'),

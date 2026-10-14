@@ -452,13 +452,23 @@ function eventDashboard() {
                             <thead>
                                 <tr class="border-b border-gray-200 text-gray-600 bg-gray-50/70 font-semibold uppercase tracking-wider text-[11px]">
                                     <th class="py-3 px-3.5 w-12 text-center">#</th>
-                                    <th class="py-3 px-3.5">Event Name</th>
-                                    <th class="py-3 px-3.5">Event Type</th>
-                                    <th class="py-3 px-3.5">Event Date</th>
-                                    <th class="py-3 px-3.5">Start Time</th>
-                                    <th class="py-3 px-3.5">End Time</th>
-                                    <th class="py-3 px-3.5">Venue</th>
-                                    <th class="py-3 px-3.5 text-center">Status</th>
+                                    {% if menu_columns_map.event_list %}
+                                        {% for col in menu_columns_map.event_list %}
+                                        <th class="py-3 px-3.5 {% if col.column_key == 'status' %}text-center{% endif %}">{{ col.display_name }}</th>
+                                        {% endfor %}
+                                    {% elif menu_columns_map.event_scheduling %}
+                                        {% for col in menu_columns_map.event_scheduling %}
+                                        <th class="py-3 px-3.5 {% if col.column_key == 'status' %}text-center{% endif %}">{{ col.display_name }}</th>
+                                        {% endfor %}
+                                    {% else %}
+                                        <th class="py-3 px-3.5">Event Name</th>
+                                        <th class="py-3 px-3.5">Event Type</th>
+                                        <th class="py-3 px-3.5">Event Date</th>
+                                        <th class="py-3 px-3.5">Start Time</th>
+                                        <th class="py-3 px-3.5">End Time</th>
+                                        <th class="py-3 px-3.5">Venue</th>
+                                        <th class="py-3 px-3.5 text-center">Status</th>
+                                    {% endif %}
                                     <th class="py-3 px-3.5 text-center w-28">Actions</th>
                                 </tr>
                             </thead>
@@ -466,19 +476,97 @@ function eventDashboard() {
                                 {% for ev in events %}
                                 <tr class="hover:bg-gray-50/70 transition">
                                     <td class="py-3 px-3.5 text-center text-gray-500 font-medium">{{ forloop.counter }}</td>
-                                    <td class="py-3 px-3.5 font-bold text-gray-800">
-                                        <a href="?tab=details&event_id={{ ev.event_id }}" class="hover:text-indigo-600 transition">{{ ev.event_name }}</a>
-                                    </td>
-                                    <td class="py-3 px-3.5 text-gray-600">{{ ev.event_type }}</td>
-                                    <td class="py-3 px-3.5 text-gray-600">{{ ev.event_date|date:"d/m/Y" }}</td>
-                                    <td class="py-3 px-3.5 text-gray-600">{{ ev.start_time|time:"h:i A"|default:"-" }}</td>
-                                    <td class="py-3 px-3.5 text-gray-600">{{ ev.end_time|time:"h:i A"|default:"-" }}</td>
-                                    <td class="py-3 px-3.5 text-gray-600">{% if ev.venue %}{{ ev.venue.venue_name }}{% else %}TBA / Online{% endif %}</td>
-                                    <td class="py-3 px-3.5 text-center">
-                                        {% if ev.status == 1 %}<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Upcoming</span>
-                                        {% elif ev.status == 2 %}<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Completed</span>
-                                        {% else %}<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cancelled</span>{% endif %}
-                                    </td>
+                                    {% if menu_columns_map.event_list %}
+                                        {% for col in menu_columns_map.event_list %}
+                                            {% if col.column_key == 'event_name' %}
+                                            <td class="py-3 px-3.5 font-bold text-gray-800">
+                                                <a href="?tab=details&event_id={{ ev.event_id }}" class="hover:text-indigo-600 transition">{{ ev.event_name }}</a>
+                                            </td>
+                                            {% elif col.column_key == 'event_type' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.event_type }}</td>
+                                            {% elif col.column_key == 'event_date' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.event_date|date:"d/m/Y" }}</td>
+                                            {% elif col.column_key == 'start_time' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.start_time|time:"h:i A"|default:"-" }}</td>
+                                            {% elif col.column_key == 'end_time' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.end_time|time:"h:i A"|default:"-" }}</td>
+                                            {% elif col.column_key == 'venue_id' or col.column_key == 'venue' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{% if ev.venue %}{{ ev.venue.venue_name }}{% else %}TBA / Online{% endif %}</td>
+                                            {% elif col.column_key == 'status' %}
+                                            <td class="py-3 px-3.5 text-center">
+                                                {% if ev.status == 1 %}<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Upcoming</span>
+                                                {% elif ev.status == 2 %}<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Completed</span>
+                                                {% else %}<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cancelled</span>{% endif %}
+                                            </td>
+                                            {% elif col.column_key == 'description' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.description|default:"-"|truncatechars:30 }}</td>
+                                            {% elif col.column_key == 'organizer' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.organizer|default:"-" }}</td>
+                                            {% elif col.column_key == 'contact_person' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.contact_person|default:"-" }}</td>
+                                            {% elif col.column_key == 'contact_phone' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.contact_phone|default:"-" }}</td>
+                                            {% elif col.column_key == 'registration_start_date' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.registration_start_date|date:"d/m/Y"|default:"-" }}</td>
+                                            {% elif col.column_key == 'registration_end_date' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.registration_end_date|date:"d/m/Y"|default:"-" }}</td>
+                                            {% elif col.column_key == 'max_participants' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.max_participants|default:"-" }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% elif menu_columns_map.event_scheduling %}
+                                        {% for col in menu_columns_map.event_scheduling %}
+                                            {% if col.column_key == 'event_name' %}
+                                            <td class="py-3 px-3.5 font-bold text-gray-800">
+                                                <a href="?tab=details&event_id={{ ev.event_id }}" class="hover:text-indigo-600 transition">{{ ev.event_name }}</a>
+                                            </td>
+                                            {% elif col.column_key == 'event_type' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.event_type }}</td>
+                                            {% elif col.column_key == 'event_date' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.event_date|date:"d/m/Y" }}</td>
+                                            {% elif col.column_key == 'start_time' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.start_time|time:"h:i A"|default:"-" }}</td>
+                                            {% elif col.column_key == 'end_time' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.end_time|time:"h:i A"|default:"-" }}</td>
+                                            {% elif col.column_key == 'venue_id' or col.column_key == 'venue' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{% if ev.venue %}{{ ev.venue.venue_name }}{% else %}TBA / Online{% endif %}</td>
+                                            {% elif col.column_key == 'status' %}
+                                            <td class="py-3 px-3.5 text-center">
+                                                {% if ev.status == 1 %}<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Upcoming</span>
+                                                {% elif ev.status == 2 %}<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Completed</span>
+                                                {% else %}<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cancelled</span>{% endif %}
+                                            </td>
+                                            {% elif col.column_key == 'description' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.description|default:"-"|truncatechars:30 }}</td>
+                                            {% elif col.column_key == 'organizer' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.organizer|default:"-" }}</td>
+                                            {% elif col.column_key == 'contact_person' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.contact_person|default:"-" }}</td>
+                                            {% elif col.column_key == 'contact_phone' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.contact_phone|default:"-" }}</td>
+                                            {% elif col.column_key == 'registration_start_date' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.registration_start_date|date:"d/m/Y"|default:"-" }}</td>
+                                            {% elif col.column_key == 'registration_end_date' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.registration_end_date|date:"d/m/Y"|default:"-" }}</td>
+                                            {% elif col.column_key == 'max_participants' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{{ ev.max_participants|default:"-" }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <td class="py-3 px-3.5 font-bold text-gray-800">
+                                            <a href="?tab=details&event_id={{ ev.event_id }}" class="hover:text-indigo-600 transition">{{ ev.event_name }}</a>
+                                        </td>
+                                        <td class="py-3 px-3.5 text-gray-600">{{ ev.event_type }}</td>
+                                        <td class="py-3 px-3.5 text-gray-600">{{ ev.event_date|date:"d/m/Y" }}</td>
+                                        <td class="py-3 px-3.5 text-gray-600">{{ ev.start_time|time:"h:i A"|default:"-" }}</td>
+                                        <td class="py-3 px-3.5 text-gray-600">{{ ev.end_time|time:"h:i A"|default:"-" }}</td>
+                                        <td class="py-3 px-3.5 text-gray-600">{% if ev.venue %}{{ ev.venue.venue_name }}{% else %}TBA / Online{% endif %}</td>
+                                        <td class="py-3 px-3.5 text-center">
+                                            {% if ev.status == 1 %}<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Upcoming</span>
+                                            {% elif ev.status == 2 %}<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Completed</span>
+                                            {% else %}<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">Cancelled</span>{% endif %}
+                                        </td>
+                                    {% endif %}
                                     <td class="py-3 px-3.5 text-center">
                                         <div class="flex items-center justify-center space-x-1.5">
                                             <a href="?tab=details&event_id={{ ev.event_id }}" title="View Details" class="w-7 h-7 rounded bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-100 transition"><i class="fa-regular fa-eye text-xs"></i></a>
@@ -727,9 +815,15 @@ function eventDashboard() {
                             <thead>
                                 <tr class="border-b border-gray-200 text-gray-600 bg-gray-50/70 font-semibold uppercase tracking-wider text-[11px]">
                                     <th class="py-3 px-3.5 w-16 text-center">#</th>
-                                    <th class="py-3 px-3.5">Venue Name</th>
-                                    <th class="py-3 px-3.5">Capacity</th>
-                                    <th class="py-3 px-3.5">Address / Location</th>
+                                    {% if menu_columns_map.venue_management %}
+                                        {% for col in menu_columns_map.venue_management %}
+                                        <th class="py-3 px-3.5">{{ col.display_name }}</th>
+                                        {% endfor %}
+                                    {% else %}
+                                        <th class="py-3 px-3.5">Venue Name</th>
+                                        <th class="py-3 px-3.5">Capacity</th>
+                                        <th class="py-3 px-3.5">Address / Location</th>
+                                    {% endif %}
                                     <th class="py-3 px-3.5 text-center w-28">Actions</th>
                                 </tr>
                             </thead>
@@ -737,9 +831,21 @@ function eventDashboard() {
                                 {% for venue in venues %}
                                 <tr class="hover:bg-gray-50/70 transition">
                                     <td class="py-3 px-3.5 text-center text-gray-500">{{ forloop.counter }}</td>
-                                    <td class="py-3 px-3.5 font-bold text-gray-800">{{ venue.venue_name }}</td>
-                                    <td class="py-3 px-3.5 text-gray-600">{% if venue.capacity %}{{ venue.capacity }} Seats{% else %}-{% endif %}</td>
-                                    <td class="py-3 px-3.5 text-gray-500">{{ venue.address|default:"-" }}</td>
+                                    {% if menu_columns_map.venue_management %}
+                                        {% for col in menu_columns_map.venue_management %}
+                                            {% if col.column_key == 'venue_name' %}
+                                            <td class="py-3 px-3.5 font-bold text-gray-800">{{ venue.venue_name }}</td>
+                                            {% elif col.column_key == 'capacity' %}
+                                            <td class="py-3 px-3.5 text-gray-600">{% if venue.capacity %}{{ venue.capacity }} Seats{% else %}-{% endif %}</td>
+                                            {% elif col.column_key == 'address' %}
+                                            <td class="py-3 px-3.5 text-gray-500">{{ venue.address|default:"-" }}</td>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <td class="py-3 px-3.5 font-bold text-gray-800">{{ venue.venue_name }}</td>
+                                        <td class="py-3 px-3.5 text-gray-600">{% if venue.capacity %}{{ venue.capacity }} Seats{% else %}-{% endif %}</td>
+                                        <td class="py-3 px-3.5 text-gray-500">{{ venue.address|default:"-" }}</td>
+                                    {% endif %}
                                     <td class="py-3 px-3.5 text-center space-x-2">
                                         <button type="button" @click="openEditVenueModal({
                                             id: '{{ venue.venue_id }}',
@@ -1128,13 +1234,16 @@ function eventDashboard() {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         <!-- Left Column -->
                         <div class="space-y-4">
+                            {% if active_map.event_list.event_name %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Event Name <span class="text-red-500">*</span></label>
-                                <input type="text" name="event_name" x-model="eventForm.name" required placeholder="e.g. Annual Concert 2026" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Event Name {% if mandatory_map.event_list.event_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <input type="text" name="event_name" x-model="eventForm.name" {% if mandatory_map.event_list.event_name %}required{% endif %} placeholder="e.g. Annual Concert 2026" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.event_type %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Event Type</label>
-                                <select name="event_type" x-model="eventForm.type" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Event Type {% if mandatory_map.event_list.event_type %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <select name="event_type" x-model="eventForm.type" {% if mandatory_map.event_list.event_type %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                                     <option value="Performance">Performance</option>
                                     <option value="Workshop">Workshop</option>
                                     <option value="Competition">Competition</option>
@@ -1142,79 +1251,110 @@ function eventDashboard() {
                                     <option value="Meeting">Meeting</option>
                                 </select>
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.event_date %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Event Date <span class="text-red-500">*</span></label>
-                                <input type="date" name="event_date" x-model="eventForm.date" required class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Event Date {% if mandatory_map.event_list.event_date %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <input type="date" name="event_date" x-model="eventForm.date" {% if mandatory_map.event_list.event_date %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.start_time or active_map.event_list.end_time %}
                             <div class="grid grid-cols-2 gap-2 sm:gap-3">
+                                {% if active_map.event_list.start_time %}
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Start Time</label>
-                                    <input type="time" name="start_time" x-model="eventForm.start_time" class="w-full border border-gray-300 rounded px-2.5 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Start Time {% if mandatory_map.event_list.start_time %}<span class="text-red-500">*</span>{% endif %}</label>
+                                    <input type="time" name="start_time" x-model="eventForm.start_time" {% if mandatory_map.event_list.start_time %}required{% endif %} class="w-full border border-gray-300 rounded px-2.5 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                                 </div>
+                                {% endif %}
+                                {% if active_map.event_list.end_time %}
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">End Time</label>
-                                    <input type="time" name="end_time" x-model="eventForm.end_time" class="w-full border border-gray-300 rounded px-2.5 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">End Time {% if mandatory_map.event_list.end_time %}<span class="text-red-500">*</span>{% endif %}</label>
+                                    <input type="time" name="end_time" x-model="eventForm.end_time" {% if mandatory_map.event_list.end_time %}required{% endif %} class="w-full border border-gray-300 rounded px-2.5 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                                 </div>
+                                {% endif %}
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.venue_id %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Venue</label>
-                                <select name="venue_id" x-model="eventForm.venue_id" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Venue {% if mandatory_map.event_list.venue_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <select name="venue_id" x-model="eventForm.venue_id" {% if mandatory_map.event_list.venue_id %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                                     <option value="0">TBA / Online / Other</option>
                                     {% for venue in venues %}
                                     <option value="{{ venue.venue_id }}">{{ venue.venue_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
+                            {% endif %}
                         </div>
                         
                         <!-- Right Column -->
                         <div class="space-y-4">
+                            {% if active_map.event_list.status %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Status</label>
-                                <select name="status" x-model="eventForm.status" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Status {% if mandatory_map.event_list.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <select name="status" x-model="eventForm.status" {% if mandatory_map.event_list.status %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                                     <option value="1">Upcoming</option>
                                     <option value="2">Completed</option>
                                     <option value="3">Cancelled</option>
                                 </select>
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.description %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Description</label>
-                                <textarea name="description" x-model="eventForm.description" rows="3" placeholder="Brief event description..." class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 resize-none"></textarea>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Description {% if mandatory_map.event_list.description %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <textarea name="description" x-model="eventForm.description" rows="3" {% if mandatory_map.event_list.description %}required{% endif %} placeholder="Brief event description..." class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 resize-none"></textarea>
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.organizer %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Organizer</label>
-                                <input type="text" name="organizer" x-model="eventForm.organizer" placeholder="e.g. Melo's Music Academy" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Organizer {% if mandatory_map.event_list.organizer %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <input type="text" name="organizer" x-model="eventForm.organizer" {% if mandatory_map.event_list.organizer %}required{% endif %} placeholder="e.g. Melo's Music Academy" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.contact_person or active_map.event_list.contact_phone %}
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {% if active_map.event_list.contact_person %}
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Contact Person</label>
-                                    <input type="text" name="contact_person" x-model="eventForm.contact_person" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Contact Person {% if mandatory_map.event_list.contact_person %}<span class="text-red-500">*</span>{% endif %}</label>
+                                    <input type="text" name="contact_person" x-model="eventForm.contact_person" {% if mandatory_map.event_list.contact_person %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
                                 </div>
+                                {% endif %}
+                                {% if active_map.event_list.contact_phone %}
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Contact Phone</label>
-                                    <input type="text" name="contact_phone" x-model="eventForm.contact_phone" placeholder="e.g. 9876543210" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Contact Phone {% if mandatory_map.event_list.contact_phone %}<span class="text-red-500">*</span>{% endif %}</label>
+                                    <input type="text" name="contact_phone" x-model="eventForm.contact_phone" {% if mandatory_map.event_list.contact_phone %}required{% endif %} placeholder="e.g. 9876543210" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
                                 </div>
+                                {% endif %}
                             </div>
+                            {% endif %}
                         </div>
                     </div>
 
                     <!-- Registration Details Grid -->
+                    {% if active_map.event_list.registration_start_date or active_map.event_list.registration_end_date or active_map.event_list.max_participants %}
                     <div class="pt-2 border-t border-gray-100">
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                            {% if active_map.event_list.registration_start_date %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Registration Start</label>
-                                <input type="date" name="registration_start_date" x-model="eventForm.reg_start" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Registration Start {% if mandatory_map.event_list.registration_start_date %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <input type="date" name="registration_start_date" x-model="eventForm.reg_start" {% if mandatory_map.event_list.registration_start_date %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.registration_end_date %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Registration End</label>
-                                <input type="date" name="registration_end_date" x-model="eventForm.reg_end" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Registration End {% if mandatory_map.event_list.registration_end_date %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <input type="date" name="registration_end_date" x-model="eventForm.reg_end" {% if mandatory_map.event_list.registration_end_date %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             </div>
+                            {% endif %}
+                            {% if active_map.event_list.max_participants %}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Max Participants</label>
-                                <input type="number" name="max_participants" x-model="eventForm.max_participants" placeholder="e.g. 100" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Max Participants {% if mandatory_map.event_list.max_participants %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <input type="number" name="max_participants" x-model="eventForm.max_participants" {% if mandatory_map.event_list.max_participants %}required{% endif %} placeholder="e.g. 100" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
                             </div>
+                            {% endif %}
                         </div>
                     </div>
+                    {% endif %}
                 </div>
 
                 <div class="px-4 py-3 sm:px-6 sm:py-4 border-t border-gray-200 bg-gray-50 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-3 rounded-b-lg">
@@ -1246,18 +1386,24 @@ function eventDashboard() {
                 <input type="hidden" name="venue_id" :value="venueForm.id">
 
                 <div class="p-4 sm:p-5 space-y-3 text-xs sm:text-sm">
+                    {% if active_map.venue_management.venue_name %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Venue Name <span class="text-red-500">*</span></label>
-                        <input type="text" name="venue_name" x-model="venueForm.name" required placeholder="e.g. Symphony Hall" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Venue Name {% if mandatory_map.venue_management.venue_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <input type="text" name="venue_name" x-model="venueForm.name" {% if mandatory_map.venue_management.venue_name %}required{% endif %} placeholder="e.g. Symphony Hall" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
                     </div>
+                    {% endif %}
+                    {% if active_map.venue_management.capacity %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Capacity (Seats)</label>
-                        <input type="number" name="capacity" x-model="venueForm.capacity" placeholder="e.g. 250" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Capacity (Seats) {% if mandatory_map.venue_management.capacity %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <input type="number" name="capacity" x-model="venueForm.capacity" {% if mandatory_map.venue_management.capacity %}required{% endif %} placeholder="e.g. 250" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500">
                     </div>
+                    {% endif %}
+                    {% if active_map.venue_management.address %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Address / Location</label>
-                        <textarea name="address" x-model="venueForm.address" rows="2" placeholder="e.g. Block B, Campus 1" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 resize-none"></textarea>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Address / Location {% if mandatory_map.venue_management.address %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <textarea name="address" x-model="venueForm.address" rows="2" {% if mandatory_map.venue_management.address %}required{% endif %} placeholder="e.g. Block B, Campus 1" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 resize-none"></textarea>
                     </div>
+                    {% endif %}
                 </div>
                 <div class="px-4 py-3 sm:px-5 sm:py-3.5 border-t border-gray-200 bg-gray-50 flex justify-end space-x-2 rounded-b-lg">
                     <button type="button" @click="showVenueModal = false" class="border border-gray-300 bg-white text-gray-700 px-4 py-1.5 rounded text-xs font-semibold hover:bg-gray-50 transition">Cancel</button>
@@ -1286,33 +1432,39 @@ function eventDashboard() {
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add_participant">
                 <div class="p-4 sm:p-5 space-y-3 text-xs sm:text-sm">
+                    {% if active_map.event_registration.event_id %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Event <span class="text-red-500">*</span></label>
-                        <select name="event_id" required class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Event {% if mandatory_map.event_registration.event_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <select name="event_id" {% if mandatory_map.event_registration.event_id %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             <option value="">-- Choose Event --</option>
                             {% for ev in events %}
                             <option value="{{ ev.event_id }}" {% if selected_event and selected_event.event_id == ev.event_id %}selected{% endif %}>{{ ev.event_name }} ({{ ev.event_date|date:"d/m/Y" }})</option>
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
+                    {% if active_map.event_registration.user_id %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Student / Member <span class="text-red-500">*</span></label>
-                        <select name="user_id" required class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Student / Member {% if mandatory_map.event_registration.user_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <select name="user_id" {% if mandatory_map.event_registration.user_id %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             <option value="">-- Choose Student / Member --</option>
                             {% for stu in students %}
                             <option value="{{ stu.user_id }}">{{ stu.display_name|default:stu.first_name }} ({{ stu.email }})</option>
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
+                    {% if active_map.event_registration.role_id %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Role / Duty</label>
-                        <select name="role_id" class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Role / Duty {% if mandatory_map.event_registration.role_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <select name="role_id" {% if mandatory_map.event_registration.role_id %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             <option value="">-- Select Role (Default: Member's Role) --</option>
                             {% for r in roles %}
                             <option value="{{ r.role_id }}">{{ r.role_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
                 </div>
                 <div class="px-4 py-3 sm:px-5 sm:py-3.5 border-t border-gray-200 bg-gray-50 flex justify-end space-x-2 rounded-b-lg">
                     <button type="button" @click="showParticipantModal = false" class="border border-gray-300 bg-white text-gray-700 px-4 py-1.5 rounded text-xs font-semibold hover:bg-gray-50 transition">Cancel</button>
@@ -1341,33 +1493,39 @@ function eventDashboard() {
                 {% csrf_token %}
                 <input type="hidden" name="action" value="assign_staff">
                 <div class="p-4 sm:p-5 space-y-3 text-xs sm:text-sm">
+                    {% if active_map.staff_assignments.event_id %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Event <span class="text-red-500">*</span></label>
-                        <select name="event_id" required class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Event {% if mandatory_map.staff_assignments.event_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <select name="event_id" {% if mandatory_map.staff_assignments.event_id %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             <option value="">-- Choose Event --</option>
                             {% for ev in events %}
                             <option value="{{ ev.event_id }}" {% if selected_event and selected_event.event_id == ev.event_id %}selected{% endif %}>{{ ev.event_name }} ({{ ev.event_date|date:"d/m/Y" }})</option>
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
+                    {% if active_map.staff_assignments.user_id %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Staff Member <span class="text-red-500">*</span></label>
-                        <select name="user_id" required class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Select Staff Member {% if mandatory_map.staff_assignments.user_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <select name="user_id" {% if mandatory_map.staff_assignments.user_id %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             <option value="">-- Choose Staff Member --</option>
                             {% for staff in staff_users %}
                             <option value="{{ staff.user_id }}">{{ staff.display_name|default:staff.first_name }} ({{ staff.phone|default:staff.email }})</option>
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
+                    {% if active_map.staff_assignments.role_id %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Responsibility / Role <span class="text-red-500">*</span></label>
-                        <select name="role_id" required class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Responsibility / Role {% if mandatory_map.staff_assignments.role_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <select name="role_id" {% if mandatory_map.staff_assignments.role_id %}required{% endif %} class="w-full border border-gray-300 rounded px-3 py-2 text-xs sm:text-sm outline-none focus:border-indigo-500 bg-white">
                             <option value="">-- Choose Responsibility / Role --</option>
                             {% for r in roles %}
                             <option value="{{ r.role_id }}">{{ r.role_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
+                    {% endif %}
                 </div>
                 <div class="px-4 py-3 sm:px-5 sm:py-3.5 border-t border-gray-200 bg-gray-50 flex justify-end space-x-2 rounded-b-lg">
                     <button type="button" @click="showStaffAssignModal = false" class="border border-gray-300 bg-white text-gray-700 px-4 py-1.5 rounded text-xs font-semibold hover:bg-gray-50 transition">Cancel</button>

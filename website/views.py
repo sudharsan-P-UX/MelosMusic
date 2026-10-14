@@ -7,6 +7,40 @@ from finance.models import StudentFeeInstallment
 from django.db.models import Sum, F
 from website.context_processors import has_permission
 
+def validate_mandatory_menu_columns(menu_identifiers, post_data, field_mapping=None, ignore_fields=None):
+    """
+    Checks if all columns marked is_mandatory=True for this menu are present and non-empty in post_data.
+    menu_identifiers can be a menu_name (str) or list/tuple of names.
+    Returns (True, None) if valid, or (False, error_message) if any mandatory field is missing.
+    """
+    from users.models import MenuColumn, MasterMenu
+    
+    if isinstance(menu_identifiers, str):
+        menu_identifiers = [menu_identifiers]
+        
+    ignore_set = set(ignore_fields or [])
+    
+    menus = MasterMenu.objects.filter(menu_name__in=menu_identifiers)
+    if not menus.exists():
+        menus = MasterMenu.objects.filter(menu_name__icontains=menu_identifiers[0])
+        
+    if not menus.exists():
+        return True, None
+        
+    mandatory_cols = MenuColumn.objects.filter(menu__in=menus, is_mandatory=True, status=True)
+    for col in mandatory_cols:
+        if col.column_key in ignore_set:
+            continue
+        post_key = col.column_key
+        if field_mapping and col.column_key in field_mapping:
+            post_key = field_mapping[col.column_key]
+            
+        val = post_data.get(post_key)
+        if val is None or (isinstance(val, str) and not val.strip()):
+            return False, f"{col.display_name or col.column_name} is required."
+            
+    return True, None
+
 def index(request):
     if 'user_id' not in request.session:
         return redirect('login')
@@ -186,6 +220,11 @@ def students_view(request):
             messages.error(request, "You do not have permission to add student records.")
             return redirect('students')
 
+        is_valid, err = validate_mandatory_menu_columns('Student Master', request.POST)
+        if not is_valid:
+            messages.error(request, err)
+            return redirect('students')
+
         name = request.POST.get('student_name')
         gender = request.POST.get('gender')
         dob = request.POST.get('dob')
@@ -312,6 +351,14 @@ def update_student(request, student_id):
         return redirect('students')
 
     if request.method == 'POST':
+        ignore = []
+        if not request.POST.get('password'):
+            ignore = ['password', 'confirm_password']
+        is_valid, err = validate_mandatory_menu_columns('Student Master', request.POST, ignore_fields=ignore)
+        if not is_valid:
+            messages.error(request, err)
+            return redirect('students')
+
         try:
             student = User.objects.get(user_id=student_id)
             name = request.POST.get('student_name')
@@ -410,6 +457,11 @@ def teachers_view(request):
 
         if not has_permission(request, 'add', 'Staff Master'):
             messages.error(request, "You do not have permission to add staff records.")
+            return redirect('teachers')
+
+        is_valid, err = validate_mandatory_menu_columns(['Staff Master', 'Teacher Master'], request.POST)
+        if not is_valid:
+            messages.error(request, err)
             return redirect('teachers')
 
         name = request.POST.get('teacher_name')
@@ -590,6 +642,14 @@ def update_teacher(request, teacher_id):
         return redirect('teachers')
 
     if request.method == 'POST':
+        ignore = []
+        if not request.POST.get('password'):
+            ignore = ['password', 'confirm_password']
+        is_valid, err = validate_mandatory_menu_columns(['Staff Master', 'Teacher Master'], request.POST, ignore_fields=ignore)
+        if not is_valid:
+            messages.error(request, err)
+            return redirect('teachers')
+
         try:
             teacher = User.objects.get(user_id=teacher_id)
             name = request.POST.get('teacher_name')
@@ -801,6 +861,11 @@ def events_dashboard_view(request):
         
         # --- Event Actions ---
         if action in ['create_event', 'edit_event', 'save_event', 'add_event']:
+            is_valid, err = validate_mandatory_menu_columns(['Event List', 'Event Scheduling'], request.POST)
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/events/?tab=list')
+
             event_id = request.POST.get('event_id')
             event_name = request.POST.get('event_name', '').strip()
             event_type = request.POST.get('event_type', '').strip()
@@ -880,6 +945,11 @@ def events_dashboard_view(request):
 
         # --- Venue Actions ---
         if action == 'add_venue':
+            is_valid, err = validate_mandatory_menu_columns('Venue Management', request.POST)
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/events/?tab=venue')
+
             venue_name = request.POST.get('venue_name', '').strip()
             capacity = request.POST.get('capacity', '').strip()
             address = request.POST.get('address', '').strip()
@@ -896,6 +966,11 @@ def events_dashboard_view(request):
             return redirect('/events/?tab=venue')
 
         if action == 'edit_venue':
+            is_valid, err = validate_mandatory_menu_columns('Venue Management', request.POST)
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/events/?tab=venue')
+
             venue_id = request.POST.get('venue_id')
             venue_name = request.POST.get('venue_name', '').strip()
             capacity = request.POST.get('capacity', '').strip()
@@ -927,6 +1002,11 @@ def events_dashboard_view(request):
         # --- Participant Actions ---
         if action == 'add_participant':
             event_id = request.POST.get('event_id')
+            is_valid, err = validate_mandatory_menu_columns('Event Registration', request.POST)
+            if not is_valid:
+                messages.error(request, err)
+                return redirect(f'/events/?tab=registration&event_id={event_id}' if event_id else '/events/?tab=registration')
+
             user_id = request.POST.get('user_id')
             role_id = request.POST.get('role_id')
             if event_id and user_id:
@@ -983,6 +1063,11 @@ def events_dashboard_view(request):
 
         # --- Staff Assignment Actions ---
         if action == 'assign_staff':
+            is_valid, err = validate_mandatory_menu_columns('Staff Assignments', request.POST)
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/events/?tab=assignments')
+
             event_id = request.POST.get('event_id')
             user_id = request.POST.get('user_id')
             role_id = request.POST.get('role_id')
@@ -1778,6 +1863,12 @@ def holidays_view(request):
             if not has_permission(request, 'add', 'Holiday Management'):
                 messages.error(request, 'You do not have permission to add holidays.')
                 return redirect(f"/holidays/?year={selected_year}")
+
+            is_valid, err = validate_mandatory_menu_columns('Holiday Management', request.POST, ignore_fields=['day_of_week', 'created_date', 'status'])
+            if not is_valid:
+                messages.error(request, err)
+                return redirect(f"/holidays/?year={selected_year}")
+
             name = request.POST.get('holiday_name', '').strip()
             date_from_str = request.POST.get('holiday_date', '').strip()
             date_to_str = request.POST.get('end_date', '').strip()
@@ -1824,6 +1915,12 @@ def holidays_view(request):
             if not has_permission(request, 'edit', 'Holiday Management'):
                 messages.error(request, 'You do not have permission to edit holidays.')
                 return redirect(f"/holidays/?year={selected_year}")
+
+            is_valid, err = validate_mandatory_menu_columns('Holiday Management', request.POST, ignore_fields=['day_of_week', 'created_date', 'status', 'end_date', 'is_recurring_weekly'])
+            if not is_valid:
+                messages.error(request, err)
+                return redirect(f"/holidays/?year={selected_year}")
+
             holiday_id = request.POST.get('holiday_id')
             name = request.POST.get('holiday_name', '').strip()
             date_str = request.POST.get('holiday_date', '').strip()
@@ -2699,6 +2796,15 @@ def fee_collection_view(request):
     sync_enrollment_fees(user.user_id)
     
     if request.method == 'POST':
+        is_valid, err = validate_mandatory_menu_columns(
+            'Fee Collection',
+            request.POST,
+            ignore_fields=['receipt_no', 'student_name', 'course', 'batch', 'paid_amount']
+        )
+        if not is_valid:
+            messages.error(request, err)
+            return redirect('fee_collection')
+
         student_id = request.POST.get('student_id')
         course_id = request.POST.get('course_id')
         batch_id = request.POST.get('batch_id')
@@ -3114,6 +3220,15 @@ def assign_fees_view(request):
     sync_enrollment_fees(user.user_id)
     
     if request.method == 'POST':
+        is_valid, err = validate_mandatory_menu_columns(
+            'Assign Fees',
+            request.POST,
+            ignore_fields=['student', 'course', 'batch', 'total_fee', 'assign_date', 'discount', 'final_fee']
+        )
+        if not is_valid:
+            messages.error(request, err)
+            return redirect('assign_fees')
+
         student_id = request.POST.get('student_id')
         course_id = request.POST.get('course_id')
         batch_id = request.POST.get('batch_id')
@@ -3547,6 +3662,21 @@ def courses_batches_view(request):
             if not has_permission(request, 'add', 'Course Master', parent_fallback='Courses & Batches'):
                 messages.error(request, 'You do not have permission to add courses.')
                 return redirect('/courses/?tab=courses')
+            
+            is_valid, err = validate_mandatory_menu_columns(
+                'Course and Batches',
+                request.POST,
+                ignore_fields=[
+                    'batch_code', 'batch_name', 'course_id', 'classroom_id', 'teacher_id',
+                    'start_date', 'end_date', 'start_time', 'end_time', 'capacity',
+                    'class_code', 'class_name', 'build_name', 'block', 'floor', 'class_no',
+                    'duration', 'fee', 'course_code'
+                ]
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/courses/?tab=courses')
+
             course_code = request.POST.get('course_code')
             if not course_code:
                 last_course = Course.objects.exclude(course_code__isnull=True).exclude(course_code='').order_by('-course_id').first()
@@ -3598,6 +3728,21 @@ def courses_batches_view(request):
             if not has_permission(request, 'edit', 'Course Master', parent_fallback='Courses & Batches'):
                 messages.error(request, 'You do not have permission to edit courses.')
                 return redirect('/courses/?tab=courses')
+            
+            is_valid, err = validate_mandatory_menu_columns(
+                'Course and Batches',
+                request.POST,
+                ignore_fields=[
+                    'batch_code', 'batch_name', 'course_id', 'classroom_id', 'teacher_id',
+                    'start_date', 'end_date', 'start_time', 'end_time', 'capacity',
+                    'class_code', 'class_name', 'build_name', 'block', 'floor', 'class_no',
+                    'duration', 'fee', 'course_code'
+                ]
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/courses/?tab=courses')
+
             course_id = request.POST.get('course_id')
             try:
                 course = Course.objects.get(course_id=course_id)
@@ -3655,6 +3800,21 @@ def courses_batches_view(request):
             if not has_permission(request, 'add', 'Batch Master', parent_fallback='Courses & Batches'):
                 messages.error(request, 'You do not have permission to add batches.')
                 return redirect('/courses/?tab=batches')
+            
+            is_valid, err = validate_mandatory_menu_columns(
+                'Course and Batches',
+                request.POST,
+                ignore_fields=[
+                    'batch_code',
+                    'course_code', 'category', 'duration_months', 'duration_hrs', 'total_sessions',
+                    'days', 'fee_amount', 'description', 'duration', 'fee',
+                    'class_code', 'class_name', 'build_name', 'block', 'floor', 'class_no'
+                ]
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/courses/?tab=batches')
+
             batch_code = request.POST.get('batch_code')
             if not batch_code:
                 last_batch = Batch.objects.exclude(batch_code__isnull=True).exclude(batch_code='').order_by('-batch_id').first()
@@ -3726,6 +3886,21 @@ def courses_batches_view(request):
             if not has_permission(request, 'edit', 'Batch Master', parent_fallback='Courses & Batches'):
                 messages.error(request, 'You do not have permission to edit batches.')
                 return redirect('/courses/?tab=batches')
+            
+            is_valid, err = validate_mandatory_menu_columns(
+                'Course and Batches',
+                request.POST,
+                ignore_fields=[
+                    'batch_code',
+                    'course_code', 'category', 'duration_months', 'duration_hrs', 'total_sessions',
+                    'days', 'fee_amount', 'description', 'duration', 'fee',
+                    'class_code', 'class_name', 'build_name', 'block', 'floor', 'class_no'
+                ]
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/courses/?tab=batches')
+
             batch_id = request.POST.get('batch_id')
             try:
                 batch = Batch.objects.get(batch_id=batch_id)
@@ -3807,6 +3982,22 @@ def courses_batches_view(request):
             if not has_permission(request, 'add', 'Class Room', parent_fallback='Courses & Batches'):
                 messages.error(request, 'You do not have permission to add class rooms.')
                 return redirect('/courses/?tab=classrooms')
+            
+            is_valid, err = validate_mandatory_menu_columns(
+                'Course and Batches',
+                request.POST,
+                ignore_fields=[
+                    'class_code',
+                    'course_code', 'course_name', 'category', 'duration_months', 'duration_hrs', 'total_sessions',
+                    'days', 'fee_amount', 'description', 'duration', 'fee',
+                    'batch_code', 'batch_name', 'course_id', 'classroom_id', 'teacher_id',
+                    'start_date', 'end_date', 'start_time', 'end_time'
+                ]
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/courses/?tab=classrooms')
+
             class_code = (request.POST.get('class_code') or '').strip().upper()
             if not class_code:
                 last_cr = Classroom.objects.exclude(class_code__isnull=True).exclude(class_code='').order_by('-classroom_id').first()
@@ -3843,6 +4034,21 @@ def courses_batches_view(request):
             if not has_permission(request, 'edit', 'Class Room', parent_fallback='Courses & Batches'):
                 messages.error(request, 'You do not have permission to edit class rooms.')
                 return redirect('/courses/?tab=classrooms')
+            
+            is_valid, err = validate_mandatory_menu_columns(
+                'Course and Batches',
+                request.POST,
+                ignore_fields=[
+                    'course_code', 'course_name', 'category', 'duration_months', 'duration_hrs', 'total_sessions',
+                    'days', 'fee_amount', 'description', 'duration', 'fee',
+                    'batch_code', 'batch_name', 'course_id', 'classroom_id', 'teacher_id',
+                    'start_date', 'end_date', 'start_time', 'end_time'
+                ]
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/courses/?tab=classrooms')
+
             classroom_id = request.POST.get('classroom_id')
             try:
                 cr = Classroom.objects.get(classroom_id=classroom_id)
@@ -4073,11 +4279,14 @@ def admin_dashboard_view(request):
                 cid = col.column_id
                 d_name = request.POST.get(f'display_name_{cid}')
                 st_val = request.POST.get(f'status_{cid}')
+                mand_val = request.POST.get(f'is_mandatory_{cid}')
                 ord_val = request.POST.get(f'order_by_{cid}')
                 if d_name is not None:
                     col.display_name = d_name.strip()
                 if st_val is not None:
                     col.status = (st_val == '1')
+                if mand_val is not None:
+                    col.is_mandatory = (mand_val == '1')
                 if ord_val is not None:
                     try:
                         col.order_by = int(ord_val)
@@ -4088,6 +4297,11 @@ def admin_dashboard_view(request):
             return redirect(f'/admin-dashboard/?tab=column_list&menu_id={target_menu_id}')
 
         if action == 'create_user':
+            is_valid, err = validate_mandatory_menu_columns('User Management', request.POST, ignore_fields=['name', 'username', 'role'])
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('/admin-dashboard/?tab=users')
+
             first_name = request.POST.get('first_name', '')
             last_name = request.POST.get('last_name', '')
             email = request.POST.get('email', '')
@@ -4334,6 +4548,16 @@ def student_course_view(request):
             if not has_permission(request, 'edit', 'Allocation Details'):
                 messages.error(request, 'You do not have permission to edit student allocations.')
                 return redirect('student_course')
+
+            is_valid, err = validate_mandatory_menu_columns(
+                ['Allocation Details', 'Student Course Allocation'],
+                request.POST,
+                ignore_fields=['student_name', 'student_phone', 'course', 'teacher_id', 'teacher_name', 'teacher_phone', 'batch_start', 'batch_end', 'created_date']
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('student_course')
+
             enrollment_id = request.POST.get('enrollment_id')
             student_id = request.POST.get('student_id')
             batch_id = request.POST.get('batch_id')
@@ -4458,6 +4682,16 @@ def student_allocation_view(request):
             if not has_permission(request, 'add', 'Student Course Allocation'):
                 messages.error(request, 'You do not have permission to allocate students.')
                 return redirect('student_allocation')
+
+            is_valid, err = validate_mandatory_menu_columns(
+                ['Student Course Allocation', 'Allocation Details'],
+                request.POST,
+                ignore_fields=['student_name', 'student_phone', 'course', 'teacher_id', 'teacher_name', 'teacher_phone', 'batch_start', 'batch_end', 'created_date']
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('student_allocation')
+
             student_id = request.POST.get('student_id')
             batch_id = request.POST.get('batch_id')
             
@@ -4534,6 +4768,16 @@ def student_allocation_view(request):
             if not has_permission(request, 'edit', 'Student Course Allocation'):
                 messages.error(request, 'You do not have permission to edit student allocations.')
                 return redirect('student_allocation')
+
+            is_valid, err = validate_mandatory_menu_columns(
+                ['Student Course Allocation', 'Allocation Details'],
+                request.POST,
+                ignore_fields=['student_name', 'student_phone', 'course', 'teacher_id', 'teacher_name', 'teacher_phone', 'batch_start', 'batch_end', 'created_date']
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('student_allocation')
+
             enrollment_id = request.POST.get('enrollment_id')
             student_id = request.POST.get('student_id')
             batch_id = request.POST.get('batch_id')
@@ -4806,6 +5050,16 @@ def teacher_allocation_view(request):
             if not has_permission(request, 'add', 'Staff Class Allocation'):
                 messages.error(request, 'You do not have permission to allocate staff.')
                 return redirect('teacher_allocation')
+
+            is_valid, err = validate_mandatory_menu_columns(
+                'Staff Class Allocation',
+                request.POST,
+                ignore_fields=['teacher_name', 'teacher_phone', 'course_name', 'batch_time', 'batch_start', 'batch_end', 'created_date']
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('teacher_allocation')
+
             teacher_id = request.POST.get('teacher_id')
             batch_id = request.POST.get('batch_id')
             
@@ -4849,6 +5103,16 @@ def teacher_allocation_view(request):
             if not has_permission(request, 'edit', 'Staff Class Allocation'):
                 messages.error(request, 'You do not have permission to edit staff allocations.')
                 return redirect('teacher_allocation')
+
+            is_valid, err = validate_mandatory_menu_columns(
+                'Staff Class Allocation',
+                request.POST,
+                ignore_fields=['teacher_name', 'teacher_phone', 'course_name', 'batch_time', 'batch_start', 'batch_end', 'created_date']
+            )
+            if not is_valid:
+                messages.error(request, err)
+                return redirect('teacher_allocation')
+
             batch_id = request.POST.get('batch_id')
             teacher_id = request.POST.get('teacher_id')
             try:

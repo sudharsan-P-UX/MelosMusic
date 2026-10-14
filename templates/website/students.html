@@ -102,10 +102,26 @@
                             <i class="fa-regular fa-star text-gray-300 hover:text-yellow-400 cursor-pointer transition"></i>
                             <span class="text-blue-600 {% if menu_access.edit %}cursor-pointer hover:underline" onclick="openEditModal('{{ student.user_id }}', '{{ student.display_name|escapejs }}', '{{ student.email|escapejs }}', '{{ student.phone|escapejs }}', '{{ student.is_active|yesno:"1,0" }}', '{{ student.gender|escapejs }}', '{{ student.dob|date:"Y-m-d" }}', '{{ student.address|escapejs }}', '{{ student.parent_name|escapejs }}', '{{ student.parent_phone|escapejs }}')"{% else %}"{% endif %}>{{ student.display_name }}</span>
                         </td>
+                        {% elif col.column_key == 'gender' %}
+                        <td class="py-2.5 px-4 text-gray-600">{{ student.gender|default:"-" }}</td>
+                        {% elif col.column_key == 'dob' %}
+                        <td class="py-2.5 px-4 text-gray-600">{{ student.dob|date:"m/d/Y"|default:"-" }}</td>
                         {% elif col.column_key == 'phone' %}
                         <td class="py-2.5 px-4 text-gray-600">{{ student.phone }}</td>
                         {% elif col.column_key == 'email' %}
                         <td class="py-2.5 px-4 text-gray-600">{{ student.email }}</td>
+                        {% elif col.column_key == 'parent_name' %}
+                        <td class="py-2.5 px-4 text-gray-600">{{ student.parent_name|default:"-" }}</td>
+                        {% elif col.column_key == 'parent_phone' %}
+                        <td class="py-2.5 px-4 text-gray-600">{{ student.parent_phone|default:"-" }}</td>
+                        {% elif col.column_key == 'address' %}
+                        <td class="py-2.5 px-4 text-gray-600">{{ student.address|default:"-" }}</td>
+                        {% elif col.column_key == 'status' %}
+                        <td class="py-2.5 px-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if student.is_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {% if student.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </td>
                         {% elif col.column_key == 'created_on' %}
                         <td class="py-2.5 px-4 text-gray-500">{{ student.created_date|date:"m/d/Y h:i A" }}</td>
                         {% endif %}
@@ -156,84 +172,106 @@
         </div>
         
         <div class="p-6 overflow-y-auto flex-1 text-sm text-gray-700">
-            <form id="studentForm" method="POST" action="{% url 'students' %}" x-data="{ passwordError: false }" @submit="if(document.getElementById('modalPassword').value !== document.getElementById('modalConfirmPassword').value) { $event.preventDefault(); passwordError = true; } else { passwordError = false; }">
+            <form id="studentForm" method="POST" action="{% url 'students' %}" x-data="{ passwordError: false }" @submit="if(document.getElementById('modalPassword') && document.getElementById('modalConfirmPassword') && document.getElementById('modalPassword').value !== document.getElementById('modalConfirmPassword').value) { $event.preventDefault(); passwordError = true; } else { passwordError = false; }">
                 {% csrf_token %}
                 
                 <div class="mb-8">
                     <h4 class="font-semibold text-gray-800 mb-4 pb-2 border-b uppercase tracking-wider text-xs">Personal Information</h4>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-y-4 gap-x-6">
+                        {% if active_map.student_master.student_name %}
                         <div>
-                            <label class="block mb-1">Student Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="modalName" name="student_name" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" required>
+                            <label class="block mb-1">Student Name {% if mandatory_map.student_master.student_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" id="modalName" name="student_name" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.student_name %}required{% endif %}>
                         </div>
+                        {% endif %}
+                        {% if active_map.student_master.gender %}
                         <div>
-                            <label class="block mb-1">Gender</label>
-                            <select id="modalGender" name="gender" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
+                            <label class="block mb-1">Gender {% if mandatory_map.student_master.gender %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select id="modalGender" name="gender" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.gender %}required{% endif %}>
                                 <option value="">-- Select --</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
+                        {% endif %}
+                        {% if active_map.student_master.dob %}
                         <div>
-                            <label class="block mb-1">Date of Birth</label>
-                            <input type="date" id="modalDob" name="dob" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
+                            <label class="block mb-1">Date of Birth {% if mandatory_map.student_master.dob %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="date" id="modalDob" name="dob" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.dob %}required{% endif %}>
                         </div>
+                        {% endif %}
+                        {% if active_map.student_master.email %}
                         <div>
-                            <label class="block mb-1">Email <span class="text-red-500">*</span></label>
-                            <input type="email" id="modalEmail" name="email" maxlength="{{ security_settings.email_length|default:255 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" required>
+                            <label class="block mb-1">Email {% if mandatory_map.student_master.email %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="email" id="modalEmail" name="email" maxlength="{{ security_settings.email_length|default:255 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.email %}required{% endif %}>
                         </div>
+                        {% endif %}
+                        {% if active_map.student_master.phone %}
                         <div>
-                            <label class="block mb-1">Phone <span class="text-red-500">*</span></label>
-                            <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" required>
+                            <label class="block mb-1">Phone {% if mandatory_map.student_master.phone %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" id="modalPhone" name="phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.phone %}required{% endif %}>
                         </div>
+                        {% endif %}
+                        {% if active_map.student_master.parent_name %}
                         <div>
-                            <label class="block mb-1">Parent Name</label>
-                            <input type="text" id="modalParentName" name="parent_name" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
+                            <label class="block mb-1">Parent Name {% if mandatory_map.student_master.parent_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" id="modalParentName" name="parent_name" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.parent_name %}required{% endif %}>
                         </div>
+                        {% endif %}
+                        {% if active_map.student_master.parent_phone %}
                         <div>
-                            <label class="block mb-1">Parent Phone</label>
-                            <input type="text" id="modalParentPhone" name="parent_phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
+                            <label class="block mb-1">Parent Phone {% if mandatory_map.student_master.parent_phone %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" id="modalParentPhone" name="parent_phone" oninput="this.value = this.value.replace(/[^0-9]/g, '')" maxlength="{{ security_settings.phone_length|default:10 }}" minlength="{{ security_settings.phone_length|default:10 }}" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.parent_phone %}required{% endif %}>
                         </div>
+                        {% endif %}
+                        {% if active_map.student_master.address %}
                         <div class="md:col-span-2">
-                            <label class="block mb-1">Address</label>
-                            <input type="text" id="modalAddress" name="address" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
+                            <label class="block mb-1">Address {% if mandatory_map.student_master.address %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" id="modalAddress" name="address" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.address %}required{% endif %}>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
 
+                {% if active_map.student_master.status or active_map.student_master.password %}
                 <div>
                     <h4 class="font-semibold text-gray-800 mb-4 pb-2 border-b uppercase tracking-wider text-xs">Login Information</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-6">
+                        {% if active_map.student_master.status %}
                         <div>
-                            <label class="block mb-1">Status</label>
-                            <select id="modalStatus" name="status" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500">
+                            <label class="block mb-1">Status {% if mandatory_map.student_master.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select id="modalStatus" name="status" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500" {% if mandatory_map.student_master.status %}required{% endif %}>
                                 <option value="1">Active</option>
                                 <option value="0">Inactive</option>
                             </select>
                         </div>
                         <div></div>
+                        {% endif %}
+                        {% if active_map.student_master.password %}
                         <div>
-                            <label class="block mb-1">Password <span id="studentPasswordRequired" class="text-red-500">*</span><span id="studentPasswordHint" class="text-xs text-gray-400 font-normal hidden">(leave blank to keep current)</span></label>
+                            <label class="block mb-1">Password <span id="studentPasswordRequired" class="text-red-500 {% if not mandatory_map.student_master.password %}hidden{% endif %}">*</span><span id="studentPasswordHint" class="text-xs text-gray-400 font-normal hidden">(leave blank to keep current)</span></label>
                             <div class="relative" x-data="{ show: false }">
-                            <input :type="show ? 'text' : 'password'" id="modalPassword" name="password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500 pr-10" autocomplete="new-password" required>
+                            <input :type="show ? 'text' : 'password'" id="modalPassword" name="password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500 pr-10" autocomplete="new-password" {% if mandatory_map.student_master.password %}required{% endif %}>
                             <button type="button" @click="show = !show" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-indigo-600 focus:outline-none">
                                 <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
                             </button>
                         </div>
                         </div>
                         <div>
-                            <label class="block mb-1">Confirm Password <span id="studentConfirmPasswordRequired" class="text-red-500">*</span></label>
+                            <label class="block mb-1">Confirm Password <span id="studentConfirmPasswordRequired" class="text-red-500 {% if not mandatory_map.student_master.password %}hidden{% endif %}">*</span></label>
                             <div class="relative" x-data="{ show: false }">
-                            <input :type="show ? 'text' : 'password'" id="modalConfirmPassword" name="confirm_password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500 pr-10" autocomplete="new-password" required>
+                            <input :type="show ? 'text' : 'password'" id="modalConfirmPassword" name="confirm_password" class="w-full border border-gray-300 rounded px-3 py-1.5 outline-none focus:border-blue-500 pr-10" autocomplete="new-password" {% if mandatory_map.student_master.password %}required{% endif %}>
                             <button type="button" @click="show = !show" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-indigo-600 focus:outline-none">
                                 <i class="fa-solid" :class="show ? 'fa-eye-slash' : 'fa-eye'"></i>
                             </button>
                         </div>
                         <p x-show="passwordError" x-cloak style="display: none;" class="text-red-500 text-xs mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i> Passwords do not match!</p>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
+                {% endif %}
             </form>
         </div>
         
@@ -255,12 +293,21 @@
         const submitBtn = document.getElementById('modalSubmitBtn');
         if (submitBtn) submitBtn.textContent = 'Save Student';
         
-        document.getElementById('modalPassword').required = true;
-        document.getElementById('modalConfirmPassword').required = true;
+        const isPasswordMandatory = {% if mandatory_map.student_master.password and active_map.student_master.password %}true{% else %}false{% endif %};
+        const p1 = document.getElementById('modalPassword');
+        if (p1) p1.required = isPasswordMandatory;
+        const p2 = document.getElementById('modalConfirmPassword');
+        if (p2) p2.required = isPasswordMandatory;
         const req1 = document.getElementById('studentPasswordRequired');
-        if (req1) req1.classList.remove('hidden');
+        if (req1) {
+            if (isPasswordMandatory) req1.classList.remove('hidden');
+            else req1.classList.add('hidden');
+        }
         const req2 = document.getElementById('studentConfirmPasswordRequired');
-        if (req2) req2.classList.remove('hidden');
+        if (req2) {
+            if (isPasswordMandatory) req2.classList.remove('hidden');
+            else req2.classList.add('hidden');
+        }
         const hint = document.getElementById('studentPasswordHint');
         if (hint) hint.classList.add('hidden');
         
@@ -275,19 +322,20 @@
         const submitBtn = document.getElementById('modalSubmitBtn');
         if (submitBtn) submitBtn.textContent = 'Update Student';
         
-        document.getElementById('modalName').value = name;
-        document.getElementById('modalEmail').value = email;
-        document.getElementById('modalPhone').value = phone;
-        document.getElementById('modalStatus').value = status;
+        if (document.getElementById('modalName')) document.getElementById('modalName').value = name;
+        if (document.getElementById('modalEmail')) document.getElementById('modalEmail').value = email;
+        if (document.getElementById('modalPhone')) document.getElementById('modalPhone').value = phone;
+        if (document.getElementById('modalStatus')) document.getElementById('modalStatus').value = status;
+        if (document.getElementById('modalGender')) document.getElementById('modalGender').value = gender;
+        if (document.getElementById('modalDob')) document.getElementById('modalDob').value = dob;
+        if (document.getElementById('modalAddress')) document.getElementById('modalAddress').value = address;
+        if (document.getElementById('modalParentName')) document.getElementById('modalParentName').value = pName;
+        if (document.getElementById('modalParentPhone')) document.getElementById('modalParentPhone').value = pPhone;
         
-        document.getElementById('modalGender').value = gender;
-        document.getElementById('modalDob').value = dob;
-        document.getElementById('modalAddress').value = address;
-        document.getElementById('modalParentName').value = pName;
-        document.getElementById('modalParentPhone').value = pPhone;
-        
-        document.getElementById('modalPassword').required = false;
-        document.getElementById('modalConfirmPassword').required = false;
+        const p1 = document.getElementById('modalPassword');
+        if (p1) p1.required = false;
+        const p2 = document.getElementById('modalConfirmPassword');
+        if (p2) p2.required = false;
         const req1 = document.getElementById('studentPasswordRequired');
         if (req1) req1.classList.add('hidden');
         const req2 = document.getElementById('studentConfirmPasswordRequired');

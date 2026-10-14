@@ -223,11 +223,12 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Student Selection -->
+                        {% if active_map.student_allocation.student_id %}
                         <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                             <h4 class="font-semibold text-indigo-800 mb-4 border-b border-indigo-200 pb-2">Student Selection</h4>
                             <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Student <span class="text-red-500">*</span></label>
-                                <select name="student_id" x-model="selectedStudentId" @change="fetchStudentDetails(); checkAddConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Student {% if mandatory_map.student_allocation.student_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <select name="student_id" x-model="selectedStudentId" @change="fetchStudentDetails(); checkAddConflict()" {% if mandatory_map.student_allocation.student_id %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                     <option value="">-- Select Student --</option>
                                     {% for s in students %}
                                     <option value="{{ s.user_id }}">{{ s.display_name }} ({{ s.user_code|default:"-" }})</option>
@@ -241,13 +242,15 @@
                                 <div class="flex justify-between"><span class="text-gray-500">Phone:</span> <span class="font-medium text-gray-900" x-text="studentData.phone"></span></div>
                             </div>
                         </div>
+                        {% endif %}
 
                         <!-- Batch Selection -->
+                        {% if active_map.student_allocation.batch_id %}
                         <div class="bg-green-50 p-4 rounded-lg border border-green-100">
                             <h4 class="font-semibold text-green-800 mb-4 border-b border-green-200 pb-2">Batch / Course Selection</h4>
                             <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Batch <span class="text-red-500">*</span></label>
-                                <select name="batch_id" x-model="selectedBatchId" @change="fetchBatchDetails(); checkAddConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-green-500 text-sm bg-white">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Select Batch {% if mandatory_map.student_allocation.batch_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                                <select name="batch_id" x-model="selectedBatchId" @change="fetchBatchDetails(); checkAddConflict()" {% if mandatory_map.student_allocation.batch_id %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-green-500 text-sm bg-white">
                                     <option value="">-- Select Batch --</option>
                                     {% for b in batches %}
                                     <option value="{{ b.batch_id }}">{{ b.batch_name }} ({{ b.course.course_name }})</option>
@@ -266,8 +269,10 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                         
                         <!-- Staff Auto-fill Details -->
+                        {% if active_map.student_allocation.teacher_name or active_map.student_allocation.teacher_id %}
                         <div class="bg-orange-50 p-4 rounded-lg border border-orange-100 md:col-span-2" x-show="batchData.teacher_name">
                             <h4 class="font-semibold text-orange-800 mb-4 border-b border-orange-200 pb-2">Assigned Staff</h4>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -276,6 +281,7 @@
                                 <div><span class="text-gray-500 block mb-1">Staff Status:</span> <span class="font-medium text-green-600">Active</span></div>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
 
                     <!-- Conflict Warning Banner -->
@@ -379,9 +385,10 @@
                 <div class="p-6 overflow-y-auto space-y-4 text-sm flex-1">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Student Selection -->
+                        {% if active_map.student_allocation.student_id %}
                         <div>
-                            <label class="block font-medium text-gray-700 mb-1">Student <span class="text-red-500">*</span></label>
-                            <select name="student_id" x-model="editData.student_id" @change="fetchEditStudentDetails(); checkEditConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <label class="block font-medium text-gray-700 mb-1">Student {% if mandatory_map.student_allocation.student_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="student_id" x-model="editData.student_id" @change="fetchEditStudentDetails(); checkEditConflict()" {% if mandatory_map.student_allocation.student_id %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                 <option value="">-- Select Student --</option>
                                 {% for s in students %}
                                 <option value="{{ s.user_id }}">{{ s.display_name }} ({{ s.user_code|default:"-" }})</option>
@@ -392,11 +399,13 @@
                                 <div>Phone: <strong class="text-gray-800" x-text="editData.student_phone"></strong></div>
                             </div>
                         </div>
+                        {% endif %}
 
                         <!-- Batch Selection -->
+                        {% if active_map.student_allocation.batch_id %}
                         <div>
-                            <label class="block font-medium text-gray-700 mb-1">Batch / Course <span class="text-red-500">*</span></label>
-                            <select name="batch_id" x-model="editData.batch_id" @change="fetchEditBatchDetails(); checkEditConflict()" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
+                            <label class="block font-medium text-gray-700 mb-1">Batch / Course {% if mandatory_map.student_allocation.batch_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="batch_id" x-model="editData.batch_id" @change="fetchEditBatchDetails(); checkEditConflict()" {% if mandatory_map.student_allocation.batch_id %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                                 <option value="">-- Select Batch --</option>
                                 {% for b in batches %}
                                 <option value="{{ b.batch_id }}">{{ b.batch_name }} ({{ b.course.course_name }})</option>
@@ -409,6 +418,7 @@
                                 <div>Staff: <strong class="text-gray-800" x-text="editData.teacher_name"></strong> (<span x-text="editData.teacher_phone"></span>)</div>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
 
                     <!-- Conflict Warning Banner -->

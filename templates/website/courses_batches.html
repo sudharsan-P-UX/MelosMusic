@@ -41,7 +41,9 @@
                         <tr>
                             {% if menu_columns_map.course_master %}
                                 {% for col in menu_columns_map.course_master %}
-                                <th class="py-3 px-6 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key == 'duration' %}text-center{% elif col.column_key == 'fee' %}text-right{% else %}text-left{% endif %}">{{ col.display_name }}</th>
+                                    {% if col.column_key in 'course_code,course_name,category,duration,duration_months,fee,fee_amount,duration_hrs,total_sessions,days,status,description' %}
+                                    <th class="py-3 px-6 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key in 'duration,duration_months,duration_hrs,total_sessions,days,status' %}text-center{% elif col.column_key in 'fee,fee_amount' %}text-right{% else %}text-left{% endif %}">{{ col.display_name }}</th>
+                                    {% endif %}
                                 {% endfor %}
                             {% else %}
                                 <th class="py-3 px-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Course Code</th>
@@ -61,10 +63,22 @@
                                     <td class="py-3 px-6 font-medium text-gray-800">{{ course.course_code|default:"-" }}</td>
                                     {% elif col.column_key == 'course_name' %}
                                     <td class="py-3 px-6 font-semibold text-indigo-700">{{ course.course_name }}</td>
-                                    {% elif col.column_key == 'duration' %}
+                                    {% elif col.column_key == 'duration' or col.column_key == 'duration_months' %}
                                     <td class="py-3 px-6 text-center text-gray-600">{% if course.duration_months %}{{ course.duration_months }} Months{% else %}-{% endif %}</td>
-                                    {% elif col.column_key == 'fee' %}
+                                    {% elif col.column_key == 'fee' or col.column_key == 'fee_amount' %}
                                     <td class="py-3 px-6 text-right font-bold text-gray-800">{{ course.fee_amount|default:"0.00" }}</td>
+                                    {% elif col.column_key == 'category' %}
+                                    <td class="py-3 px-6 text-gray-600">{{ course.category|default:"-" }}</td>
+                                    {% elif col.column_key == 'duration_hrs' %}
+                                    <td class="py-3 px-6 text-center text-gray-600">{{ course.duration_hrs|default:"-" }}</td>
+                                    {% elif col.column_key == 'total_sessions' %}
+                                    <td class="py-3 px-6 text-center text-gray-600">{{ course.total_sessions|default:"-" }}</td>
+                                    {% elif col.column_key == 'status' %}
+                                    <td class="py-3 px-6 text-center">
+                                        {% if course.is_active %}<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">Active</span>{% else %}<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-semibold">Inactive</span>{% endif %}
+                                    </td>
+                                    {% elif col.column_key == 'description' %}
+                                    <td class="py-3 px-6 text-gray-600">{{ course.description|default:"-"|truncatechars:30 }}</td>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
@@ -145,7 +159,9 @@
                         <tr>
                             {% if menu_columns_map.batch_master %}
                                 {% for col in menu_columns_map.batch_master %}
-                                <th class="py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key == 'batch' or col.column_key == 'course' or col.column_key == 'classroom' or col.column_key == 'teacher' %}text-left{% else %}text-center whitespace-nowrap{% endif %}">{{ col.display_name }}</th>
+                                    {% if col.column_key in 'batch,batch_name,course,course_id,classroom,classroom_id,teacher,teacher_id,start_date,end_date,start_time,end_time,timing,duration,capacity' %}
+                                    <th class="py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key in 'batch,batch_name,course,course_id,classroom,classroom_id,teacher,teacher_id' %}text-left{% else %}text-center whitespace-nowrap{% endif %}">{{ col.display_name }}</th>
+                                    {% endif %}
                                 {% endfor %}
                             {% else %}
                                 <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Batch</th>
@@ -166,16 +182,16 @@
                         <tr class="hover:bg-gray-50 transition">
                             {% if menu_columns_map.batch_master %}
                                 {% for col in menu_columns_map.batch_master %}
-                                    {% if col.column_key == 'batch' %}
+                                    {% if col.column_key == 'batch' or col.column_key == 'batch_name' %}
                                     <td class="py-3 px-4 font-medium text-gray-800">
                                         <div class="font-bold text-gray-900">{{ batch.batch_name }}</div>
                                         {% if batch.batch_code %}
                                         <div class="text-[11px] font-mono text-gray-500">{{ batch.batch_code }}</div>
                                         {% endif %}
                                     </td>
-                                    {% elif col.column_key == 'course' %}
+                                    {% elif col.column_key == 'course' or col.column_key == 'course_id' %}
                                     <td class="py-3 px-4 font-semibold text-indigo-700">{{ batch.course.course_name }}</td>
-                                    {% elif col.column_key == 'classroom' %}
+                                    {% elif col.column_key == 'classroom' or col.column_key == 'classroom_id' %}
                                     <td class="py-3 px-4 text-gray-700">
                                         {% if batch.classroom %}
                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
@@ -186,7 +202,7 @@
                                         <span class="text-gray-400 text-xs">-</span>
                                         {% endif %}
                                     </td>
-                                    {% elif col.column_key == 'teacher' %}
+                                    {% elif col.column_key == 'teacher' or col.column_key == 'teacher_id' %}
                                     <td class="py-3 px-4 text-gray-600">{{ batch.teacher.display_name|default:"Unassigned" }}</td>
                                     {% elif col.column_key == 'start_date' %}
                                     <td class="py-3 px-4 text-center text-gray-700 whitespace-nowrap text-xs font-medium">
@@ -206,7 +222,7 @@
                                         </span>
                                         {% else %}-{% endif %}
                                     </td>
-                                    {% elif col.column_key == 'timing' %}
+                                    {% elif col.column_key == 'timing' or col.column_key == 'start_time' or col.column_key == 'end_time' %}
                                     <td class="py-3 px-4 text-center text-gray-600 whitespace-nowrap">{% if batch.start_time and batch.end_time %}{{ batch.start_time|time:"g:i A" }} - {{ batch.end_time|time:"g:i A" }}{% else %}-{% endif %}</td>
                                     {% elif col.column_key == 'duration' %}
                                     <td class="py-3 px-4 text-center font-medium whitespace-nowrap">
@@ -342,7 +358,9 @@
                         <tr>
                             {% if menu_columns_map.class_room %}
                                 {% for col in menu_columns_map.class_room %}
-                                <th class="py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key == 'capacity' %}text-center{% else %}text-left{% endif %}">{{ col.display_name }}</th>
+                                    {% if col.column_key in 'class_code,class_name,build_name,block,floor,class_no,capacity,status' %}
+                                    <th class="py-3 px-4 text-xs font-bold text-gray-700 uppercase tracking-wider {% if col.column_key == 'capacity' or col.column_key == 'status' %}text-center{% else %}text-left{% endif %}">{{ col.display_name }}</th>
+                                    {% endif %}
                                 {% endfor %}
                             {% else %}
                                 <th class="py-3 px-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Class Code</th>
@@ -375,6 +393,12 @@
                                     <td class="py-3 px-4 text-gray-600">{{ cr.class_no|default:"-" }}</td>
                                     {% elif col.column_key == 'capacity' %}
                                     <td class="py-3 px-4 text-center text-gray-600 font-medium">{{ cr.capacity|default:"-" }}</td>
+                                    {% elif col.column_key == 'status' %}
+                                    <td class="py-3 px-4 text-center">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold {% if cr.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                            {% if cr.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    </td>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
@@ -454,13 +478,16 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if active_map.course_and_batches.course_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="course_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Basic">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Name {% if mandatory_map.course_and_batches.course_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="course_name" {% if mandatory_map.course_and_batches.course_name %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Basic">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.category %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <select x-model="addCategoryType" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category {% if mandatory_map.course_and_batches.category %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select x-model="addCategoryType" {% if mandatory_map.course_and_batches.category %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="">-- Select Category --</option>
                                 <option value="Beginner">Beginner</option>
                                 <option value="Intermediate">Intermediate</option>
@@ -473,21 +500,29 @@
                             </div>
                             <input type="hidden" name="category" :value="addCategoryType === 'Custom' ? addCategoryCustom : addCategoryType">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.duration_months or active_map.course_and_batches.duration %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Months)</label>
-                            <input type="number" name="duration_months" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Months) {% if mandatory_map.course_and_batches.duration_months or mandatory_map.course_and_batches.duration %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="duration_months" {% if mandatory_map.course_and_batches.duration_months or mandatory_map.course_and_batches.duration %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 3">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.duration_hrs %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Hrs/Session)</label>
-                            <input type="number" step="0.5" min="0.5" name="duration_hrs" x-model="addDurationHrs" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Hrs/Session) {% if mandatory_map.course_and_batches.duration_hrs %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" step="0.5" min="0.5" name="duration_hrs" x-model="addDurationHrs" {% if mandatory_map.course_and_batches.duration_hrs %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 2">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.total_sessions %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Sessions</label>
-                            <input type="number" name="total_sessions" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 24">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Sessions {% if mandatory_map.course_and_batches.total_sessions %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="total_sessions" {% if mandatory_map.course_and_batches.total_sessions %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 24">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.days %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Days / Schedule</label>
-                            <select x-model="addDaysType" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Days / Schedule {% if mandatory_map.course_and_batches.days %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select x-model="addDaysType" {% if mandatory_map.course_and_batches.days %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="">-- Select Schedule --</option>
                                 <option value="Monday, Tuesday, Wednesday, Thursday, Friday">Monday - Friday (Weekdays)</option>
                                 <option value="Monday, Wednesday, Friday">Monday, Wednesday, Friday (MWF)</option>
@@ -503,21 +538,28 @@
                             </div>
                             <input type="hidden" name="days" :value="addDaysType === 'Custom' ? addDaysCustom : addDaysType">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.fee_amount or active_map.course_and_batches.fee %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Fee (₹) <span class="text-red-500">*</span></label>
-                            <input type="number" step="0.01" name="fee_amount" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 5000.00">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Fee (₹) {% if mandatory_map.course_and_batches.fee_amount or mandatory_map.course_and_batches.fee %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" step="0.01" name="fee_amount" {% if mandatory_map.course_and_batches.fee_amount or mandatory_map.course_and_batches.fee %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 5000.00">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.status %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status {% if mandatory_map.course_and_batches.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="status" {% if mandatory_map.course_and_batches.status %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.description %}
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea name="description" rows="2" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="Brief description of the course..."></textarea>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description {% if mandatory_map.course_and_batches.description %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <textarea name="description" rows="2" {% if mandatory_map.course_and_batches.description %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="Brief description of the course..."></textarea>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
@@ -598,17 +640,22 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if active_map.course_and_batches.course_code %}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Course Code</label>
                             <input type="text" :value="editCourse.course_code" disabled class="w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 cursor-not-allowed">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.course_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="course_name" x-model="editCourse.course_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Name {% if mandatory_map.course_and_batches.course_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="course_name" x-model="editCourse.course_name" {% if mandatory_map.course_and_batches.course_name %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.category %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                            <select x-model="editCategoryType" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category {% if mandatory_map.course_and_batches.category %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select x-model="editCategoryType" {% if mandatory_map.course_and_batches.category %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="">-- Select Category --</option>
                                 <option value="Beginner">Beginner</option>
                                 <option value="Intermediate">Intermediate</option>
@@ -621,21 +668,29 @@
                             </div>
                             <input type="hidden" name="category" :value="editCategoryType === 'Custom' ? editCategoryCustom : editCategoryType">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.duration_months or active_map.course_and_batches.duration %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Months)</label>
-                            <input type="number" name="duration_months" x-model="editCourse.duration_months" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Months) {% if mandatory_map.course_and_batches.duration_months or mandatory_map.course_and_batches.duration %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="duration_months" x-model="editCourse.duration_months" {% if mandatory_map.course_and_batches.duration_months or mandatory_map.course_and_batches.duration %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.duration_hrs %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Hrs/Session)</label>
-                            <input type="number" step="0.5" min="0.5" name="duration_hrs" x-model="editCourse.duration_hrs" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration (Hrs/Session) {% if mandatory_map.course_and_batches.duration_hrs %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" step="0.5" min="0.5" name="duration_hrs" x-model="editCourse.duration_hrs" {% if mandatory_map.course_and_batches.duration_hrs %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 2">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.total_sessions %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Sessions</label>
-                            <input type="number" name="total_sessions" x-model="editCourse.total_sessions" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Total Sessions {% if mandatory_map.course_and_batches.total_sessions %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="total_sessions" x-model="editCourse.total_sessions" {% if mandatory_map.course_and_batches.total_sessions %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.days %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Days / Schedule</label>
-                            <select x-model="editDaysType" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Days / Schedule {% if mandatory_map.course_and_batches.days %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select x-model="editDaysType" {% if mandatory_map.course_and_batches.days %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="">-- Select Schedule --</option>
                                 <option value="Monday, Tuesday, Wednesday, Thursday, Friday">Monday - Friday (Weekdays)</option>
                                 <option value="Monday, Wednesday, Friday">Monday, Wednesday, Friday (MWF)</option>
@@ -651,21 +706,28 @@
                             </div>
                             <input type="hidden" name="days" :value="editDaysType === 'Custom' ? editDaysCustom : editDaysType">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.fee_amount or active_map.course_and_batches.fee %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Fee (₹) <span class="text-red-500">*</span></label>
-                            <input type="number" step="0.01" name="fee_amount" x-model="editCourse.fee_amount" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course Fee (₹) {% if mandatory_map.course_and_batches.fee_amount or mandatory_map.course_and_batches.fee %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" step="0.01" name="fee_amount" x-model="editCourse.fee_amount" {% if mandatory_map.course_and_batches.fee_amount or mandatory_map.course_and_batches.fee %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.status %}
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" x-model="editCourse.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status {% if mandatory_map.course_and_batches.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="status" x-model="editCourse.status" {% if mandatory_map.course_and_batches.status %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.description %}
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                            <textarea name="description" x-model="editCourse.description" rows="2" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm"></textarea>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Description {% if mandatory_map.course_and_batches.description %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <textarea name="description" x-model="editCourse.description" rows="2" {% if mandatory_map.course_and_batches.description %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm"></textarea>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
@@ -727,28 +789,34 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- 1. Batch Name -->
+                        {% if active_map.course_and_batches.batch_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="batch_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Batch A">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name {% if mandatory_map.course_and_batches.batch_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="batch_name" {% if mandatory_map.course_and_batches.batch_name %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Guitar Batch A">
                         </div>
+                        {% endif %}
                         <!-- 2. Course -->
+                        {% if active_map.course_and_batches.course_id or active_map.course_and_batches.course %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required x-model="selectedCourseId" @change="calculateEndDate(); calculateEndTime(); onCourseChange(); fetchAvailableClassrooms()" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course {% if mandatory_map.course_and_batches.course_id or mandatory_map.course_and_batches.course %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="course_id" {% if mandatory_map.course_and_batches.course_id or mandatory_map.course_and_batches.course %}required{% endif %} x-model="selectedCourseId" @change="calculateEndDate(); calculateEndTime(); onCourseChange(); fetchAvailableClassrooms()" id="batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="" data-duration="0" data-duration-hrs="0">-- Select Course --</option>
                                 {% for course in courses %}
                                 <option value="{{ course.course_id }}" data-duration="{{ course.duration_months|default:0 }}" data-duration-hrs="{{ course.duration_hrs|default:0 }}">{{ course.course_name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
+                        {% endif %}
                         <!-- 3. Start Date -->
+                        {% if active_map.course_and_batches.start_date %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date {% if mandatory_map.course_and_batches.start_date %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="start_date" 
                                        x-model="startDate" 
+                                       {% if mandatory_map.course_and_batches.start_date %}required{% endif %}
                                        placeholder="YYYY-MM-DD" 
                                        @input="startDate = formatBatchDate($event.target.value); calculateEndDate(); checkAddBatchConflict(); fetchAvailableClassrooms()" 
                                        @blur="startDate = formatBatchDate(startDate, true); calculateEndDate(); checkAddBatchConflict(); fetchAvailableClassrooms()"
@@ -767,14 +835,17 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        {% endif %}
                         <!-- 4. End Date -->
+                        {% if active_map.course_and_batches.end_date %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date {% if mandatory_map.course_and_batches.end_date %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="end_date" 
                                        x-model="endDate" 
+                                       {% if mandatory_map.course_and_batches.end_date %}required{% endif %}
                                        placeholder="YYYY-MM-DD" 
                                        @input="endDate = formatBatchDate($event.target.value); checkAddBatchConflict(); fetchAvailableClassrooms()" 
                                        @blur="endDate = formatBatchDate(endDate, true); checkAddBatchConflict(); fetchAvailableClassrooms()"
@@ -793,14 +864,17 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        {% endif %}
                         <!-- 5. Start Time -->
+                        {% if active_map.course_and_batches.start_time %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time {% if mandatory_map.course_and_batches.start_time %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="start_time" 
                                        x-model="startTime" 
+                                       {% if mandatory_map.course_and_batches.start_time %}required{% endif %}
                                        placeholder="HH:MM (e.g. 09:00)" 
                                        @input="startTime = formatBatchTime($event.target.value); calculateEndTime(); onTimeChange()" 
                                        @blur="startTime = formatBatchTime(startTime, true); calculateEndTime(); onTimeChange()"
@@ -819,14 +893,17 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        {% endif %}
                         <!-- 6. End Time -->
+                        {% if active_map.course_and_batches.end_time %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Time {% if mandatory_map.course_and_batches.end_time %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="end_time" 
                                        x-model="endTime" 
+                                       {% if mandatory_map.course_and_batches.end_time %}required{% endif %}
                                        placeholder="HH:MM (e.g. 11:00)" 
                                        @input="endTime = formatBatchTime($event.target.value); onTimeChange()" 
                                        @blur="endTime = formatBatchTime(endTime, true); onTimeChange()"
@@ -848,10 +925,12 @@
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="selectedCourseDurationHrs"></span> hrs)
                             </p>
                         </div>
+                        {% endif %}
                         <!-- 7. Staff details -->
+                        {% if active_map.course_and_batches.teacher_id or active_map.course_and_batches.teacher %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Staff</label>
-                            <select name="teacher_id" x-model="selectedTeacherId" @change="checkAddBatchConflict()" @click="if(selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0) redirectToAssignTeacher()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="addBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Staff {% if mandatory_map.course_and_batches.teacher_id or mandatory_map.course_and_batches.teacher %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="teacher_id" {% if mandatory_map.course_and_batches.teacher_id or mandatory_map.course_and_batches.teacher %}required{% endif %} x-model="selectedTeacherId" @change="checkAddBatchConflict()" @click="if(selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0) redirectToAssignTeacher()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="addBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
                                 <option value="" x-show="!selectedCourseId">-- Select Course First --</option>
                                 <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) === 0">-- No staff assigned (Click to assign) --</option>
                                 <option value="" x-show="selectedCourseId && getCourseTeacherCount(selectedCourseId) > 0">-- Select Staff --</option>
@@ -878,15 +957,17 @@
                                 <i class="fa-solid fa-circle-check mr-1"></i> Showing staff assigned to this course.
                             </p>
                         </div>
+                        {% endif %}
                         <!-- 8. Class Room -->
+                        {% if active_map.course_and_batches.classroom_id or active_map.course_and_batches.classroom %}
                         <div>
                             <div class="flex items-center justify-between mb-1">
-                                <label class="block text-sm font-medium text-gray-700">Class Room</label>
+                                <label class="block text-sm font-medium text-gray-700">Class Room {% if mandatory_map.course_and_batches.classroom_id or mandatory_map.course_and_batches.classroom %}<span class="text-red-500">*</span>{% endif %}</label>
                                 <span x-show="isLoadingClassrooms" class="text-[11px] text-indigo-600 font-medium flex items-center gap-1">
                                     <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Checking availability...
                                 </span>
                             </div>
-                            <select name="classroom_id" x-model="selectedClassroomId" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <select name="classroom_id" {% if mandatory_map.course_and_batches.classroom_id or mandatory_map.course_and_batches.classroom %}required{% endif %} x-model="selectedClassroomId" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="" x-show="!startTime || !endTime">-- Select Class Room (Optional) --</option>
                                 <option value="" x-show="startTime && endTime && availableClassrooms.length > 0">-- Select Available Class Room (Optional) --</option>
                                 <option value="" x-show="startTime && endTime && classroomAvailabilityChecked && availableClassrooms.length === 0">-- No Class Rooms Available --</option>
@@ -904,11 +985,14 @@
                                 <i class="fa-solid fa-door-open mr-1"></i> Set start & end time to filter available class rooms.
                             </p>
                         </div>
+                        {% endif %}
                         <!-- 9. Capacity -->
+                        {% if active_map.course_and_batches.capacity %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                            <input type="number" name="capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 20">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity {% if mandatory_map.course_and_batches.capacity %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="capacity" {% if mandatory_map.course_and_batches.capacity %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 20">
                         </div>
+                        {% endif %}
                         <!-- 10. Calculated Duration -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Duration</label>
@@ -920,13 +1004,15 @@
                             </div>
                         </div>
                         <!-- 11. Status -->
+                        {% if active_map.course_and_batches.status %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status {% if mandatory_map.course_and_batches.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="status" {% if mandatory_map.course_and_batches.status %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
+                        {% endif %}
                     </div>
 
                     <!-- Conflict Warning Banner -->
@@ -1028,32 +1114,40 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Batch Code -->
+                        {% if active_map.course_and_batches.batch_code %}
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Batch Code</label>
                             <input type="text" :value="editBatch.batch_code" disabled class="w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm text-gray-600 cursor-not-allowed">
                         </div>
+                        {% endif %}
                         <!-- 1. Batch Name -->
+                        {% if active_map.course_and_batches.batch_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="batch_name" x-model="editBatch.batch_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Batch Name {% if mandatory_map.course_and_batches.batch_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="batch_name" x-model="editBatch.batch_name" {% if mandatory_map.course_and_batches.batch_name %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
                         <!-- 2. Course -->
+                        {% if active_map.course_and_batches.course_id or active_map.course_and_batches.course %}
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id" required x-model="editBatch.course_id" @change="onEditCourseChange(); calculateEditEndTime(); fetchEditAvailableClassrooms()" id="edit_batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Course {% if mandatory_map.course_and_batches.course_id or mandatory_map.course_and_batches.course %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="course_id" {% if mandatory_map.course_and_batches.course_id or mandatory_map.course_and_batches.course %}required{% endif %} x-model="editBatch.course_id" @change="onEditCourseChange(); calculateEditEndTime(); fetchEditAvailableClassrooms()" id="edit_batch_course_select" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 {% for course in courses %}
                                 <option value="{{ course.course_id }}">{{ course.course_name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
+                        {% endif %}
                         <!-- 3. Start Date -->
+                        {% if active_map.course_and_batches.start_date %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Date {% if mandatory_map.course_and_batches.start_date %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="start_date" 
                                        x-model="editBatch.start_date" 
+                                       {% if mandatory_map.course_and_batches.start_date %}required{% endif %}
                                        placeholder="YYYY-MM-DD" 
                                        @input="editBatch.start_date = formatBatchDate($event.target.value); checkEditBatchConflict(); fetchEditAvailableClassrooms()" 
                                        @blur="editBatch.start_date = formatBatchDate(editBatch.start_date, true); checkEditBatchConflict(); fetchEditAvailableClassrooms()"
@@ -1063,7 +1157,7 @@
                                         @click="openPicker($refs.pickerEditStartDate)" 
                                         class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition p-1" 
                                         title="Calendar picker">
-                                    <i class="fa-regular fa-calendar-days text-sm"></i>
+                                <i class="fa-regular fa-calendar-days text-sm"></i>
                                 </button>
                                 <input type="date" 
                                        x-ref="pickerEditStartDate" 
@@ -1072,14 +1166,17 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        {% endif %}
                         <!-- 4. End Date -->
+                        {% if active_map.course_and_batches.end_date %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Date {% if mandatory_map.course_and_batches.end_date %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="end_date" 
                                        x-model="editBatch.end_date" 
+                                       {% if mandatory_map.course_and_batches.end_date %}required{% endif %}
                                        placeholder="YYYY-MM-DD" 
                                        @input="editBatch.end_date = formatBatchDate($event.target.value); checkEditBatchConflict(); fetchEditAvailableClassrooms()" 
                                        @blur="editBatch.end_date = formatBatchDate(editBatch.end_date, true); checkEditBatchConflict(); fetchEditAvailableClassrooms()"
@@ -1098,14 +1195,17 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        {% endif %}
                         <!-- 5. Start Time -->
+                        {% if active_map.course_and_batches.start_time %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Start Time {% if mandatory_map.course_and_batches.start_time %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="start_time" 
                                        x-model="editBatch.start_time" 
+                                       {% if mandatory_map.course_and_batches.start_time %}required{% endif %}
                                        placeholder="HH:MM (e.g. 09:00)" 
                                        @input="editBatch.start_time = formatBatchTime($event.target.value); calculateEditEndTime(); onEditTimeChange()" 
                                        @blur="editBatch.start_time = formatBatchTime(editBatch.start_time, true); calculateEditEndTime(); onEditTimeChange()"
@@ -1124,14 +1224,17 @@
                                        class="sr-only">
                             </div>
                         </div>
+                        {% endif %}
                         <!-- 6. End Time -->
+                        {% if active_map.course_and_batches.end_time %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">End Time {% if mandatory_map.course_and_batches.end_time %}<span class="text-red-500">*</span>{% endif %}</label>
                             <div class="relative">
                                 <input type="text" 
                                        inputmode="numeric" 
                                        name="end_time" 
                                        x-model="editBatch.end_time" 
+                                       {% if mandatory_map.course_and_batches.end_time %}required{% endif %}
                                        placeholder="HH:MM (e.g. 11:00)" 
                                        @input="editBatch.end_time = formatBatchTime($event.target.value); onEditTimeChange()" 
                                        @blur="editBatch.end_time = formatBatchTime(editBatch.end_time, true); onEditTimeChange()"
@@ -1153,10 +1256,12 @@
                                 <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto-set from course duration (<span x-text="editCourseDurationHrs"></span> hrs)
                             </p>
                         </div>
+                        {% endif %}
                         <!-- 7. Staff details -->
+                        {% if active_map.course_and_batches.teacher_id or active_map.course_and_batches.teacher %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Staff</label>
-                            <select name="teacher_id" x-model="editBatch.teacher_id" @change="checkEditBatchConflict()" @click="if(editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0) redirectToAssignTeacherEdit()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="editBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Staff {% if mandatory_map.course_and_batches.teacher_id or mandatory_map.course_and_batches.teacher %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="teacher_id" {% if mandatory_map.course_and_batches.teacher_id or mandatory_map.course_and_batches.teacher %}required{% endif %} x-model="editBatch.teacher_id" @change="checkEditBatchConflict()" @click="if(editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0) redirectToAssignTeacherEdit()" class="w-full border rounded-md px-3 py-2 outline-none text-sm bg-white" :class="editBatchConflictMessage ? 'border-red-400 focus:ring-1 focus:ring-red-500' : 'border-gray-300 focus:ring-1 focus:ring-indigo-500'">
                                 <option value="" x-show="editBatch.course_id && getCourseTeacherCount(editBatch.course_id) === 0">-- No staff assigned (Click to assign) --</option>
                                 <option value="" x-show="!editBatch.course_id || getCourseTeacherCount(editBatch.course_id) > 0">-- Select Staff --</option>
                                 <template x-for="teacher in getFilteredTeachers(editBatch.course_id, editBatch.teacher_id)" :key="'edit-' + teacher.user_id">
@@ -1176,15 +1281,17 @@
                                 </button>
                             </div>
                         </div>
+                        {% endif %}
                         <!-- Class Room -->
+                        {% if active_map.course_and_batches.classroom_id or active_map.course_and_batches.classroom %}
                         <div>
                             <div class="flex items-center justify-between mb-1">
-                                <label class="block text-sm font-medium text-gray-700">Class Room</label>
+                                <label class="block text-sm font-medium text-gray-700">Class Room {% if mandatory_map.course_and_batches.classroom_id or mandatory_map.course_and_batches.classroom %}<span class="text-red-500">*</span>{% endif %}</label>
                                 <span x-show="isLoadingEditClassrooms" class="text-[11px] text-indigo-600 font-medium flex items-center gap-1">
                                     <i class="fa-solid fa-spinner fa-spin text-[10px]"></i> Checking availability...
                                 </span>
                             </div>
-                            <select name="classroom_id" x-model="editBatch.classroom_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <select name="classroom_id" {% if mandatory_map.course_and_batches.classroom_id or mandatory_map.course_and_batches.classroom %}required{% endif %} x-model="editBatch.classroom_id" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="" x-show="!editBatch.start_time || !editBatch.end_time">-- Select Class Room (Optional) --</option>
                                 <option value="" x-show="editBatch.start_time && editBatch.end_time && editAvailableClassrooms.length > 0">-- Select Available Class Room (Optional) --</option>
                                 <option value="" x-show="editBatch.start_time && editBatch.end_time && editClassroomAvailabilityChecked && editAvailableClassrooms.length === 0">-- No Class Rooms Available --</option>
@@ -1202,11 +1309,14 @@
                                 <i class="fa-solid fa-door-open mr-1"></i> Set start & end time to filter available class rooms.
                             </p>
                         </div>
+                        {% endif %}
                         <!-- Capacity -->
+                        {% if active_map.course_and_batches.capacity %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                            <input type="number" name="capacity" x-model="editBatch.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity {% if mandatory_map.course_and_batches.capacity %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="capacity" {% if mandatory_map.course_and_batches.capacity %}required{% endif %} x-model="editBatch.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
                         <!-- Calculated Duration -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Calculated Duration</label>
@@ -1218,13 +1328,15 @@
                             </div>
                         </div>
                         <!-- Status -->
+                        {% if active_map.course_and_batches.status %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" x-model="editBatch.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status {% if mandatory_map.course_and_batches.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="status" {% if mandatory_map.course_and_batches.status %}required{% endif %} x-model="editBatch.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
+                        {% endif %}
                     </div>
 
                     <!-- Conflict Warning Banner -->
@@ -1292,41 +1404,57 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if active_map.course_and_batches.class_code %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Code <span class="text-xs text-gray-400">(Optional / Auto-generated)</span></label>
-                            <input type="text" name="class_code" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm uppercase font-mono" placeholder="e.g. CR101">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Code {% if mandatory_map.course_and_batches.class_code %}<span class="text-red-500">*</span>{% else %}<span class="text-xs text-gray-400">(Optional / Auto-generated)</span>{% endif %}</label>
+                            <input type="text" name="class_code" {% if mandatory_map.course_and_batches.class_code %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm uppercase font-mono" placeholder="e.g. CR101">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.class_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="class_name" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Piano Studio A">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Name {% if mandatory_map.course_and_batches.class_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="class_name" {% if mandatory_map.course_and_batches.class_name %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Piano Studio A">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.build_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Building Name</label>
-                            <input type="text" name="build_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Main Academy">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Building Name {% if mandatory_map.course_and_batches.build_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="build_name" {% if mandatory_map.course_and_batches.build_name %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Main Academy">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.block %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Block</label>
-                            <input type="text" name="block" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Block A">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Block {% if mandatory_map.course_and_batches.block %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="block" {% if mandatory_map.course_and_batches.block %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Block A">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.floor %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Floor</label>
-                            <input type="text" name="floor" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 1st Floor">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Floor {% if mandatory_map.course_and_batches.floor %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="floor" {% if mandatory_map.course_and_batches.floor %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 1st Floor">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.class_no %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class No</label>
-                            <input type="text" name="class_no" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Room 102">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class No {% if mandatory_map.course_and_batches.class_no %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="class_no" {% if mandatory_map.course_and_batches.class_no %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. Room 102">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.capacity %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                            <input type="number" name="capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 25">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity {% if mandatory_map.course_and_batches.capacity %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="capacity" {% if mandatory_map.course_and_batches.capacity %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm" placeholder="e.g. 25">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.status %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status {% if mandatory_map.course_and_batches.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="status" {% if mandatory_map.course_and_batches.status %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
@@ -1355,41 +1483,57 @@
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if active_map.course_and_batches.class_code %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Code <span class="text-red-500">*</span></label>
-                            <input type="text" name="class_code" required x-model="editClassroom.class_code" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm uppercase font-mono">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Code {% if mandatory_map.course_and_batches.class_code %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="class_code" {% if mandatory_map.course_and_batches.class_code %}required{% endif %} x-model="editClassroom.class_code" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm uppercase font-mono">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.class_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="class_name" required x-model="editClassroom.class_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Name {% if mandatory_map.course_and_batches.class_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="class_name" {% if mandatory_map.course_and_batches.class_name %}required{% endif %} x-model="editClassroom.class_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.build_name %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Building Name</label>
-                            <input type="text" name="build_name" x-model="editClassroom.build_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Building Name {% if mandatory_map.course_and_batches.build_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="build_name" {% if mandatory_map.course_and_batches.build_name %}required{% endif %} x-model="editClassroom.build_name" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.block %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Block</label>
-                            <input type="text" name="block" x-model="editClassroom.block" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Block {% if mandatory_map.course_and_batches.block %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="block" {% if mandatory_map.course_and_batches.block %}required{% endif %} x-model="editClassroom.block" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.floor %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Floor</label>
-                            <input type="text" name="floor" x-model="editClassroom.floor" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Floor {% if mandatory_map.course_and_batches.floor %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="floor" {% if mandatory_map.course_and_batches.floor %}required{% endif %} x-model="editClassroom.floor" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.class_no %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Class No</label>
-                            <input type="text" name="class_no" x-model="editClassroom.class_no" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class No {% if mandatory_map.course_and_batches.class_no %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="text" name="class_no" {% if mandatory_map.course_and_batches.class_no %}required{% endif %} x-model="editClassroom.class_no" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.capacity %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity</label>
-                            <input type="number" name="capacity" x-model="editClassroom.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Capacity {% if mandatory_map.course_and_batches.capacity %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <input type="number" name="capacity" {% if mandatory_map.course_and_batches.capacity %}required{% endif %} x-model="editClassroom.capacity" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
                         </div>
+                        {% endif %}
+                        {% if active_map.course_and_batches.status %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select name="status" x-model="editClassroom.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Status {% if mandatory_map.course_and_batches.status %}<span class="text-red-500">*</span>{% endif %}</label>
+                            <select name="status" {% if mandatory_map.course_and_batches.status %}required{% endif %} x-model="editClassroom.status" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm bg-white">
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">

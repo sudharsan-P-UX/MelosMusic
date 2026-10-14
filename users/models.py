@@ -173,6 +173,7 @@ class MenuColumn(models.Model):
     column_name = models.CharField(max_length=100, db_column='ColumnName')
     display_name = models.CharField(max_length=255, db_column='DisplayName')
     status = models.BooleanField(default=True, db_column='Status')
+    is_mandatory = models.BooleanField(default=False, db_column='IsMandatory')
     order_by = models.IntegerField(default=0, db_column='OrderBy')
     created_date = models.DateTimeField(auto_now_add=True, db_column='CreatedDate')
     created_by = models.IntegerField(null=True, blank=True, db_column='CreatedBy')

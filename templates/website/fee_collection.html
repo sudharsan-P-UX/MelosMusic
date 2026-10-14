@@ -18,35 +18,41 @@
         <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 border-gray-100">Student Details</h3>
         
         <div class="space-y-4">
+            {% if active_map.fee_collection.student_id and active_map.fee_collection.student_name %}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Student Name <span class="text-red-500">*</span></label>
-                <select name="student_id" id="student_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Student Name {% if mandatory_map.fee_collection.student_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                <select name="student_id" id="student_select" {% if mandatory_map.fee_collection.student_id %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     <option value="">-- Select Student --</option>
                     {% for student in students %}
                     <option value="{{ student.user_id }}" {% if selected_student_id == student.user_id|stringformat:"s" %}selected{% endif %}>{{ student.display_name }}</option>
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
             
+            {% if active_map.fee_collection.course_id and active_map.fee_collection.course %}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Course <span class="text-red-500">*</span></label>
-                <select name="course_id" id="course_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Course {% if mandatory_map.fee_collection.course_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                <select name="course_id" id="course_select" {% if mandatory_map.fee_collection.course_id %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     <option value="">-- Select Course --</option>
                     {% for course in courses %}
                     <option value="{{ course.course_id }}" data-fee="{{ course.fee_amount|default:0 }}">{{ course.course_name }}</option>
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
             
+            {% if active_map.fee_collection.batch_id and active_map.fee_collection.batch %}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Batch <span class="text-red-500">*</span></label>
-                <select name="batch_id" id="batch_select" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Batch {% if mandatory_map.fee_collection.batch_id %}<span class="text-red-500">*</span>{% endif %}</label>
+                <select name="batch_id" id="batch_select" {% if mandatory_map.fee_collection.batch_id %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     <option value="">-- Select Batch --</option>
                     {% for batch in batches %}
                     <option value="{{ batch.batch_id }}" data-course="{{ batch.course_id }}">{{ batch.batch_name }}</option>
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
             
             <div class="pt-2">
                 <button type="button" id="load_fees_btn" class="w-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-medium py-2 px-4 rounded-md transition shadow-sm">
@@ -105,14 +111,17 @@
         <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2 border-gray-100">Payment Information</h3>
         
         <div class="space-y-4">
+            {% if active_map.fee_collection.payment_date %}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Date <span class="text-red-500">*</span></label>
-                <input type="date" name="payment_date" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Date {% if mandatory_map.fee_collection.payment_date %}<span class="text-red-500">*</span>{% endif %}</label>
+                <input type="date" name="payment_date" {% if mandatory_map.fee_collection.payment_date %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
             </div>
+            {% endif %}
             
+            {% if active_map.fee_collection.payment_mode %}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode <span class="text-red-500">*</span></label>
-                <select name="payment_mode" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode {% if mandatory_map.fee_collection.payment_mode %}<span class="text-red-500">*</span>{% endif %}</label>
+                <select name="payment_mode" {% if mandatory_map.fee_collection.payment_mode %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
                     <option value="1">Cash</option>
                     <option value="2" selected>UPI</option>
                     <option value="3">Credit Card</option>
@@ -120,16 +129,21 @@
                     <option value="5">Net Banking</option>
                 </select>
             </div>
+            {% endif %}
             
+            {% if active_map.fee_collection.transaction_no %}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Transaction No</label>
-                <input type="text" name="transaction_no" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="e.g. UPI1234567890">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Transaction No {% if mandatory_map.fee_collection.transaction_no %}<span class="text-red-500">*</span>{% endif %}</label>
+                <input type="text" name="transaction_no" {% if mandatory_map.fee_collection.transaction_no %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="e.g. UPI1234567890">
             </div>
+            {% endif %}
             
+            {% if active_map.fee_collection.amount_paid and active_map.fee_collection.paid_amount %}
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Amount Paid <span class="text-red-500">*</span></label>
-                <input type="number" name="amount_paid" step="0.01" value="0.00" required class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-lg text-indigo-700">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Amount Paid {% if mandatory_map.fee_collection.amount_paid %}<span class="text-red-500">*</span>{% endif %}</label>
+                <input type="number" name="amount_paid" step="0.01" value="0.00" {% if mandatory_map.fee_collection.amount_paid %}required{% endif %} class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-lg text-indigo-700">
             </div>
+            {% endif %}
             
             <div class="pt-2">
                 <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition shadow-md flex items-center justify-center">
@@ -152,22 +166,42 @@
         <table class="min-w-full">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
+                    {% if active_map.fee_collection.receipt_no %}
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-xs uppercase tracking-wider">Receipt No</th>
+                    {% endif %}
+                    {% if active_map.fee_collection.payment_date %}
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-xs uppercase tracking-wider">Date</th>
+                    {% endif %}
+                    {% if active_map.fee_collection.student_name and active_map.fee_collection.student_id %}
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-xs uppercase tracking-wider">Student</th>
+                    {% endif %}
+                    {% if active_map.fee_collection.amount_paid and active_map.fee_collection.paid_amount %}
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-xs uppercase tracking-wider">Amount (₹)</th>
+                    {% endif %}
+                    {% if active_map.fee_collection.payment_mode %}
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-xs uppercase tracking-wider">Mode</th>
+                    {% endif %}
                     <th class="py-3 px-6 text-left font-bold text-gray-700 text-xs uppercase tracking-wider">Status</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 text-sm">
                 {% for p in recent_payments %}
                 <tr class="hover:bg-gray-50">
+                    {% if active_map.fee_collection.receipt_no %}
                     <td class="py-3 px-6 text-indigo-600 font-medium">{{ p.receipt_no }}</td>
+                    {% endif %}
+                    {% if active_map.fee_collection.payment_date %}
                     <td class="py-3 px-6 text-gray-600">{{ p.date }}</td>
+                    {% endif %}
+                    {% if active_map.fee_collection.student_name and active_map.fee_collection.student_id %}
                     <td class="py-3 px-6 text-gray-800 font-medium">{{ p.student_name }}</td>
+                    {% endif %}
+                    {% if active_map.fee_collection.amount_paid and active_map.fee_collection.paid_amount %}
                     <td class="py-3 px-6 text-gray-800 font-bold">₹ {{ p.amount }}</td>
+                    {% endif %}
+                    {% if active_map.fee_collection.payment_mode %}
                     <td class="py-3 px-6 text-gray-600">{{ p.mode }}</td>
+                    {% endif %}
                     <td class="py-3 px-6">
                         {% if p.status == 'Paid' %}
                         <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Paid</span>

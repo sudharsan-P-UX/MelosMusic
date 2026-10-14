@@ -291,10 +291,37 @@ def current_menu_access_processor(request):
     return {'menu_access': default_denied}
 
 
+class ActiveMapDict(dict):
+    """
+    Dictionary that defaults to True (or a nested ActiveMapDict) for undefined keys,
+    ensuring unconfigured fields remain visible by default while explicitly inactive fields return False.
+    """
+    def __init__(self, default_val=True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.default_val = default_val
+
+    def __getitem__(self, item):
+        if item not in self:
+            if callable(self.default_val):
+                self[item] = self.default_val()
+                return self[item]
+            return self.default_val
+        return super().__getitem__(item)
+
+    def get(self, item, default=None):
+        if item not in self:
+            if default is not None:
+                return default
+            if callable(self.default_val):
+                return self.default_val()
+            return self.default_val
+        return super().get(item)
+
+
 def menu_columns_processor(request):
     """
     Context processor that provides configured table columns for each menu.
-    Allows templates to dynamically order, label, and toggle columns.
+    Allows templates to dynamically order, label, toggle visibility, and enforce mandatory requirements.
     """
     try:
         from users.models import MenuColumn
@@ -324,6 +351,10 @@ def menu_columns_processor(request):
                     tab_val = col.menu.url_page.split('?tab=')[-1].split('&')[0]
                     columns_by_name.setdefault(f"tab_{tab_val}", []).append(col)
 
+        course_keys = {'course_code', 'course_name', 'category', 'duration', 'duration_months', 'fee', 'fee_amount', 'duration_hrs', 'total_sessions', 'days', 'status', 'description'}
+        batch_keys = {'batch', 'batch_name', 'course', 'course_id', 'classroom', 'classroom_id', 'teacher', 'teacher_id', 'start_date', 'end_date', 'start_time', 'end_time', 'timing', 'duration', 'capacity'}
+        classroom_keys = {'class_code', 'class_name', 'build_name', 'block', 'floor', 'class_no', 'capacity', 'status'}
+
         cb_cols = (
             columns_by_name.get('Course and Batches') or 
             columns_by_name.get('Courses & Batches') or 
@@ -331,8 +362,72 @@ def menu_columns_processor(request):
             columns_by_name.get('courses_and_batches') or []
         )
         if cb_cols:
-            columns_by_name.setdefault('course_master', cb_cols)
-            columns_by_name.setdefault('Course Master', cb_cols)
+            columns_by_name['course_master'] = [c for c in cb_cols if c.column_key in course_keys]
+            columns_by_name['Course Master'] = columns_by_name['course_master']
+            columns_by_name['batch_master'] = [c for c in cb_cols if c.column_key in batch_keys]
+            columns_by_name['Batch Master'] = columns_by_name['batch_master']
+            columns_by_name['class_room'] = [c for c in cb_cols if c.column_key in classroom_keys]
+            columns_by_name['Class Room'] = columns_by_name['class_room']
+            columns_by_name['classrooms'] = columns_by_name['class_room']
+
+        # Build comprehensive mandatory_map and active_map for all menus
+        all_cols = list(
+            MenuColumn.objects.filter(menu__is_active=True)
+            .select_related('menu')
+            .order_by('order_by', 'column_id')
+        )
+        mandatory_map = {}
+        active_map = ActiveMapDict(default_val=lambda: ActiveMapDict(default_val=True))
+        for col in all_cols:
+            m_name = col.menu.menu_name
+            norm_key = m_name.lower().replace(' ', '_').replace('&', 'and').replace('-', '_')
+            
+            keys_to_set = [m_name, norm_key]
+            if 'staff' in norm_key:
+                keys_to_set.append(norm_key.replace('staff', 'teacher'))
+            elif 'teacher' in norm_key:
+                keys_to_set.append(norm_key.replace('teacher', 'staff'))
+            if col.menu.url_page:
+                keys_to_set.append(col.menu.url_page)
+                if '?tab=' in col.menu.url_page:
+                    tab_val = col.menu.url_page.split('?tab=')[-1].split('&')[0]
+                    keys_to_set.append(f"tab_{tab_val}")
+                    keys_to_set.append(tab_val)
+
+            # Domain-specific aliases
+            if norm_key in ['event_scheduling', 'event_list', 'events']:
+                keys_to_set.extend(['events', 'event', 'event_scheduling', 'events_dashboard', 'event_list'])
+            if 'venue' in norm_key:
+                keys_to_set.extend(['venue', 'venue_management', 'venues'])
+            if 'registration' in norm_key:
+                keys_to_set.extend(['registration', 'event_registration', 'participant', 'participants'])
+            if 'assignment' in norm_key:
+                keys_to_set.extend(['assignments', 'staff_assignments', 'event_staff'])
+            if 'course' in norm_key:
+                keys_to_set.extend(['courses', 'course_master', 'batch_master', 'class_room', 'classrooms', 'course_and_batches'])
+            if 'student' in norm_key and 'allocation' not in norm_key and 'attendance' not in norm_key:
+                keys_to_set.extend(['students', 'student_master'])
+            if ('teacher' in norm_key or 'staff' in norm_key) and 'allocation' not in norm_key and 'attendance' not in norm_key and 'assignment' not in norm_key:
+                keys_to_set.extend(['teachers', 'teacher_master', 'staff_master', 'staffs'])
+            if 'holiday' in norm_key:
+                keys_to_set.extend(['holidays', 'holiday_management'])
+            if 'user' in norm_key:
+                keys_to_set.extend(['users', 'user_management'])
+            if 'allocation' in norm_key:
+                if 'student' in norm_key:
+                    keys_to_set.extend(['student_allocation', 'student_course_allocation', 'allocation_details'])
+                elif 'staff' in norm_key or 'teacher' in norm_key:
+                    keys_to_set.extend(['teacher_allocation', 'staff_class_allocation'])
+            if 'assign_fee' in norm_key:
+                keys_to_set.extend(['assign_fees', 'assign_fee', 'fee_assign'])
+            if 'fee_collection' in norm_key:
+                keys_to_set.extend(['fee_collection', 'fees_collection', 'collection'])
+            if 'pending_fee' in norm_key:
+                keys_to_set.extend(['pending_fees', 'fee_pending', 'pending'])
+
+            for k in set(keys_to_set):
+                mandatory_map.setdefault(k, {})[col.column_key] = bool(col.is_mandatory)
+                active_map[k][col.column_key] = bool(col.status)
 
         # Current page columns
         current_cols = []
@@ -346,6 +441,8 @@ def menu_columns_processor(request):
         return {
             'menu_columns_map': columns_by_name,
             'current_menu_columns': current_cols,
+            'mandatory_map': mandatory_map,
+            'active_map': active_map,
         }
     except Exception as e:
-        return {'menu_columns_map': {}, 'current_menu_columns': []}
+        return {'menu_columns_map': {}, 'current_menu_columns': [], 'mandatory_map': {}, 'active_map': ActiveMapDict(default_val=lambda: ActiveMapDict(default_val=True))}

@@ -196,67 +196,123 @@
             <table class="min-w-full divide-y divide-gray-200 text-xs">
                 <thead class="bg-gray-50 text-gray-700 uppercase font-semibold">
                     <tr>
-                        <th class="px-4 py-3 text-left">Holiday Name</th>
-                        <th class="px-4 py-3 text-left">Date</th>
-                        <th class="px-4 py-3 text-left">Day of Week</th>
-                        <th class="px-4 py-3 text-left">Type</th>
-                        <th class="px-4 py-3 text-left">Description</th>
-                        <th class="px-4 py-3 text-center">Timetable Impact</th>
+                        {% if menu_columns_map.holiday_management %}
+                            {% for col in menu_columns_map.holiday_management %}
+                            <th class="px-4 py-3 {% if col.column_key == 'timetable_impact' %}text-center{% else %}text-left{% endif %}">{{ col.display_name }}</th>
+                            {% endfor %}
+                        {% else %}
+                            <th class="px-4 py-3 text-left">Holiday Name</th>
+                            <th class="px-4 py-3 text-left">Date</th>
+                            <th class="px-4 py-3 text-left">Day of Week</th>
+                            <th class="px-4 py-3 text-left">Type</th>
+                            <th class="px-4 py-3 text-left">Description</th>
+                            <th class="px-4 py-3 text-center">Timetable Impact</th>
+                        {% endif %}
                         <th class="px-4 py-3 text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 bg-white">
                     {% for h in holidays %}
                     <tr class="hover:bg-indigo-50/40 transition">
-                        <!-- Name -->
-                        <td class="px-4 py-3 font-semibold text-gray-900">
-                            <div class="flex items-center gap-2">
-                                <span class="w-6 h-6 rounded flex items-center justify-center text-xs
-                                    {% if h.holiday_type == 'National Holiday' %}bg-rose-100 text-rose-700
-                                    {% elif h.holiday_type == 'Festival' %}bg-amber-100 text-amber-700
-                                    {% elif h.holiday_type == 'Weekly Off' %}bg-purple-100 text-purple-700
-                                    {% else %}bg-indigo-100 text-indigo-700{% endif %}">
-                                    <i class="fa-solid fa-calendar-day"></i>
+                        {% if menu_columns_map.holiday_management %}
+                            {% for col in menu_columns_map.holiday_management %}
+                                {% if col.column_key == 'holiday_name' %}
+                                <td class="px-4 py-3 font-semibold text-gray-900">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-6 h-6 rounded flex items-center justify-center text-xs
+                                            {% if h.holiday_type == 'National Holiday' %}bg-rose-100 text-rose-700
+                                            {% elif h.holiday_type == 'Festival' %}bg-amber-100 text-amber-700
+                                            {% elif h.holiday_type == 'Weekly Off' %}bg-purple-100 text-purple-700
+                                            {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                                            <i class="fa-solid fa-calendar-day"></i>
+                                        </span>
+                                        <span>{{ h.holiday_name }}</span>
+                                    </div>
+                                </td>
+                                {% elif col.column_key == 'date' or col.column_key == 'holiday_date' %}
+                                <td class="px-4 py-3 font-mono font-medium text-gray-800 whitespace-nowrap">
+                                    {{ h.holiday_date|date:"d M Y" }}
+                                </td>
+                                {% elif col.column_key == 'day_of_week' %}
+                                <td class="px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-700">
+                                        {{ h.day_of_week|default:h.holiday_date|date:"l" }}
+                                    </span>
+                                </td>
+                                {% elif col.column_key == 'type' or col.column_key == 'holiday_type' %}
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold
+                                        {% if h.holiday_type == 'National Holiday' %}bg-rose-50 text-rose-700 border border-rose-200
+                                        {% elif h.holiday_type == 'Festival' %}bg-amber-50 text-amber-700 border border-amber-200
+                                        {% elif h.holiday_type == 'Weekly Off' %}bg-purple-50 text-purple-700 border border-purple-200
+                                        {% elif h.holiday_type == 'Academy Off' %}bg-blue-50 text-blue-700 border border-blue-200
+                                        {% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+                                        {{ h.holiday_type }}
+                                    </span>
+                                </td>
+                                {% elif col.column_key == 'description' %}
+                                <td class="px-4 py-3 text-gray-500 max-w-xs truncate" title="{{ h.description }}">
+                                    {{ h.description|default:"-" }}
+                                </td>
+                                {% elif col.column_key == 'timetable_impact' %}
+                                <td class="px-4 py-3 text-center whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                        <i class="fa-solid fa-ban mr-1 text-[9px] text-amber-600"></i> Classes Paused
+                                    </span>
+                                </td>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <!-- Name -->
+                            <td class="px-4 py-3 font-semibold text-gray-900">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded flex items-center justify-center text-xs
+                                        {% if h.holiday_type == 'National Holiday' %}bg-rose-100 text-rose-700
+                                        {% elif h.holiday_type == 'Festival' %}bg-amber-100 text-amber-700
+                                        {% elif h.holiday_type == 'Weekly Off' %}bg-purple-100 text-purple-700
+                                        {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                                        <i class="fa-solid fa-calendar-day"></i>
+                                    </span>
+                                    <span>{{ h.holiday_name }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Date -->
+                            <td class="px-4 py-3 font-mono font-medium text-gray-800 whitespace-nowrap">
+                                {{ h.holiday_date|date:"d M Y" }}
+                            </td>
+
+                            <!-- Day -->
+                            <td class="px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-700">
+                                    {{ h.day_of_week|default:h.holiday_date|date:"l" }}
                                 </span>
-                                <span>{{ h.holiday_name }}</span>
-                            </div>
-                        </td>
+                            </td>
 
-                        <!-- Date -->
-                        <td class="px-4 py-3 font-mono font-medium text-gray-800 whitespace-nowrap">
-                            {{ h.holiday_date|date:"d M Y" }}
-                        </td>
+                            <!-- Type Badge -->
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold
+                                    {% if h.holiday_type == 'National Holiday' %}bg-rose-50 text-rose-700 border border-rose-200
+                                    {% elif h.holiday_type == 'Festival' %}bg-amber-50 text-amber-700 border border-amber-200
+                                    {% elif h.holiday_type == 'Weekly Off' %}bg-purple-50 text-purple-700 border border-purple-200
+                                    {% elif h.holiday_type == 'Academy Off' %}bg-blue-50 text-blue-700 border border-blue-200
+                                    {% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+                                    {{ h.holiday_type }}
+                                </span>
+                            </td>
 
-                        <!-- Day -->
-                        <td class="px-4 py-3 text-gray-600 font-medium whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-700">
-                                {{ h.day_of_week|default:h.holiday_date|date:"l" }}
-                            </span>
-                        </td>
+                            <!-- Description -->
+                            <td class="px-4 py-3 text-gray-500 max-w-xs truncate" title="{{ h.description }}">
+                                {{ h.description|default:"-" }}
+                            </td>
 
-                        <!-- Type Badge -->
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold
-                                {% if h.holiday_type == 'National Holiday' %}bg-rose-50 text-rose-700 border border-rose-200
-                                {% elif h.holiday_type == 'Festival' %}bg-amber-50 text-amber-700 border border-amber-200
-                                {% elif h.holiday_type == 'Weekly Off' %}bg-purple-50 text-purple-700 border border-purple-200
-                                {% elif h.holiday_type == 'Academy Off' %}bg-blue-50 text-blue-700 border border-blue-200
-                                {% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
-                                {{ h.holiday_type }}
-                            </span>
-                        </td>
-
-                        <!-- Description -->
-                        <td class="px-4 py-3 text-gray-500 max-w-xs truncate" title="{{ h.description }}">
-                            {{ h.description|default:"-" }}
-                        </td>
-
-                        <!-- Timetable Impact -->
-                        <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                                <i class="fa-solid fa-ban mr-1 text-[9px] text-amber-600"></i> Classes Paused
-                            </span>
-                        </td>
+                            <!-- Timetable Impact -->
+                            <td class="px-4 py-3 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                    <i class="fa-solid fa-ban mr-1 text-[9px] text-amber-600"></i> Classes Paused
+                                </span>
+                            </td>
+                        {% endif %}
 
                         <!-- Actions -->
                         <td class="px-4 py-3 text-center whitespace-nowrap">
@@ -417,27 +473,36 @@
                 <input type="hidden" name="action" value="add_holiday">
 
                 <!-- Holiday Name -->
+                {% if active_map.holiday_management.holiday_name %}
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="holiday_name" required placeholder="e.g. Republic Day, Deepavali, Summer Break" class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Name {% if mandatory_map.holiday_management.holiday_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                    <input type="text" name="holiday_name" {% if mandatory_map.holiday_management.holiday_name %}required{% endif %} placeholder="e.g. Republic Day, Deepavali, Summer Break" class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
                 </div>
+                {% endif %}
 
                 <!-- Date Range (From & To) -->
+                {% if active_map.holiday_management.holiday_date or active_map.holiday_management.date or active_map.holiday_management.end_date %}
                 <div class="grid grid-cols-2 gap-3">
+                    {% if active_map.holiday_management.holiday_date or active_map.holiday_management.date %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Start Date <span class="text-red-500">*</span></label>
-                        <input type="date" name="holiday_date" required class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Start Date {% if mandatory_map.holiday_management.holiday_date %}<span class="text-red-500">*</span>{% endif %}</label>
+                        <input type="date" name="holiday_date" {% if mandatory_map.holiday_management.holiday_date %}required{% endif %} class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
                     </div>
+                    {% endif %}
+                    {% if active_map.holiday_management.end_date %}
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">End Date <span class="text-gray-400 font-normal">(Optional)</span></label>
-                        <input type="date" name="end_date" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500" placeholder="If multiple days">
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">End Date {% if mandatory_map.holiday_management.end_date %}<span class="text-red-500">*</span>{% else %}<span class="text-gray-400 font-normal">(Optional)</span>{% endif %}</label>
+                        <input type="date" name="end_date" {% if mandatory_map.holiday_management.end_date %}required{% endif %} class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500" placeholder="If multiple days">
                     </div>
+                    {% endif %}
                 </div>
+                {% endif %}
 
                 <!-- Holiday Type -->
+                {% if active_map.holiday_management.holiday_type or active_map.holiday_management.type %}
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Type</label>
-                    <select name="holiday_type" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Type {% if mandatory_map.holiday_management.holiday_type %}<span class="text-red-500">*</span>{% endif %}</label>
+                    <select name="holiday_type" {% if mandatory_map.holiday_management.holiday_type %}required{% endif %} class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
                         <option value="Public Holiday">Public Holiday</option>
                         <option value="National Holiday">National Holiday</option>
                         <option value="Festival">Festival</option>
@@ -446,12 +511,15 @@
                         <option value="Emergency">Emergency Off</option>
                     </select>
                 </div>
+                {% endif %}
 
                 <!-- Description -->
+                {% if active_map.holiday_management.description %}
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Description / Notes</label>
-                    <textarea name="description" rows="2" placeholder="Optional details..." class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500"></textarea>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Description / Notes {% if mandatory_map.holiday_management.description %}<span class="text-red-500">*</span>{% endif %}</label>
+                    <textarea name="description" rows="2" {% if mandatory_map.holiday_management.description %}required{% endif %} placeholder="Optional details..." class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500"></textarea>
                 </div>
+                {% endif %}
 
                 <div class="pt-2 flex justify-end gap-2 border-t border-gray-100">
                     <button type="button" @click="showAddModal = false" class="px-3.5 py-1.5 border border-gray-300 rounded text-xs font-medium text-gray-600 hover:bg-gray-50 transition">Cancel</button>
@@ -478,21 +546,26 @@
                 <input type="hidden" name="holiday_id" :value="currentHoliday.id">
 
                 <!-- Holiday Name -->
+                {% if active_map.holiday_management.holiday_name %}
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="holiday_name" required x-model="currentHoliday.name" class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Name {% if mandatory_map.holiday_management.holiday_name %}<span class="text-red-500">*</span>{% endif %}</label>
+                    <input type="text" name="holiday_name" {% if mandatory_map.holiday_management.holiday_name %}required{% endif %} x-model="currentHoliday.name" class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
                 </div>
+                {% endif %}
 
                 <!-- Date -->
+                {% if active_map.holiday_management.holiday_date or active_map.holiday_management.date %}
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Date <span class="text-red-500">*</span></label>
-                    <input type="date" name="holiday_date" required x-model="currentHoliday.date" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Date {% if mandatory_map.holiday_management.holiday_date %}<span class="text-red-500">*</span>{% endif %}</label>
+                    <input type="date" name="holiday_date" {% if mandatory_map.holiday_management.holiday_date %}required{% endif %} x-model="currentHoliday.date" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
                 </div>
+                {% endif %}
 
                 <!-- Holiday Type -->
+                {% if active_map.holiday_management.holiday_type or active_map.holiday_management.type %}
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Type</label>
-                    <select name="holiday_type" x-model="currentHoliday.type" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Holiday Type {% if mandatory_map.holiday_management.holiday_type %}<span class="text-red-500">*</span>{% endif %}</label>
+                    <select name="holiday_type" {% if mandatory_map.holiday_management.holiday_type %}required{% endif %} x-model="currentHoliday.type" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500">
                         <option value="Public Holiday">Public Holiday</option>
                         <option value="National Holiday">National Holiday</option>
                         <option value="Festival">Festival</option>
@@ -501,12 +574,15 @@
                         <option value="Emergency">Emergency Off</option>
                     </select>
                 </div>
+                {% endif %}
 
                 <!-- Description -->
+                {% if active_map.holiday_management.description %}
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Description / Notes</label>
-                    <textarea name="description" rows="2" x-model="currentHoliday.description" class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500"></textarea>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">Description / Notes {% if mandatory_map.holiday_management.description %}<span class="text-red-500">*</span>{% endif %}</label>
+                    <textarea name="description" rows="2" {% if mandatory_map.holiday_management.description %}required{% endif %} x-model="currentHoliday.description" class="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-indigo-500"></textarea>
                 </div>
+                {% endif %}
 
                 <div class="pt-2 flex justify-end gap-2 border-t border-gray-100">
                     <button type="button" @click="showEditModal = false" class="px-3.5 py-1.5 border border-gray-300 rounded text-xs font-medium text-gray-600 hover:bg-gray-50 transition">Cancel</button>

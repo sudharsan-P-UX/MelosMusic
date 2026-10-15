@@ -23,35 +23,41 @@
         
         <form method="GET" action="{% url 'teachers' %}" :class="showFilter ? 'flex' : 'hidden md:flex'" class="flex-wrap gap-3 items-end pb-2 pt-2 border-t border-dashed border-gray-200 md:border-0 md:pt-0">
             
-            <div class="relative">
-                <select name="status_filter" class="appearance-none border border-gray-300 rounded px-3 py-1.5 pr-8 text-sm text-gray-700 hover:border-gray-400 focus:outline-none bg-white h-[34px]">
-                    <option value="">All ({{ teachers|length }})</option>
-                    <option value="1" {% if request.GET.status_filter == '1' %}selected{% endif %}>Active</option>
-                    <option value="0" {% if request.GET.status_filter == '0' %}selected{% endif %}>Inactive</option>
-                </select>
-                <i class="fa-solid fa-chevron-down absolute right-2.5 top-2.5 text-xs text-gray-500"></i>
+            <div class="w-36">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Status</label>
+                <div class="relative">
+                    <select name="status_filter" class="appearance-none w-full border border-gray-300 rounded px-3 py-1.5 pr-8 text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:border-indigo-500 bg-white h-[36px]">
+                        <option value="">All ({{ teachers|length }})</option>
+                        <option value="1" {% if request.GET.status_filter == '1' %}selected{% endif %}>Active</option>
+                        <option value="0" {% if request.GET.status_filter == '0' %}selected{% endif %}>Inactive</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-2.5 top-3 text-xs text-gray-500 pointer-events-none"></i>
+                </div>
             </div>
             
-            <div class="relative">
-                <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search Staff" class="border border-gray-300 rounded px-3 py-1.5 w-48 text-sm focus:outline-none focus:border-blue-500 h-[34px]">
-                <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400"></i>
+            <div class="min-w-[200px] flex-1">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Search Staff</label>
+                <div class="relative">
+                    <input type="text" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Search by name, ID, phone..." class="border border-gray-300 rounded px-3 py-1.5 w-full text-sm focus:outline-none focus:border-indigo-500 h-[36px] bg-white">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3 top-2.5 text-gray-400"></i>
+                </div>
             </div>
             
             <div class="w-36">
-                <label class="block text-xs text-gray-500 mb-1">From Date</label>
-                <input type="date" name="from_date" value="{{ request.GET.from_date|default:'' }}" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-600 outline-none h-[34px]">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">From Date</label>
+                <input type="date" name="from_date" value="{{ request.GET.from_date|default:'' }}" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none focus:border-indigo-500 bg-white h-[36px]">
             </div>
             
             <div class="w-36">
-                <label class="block text-xs text-gray-500 mb-1">To Date</label>
-                <input type="date" name="to_date" value="{{ request.GET.to_date|default:'' }}" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-gray-600 outline-none h-[34px]">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">To Date</label>
+                <input type="date" name="to_date" value="{{ request.GET.to_date|default:'' }}" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none focus:border-indigo-500 bg-white h-[36px]">
             </div>
             
             <div class="flex space-x-2">
-                <button type="submit" class="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-200 h-[34px] flex items-center shadow-sm">
-                    <i class="fa-solid fa-filter mr-1.5"></i> Apply
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded text-sm h-[36px] flex items-center shadow-sm font-medium transition">
+                    <i class="fa-solid fa-filter mr-1.5 text-xs"></i> Apply
                 </button>
-                <a href="{% url 'teachers' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[34px] flex items-center shadow-sm">
+                <a href="{% url 'teachers' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[36px] flex items-center shadow-sm font-medium transition">
                     Clear
                 </a>
             </div>

@@ -1,7 +1,18 @@
 {% extends 'base.html' %}
 
+{% block header %}Admin Dashboard{% endblock %}
+
 {% block content %}
-<div x-data="{ tab: '{{ active_tab|default:'roles' }}', showCreateRoleModal: false, showAddUserModal: false, showMenuModal: false, editMenuData: {id: '', name: '', url: '', parent_id: '', active: true} }">
+<div x-data="{
+    tab: '{{ active_tab|default:'roles' }}',
+    showCreateRoleModal: false,
+    showAddUserModal: false,
+    showViewUserModal: false,
+    showEditUserModal: false,
+    selectedUser: {id: '', first_name: '', last_name: '', display_name: '', email: '', phone: '', role_id: '', role_name: '', is_active: true, user_code: '', created_date: ''},
+    showMenuModal: false,
+    editMenuData: {id: '', name: '', url: '', parent_id: '', active: true}
+}">
     <div class="mb-4 flex justify-between items-center">
         <h2 class="text-xl font-bold text-gray-800" x-text="{
             'dashboard': 'Admin Dashboard',
@@ -26,7 +37,9 @@
     <!-- Roles Tab -->
     <div x-show="tab === 'roles'" x-transition class="space-y-4">
         <!-- Stats -->
+        {% if active_map.role_management.total_roles or active_map.role_management.assigned_users %}
         <div class="flex flex-wrap gap-6">
+            {% if active_map.role_management.total_roles %}
             <div class="bg-white p-4 rounded border border-gray-200 shadow-sm flex items-center justify-between w-72">
                 <div class="flex items-center">
                     <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-xl mr-4"><i class="fa-solid fa-shield-halved"></i></div>
@@ -34,6 +47,8 @@
                 </div>
                 <div class="text-3xl font-bold text-gray-800">{{ roles|length }}</div>
             </div>
+            {% endif %}
+            {% if active_map.role_management.assigned_users %}
             <div class="bg-white p-4 rounded border border-gray-200 shadow-sm flex items-center justify-between w-72">
                 <div class="flex items-center">
                     <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-xl mr-4"><i class="fa-solid fa-users"></i></div>
@@ -41,7 +56,9 @@
                 </div>
                 <div class="text-3xl font-bold text-gray-800">{{ users|length }}</div>
             </div>
+            {% endif %}
         </div>
+        {% endif %}
         
         <!-- Role Matrix Editor -->
         <div class="bg-white rounded border border-gray-200 shadow-sm relative">
@@ -79,11 +96,21 @@
                                         Select All
                                     </label>
                                 </th>
+                                {% if active_map.role_management.view_access %}
                                 <th class="py-1.5 px-2 font-semibold text-center">View</th>
+                                {% endif %}
+                                {% if active_map.role_management.add_access %}
                                 <th class="py-1.5 px-2 font-semibold text-center">Add</th>
+                                {% endif %}
+                                {% if active_map.role_management.edit_access %}
                                 <th class="py-1.5 px-2 font-semibold text-center">Edit</th>
+                                {% endif %}
+                                {% if active_map.role_management.delete_access %}
                                 <th class="py-1.5 px-2 font-semibold text-center">Delete</th>
+                                {% endif %}
+                                {% if active_map.role_management.export_access %}
                                 <th class="py-1.5 px-2 font-semibold text-center">Export</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody class="text-gray-700">
@@ -99,21 +126,31 @@
                                     {% endif %}
                                     {{ menu.menu_name }}
                                 </td>
+                                {% if active_map.role_management.view_access %}
                                 <td class="py-1.5 px-2 text-center">
                                     <input type="checkbox" name="view_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.view_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
                                 </td>
+                                {% endif %}
+                                {% if active_map.role_management.add_access %}
                                 <td class="py-1.5 px-2 text-center">
                                     <input type="checkbox" name="add_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.add_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
                                 </td>
+                                {% endif %}
+                                {% if active_map.role_management.edit_access %}
                                 <td class="py-1.5 px-2 text-center">
                                     <input type="checkbox" name="edit_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.edit_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
                                 </td>
+                                {% endif %}
+                                {% if active_map.role_management.delete_access %}
                                 <td class="py-1.5 px-2 text-center">
                                     <input type="checkbox" name="delete_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.delete_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
                                 </td>
+                                {% endif %}
+                                {% if active_map.role_management.export_access %}
                                 <td class="py-1.5 px-2 text-center">
                                     <input type="checkbox" name="export_{{ menu.menu_id }}" {% for k,v in role_access_map.items %}{% if k == menu.menu_id and v.export_access %}checked{% endif %}{% endfor %} class="perm-chk rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300 cursor-pointer">
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -156,18 +193,91 @@
                         {% for col in menu_columns_map.user_management %}
                             {% if col.column_key == 'name' %}
                             <td class="py-1.5 px-4 font-medium text-gray-800">{{ u.display_name|default:u.first_name }}</td>
+                            {% elif col.column_key == 'first_name' %}
+                            <td class="py-1.5 px-4 text-gray-800 font-medium">{{ u.first_name }}</td>
+                            {% elif col.column_key == 'last_name' %}
+                            <td class="py-1.5 px-4 text-gray-600">{{ u.last_name|default:"-" }}</td>
                             {% elif col.column_key == 'username' %}
-                            <td class="py-1.5 px-4 text-gray-600">{{ u.first_name }}</td>
+                            <td class="py-1.5 px-4 text-gray-600 font-mono text-xs">{{ u.first_name }}</td>
                             {% elif col.column_key == 'email' %}
                             <td class="py-1.5 px-4 text-gray-600">{{ u.email|default:"-" }}</td>
-                            {% elif col.column_key == 'role' %}
+                            {% elif col.column_key == 'phone' %}
+                            <td class="py-1.5 px-4 text-gray-600">{{ u.phone|default:"-" }}</td>
+                            {% elif col.column_key == 'password' %}
+                            <td class="py-1.5 px-4 text-gray-400 font-mono text-xs">••••••••</td>
+                            {% elif col.column_key == 'role' or col.column_key == 'role_id' %}
                             <td class="py-1.5 px-4">
                                 <span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">{{ u.role.role_name|default:"Unassigned" }}</span>
                             </td>
+                            {% elif col.column_key == 'status' or col.column_key == 'is_active' %}
+                            <td class="py-1.5 px-4">
+                                {% if u.is_active %}
+                                <span class="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Inactive</span>
+                                {% endif %}
+                            </td>
+                            {% elif col.column_key == 'user_code' %}
+                            <td class="py-1.5 px-4 text-gray-600 font-mono text-xs">{{ u.user_code|default:"-" }}</td>
+                            {% else %}
+                            <td class="py-1.5 px-4 text-gray-600">-</td>
                             {% endif %}
                         {% endfor %}
-                        <td class="py-1.5 px-4 text-center">
-                            <span class="text-xs text-gray-400 font-mono">ID: {{ u.user_id }}</span>
+                        <td class="py-1.5 px-4 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <!-- View User -->
+                                <button type="button" @click="
+                                    selectedUser = {
+                                        id: '{{ u.user_id }}',
+                                        first_name: '{{ u.first_name|escapejs }}',
+                                        last_name: '{{ u.last_name|default:''|escapejs }}',
+                                        display_name: '{{ u.display_name|default:u.first_name|escapejs }}',
+                                        email: '{{ u.email|default:''|escapejs }}',
+                                        phone: '{{ u.phone|default:''|escapejs }}',
+                                        role_id: '{{ u.role.role_id|default:'' }}',
+                                        role_name: '{{ u.role.role_name|default:'Unassigned'|escapejs }}',
+                                        is_active: {% if u.is_active %}true{% else %}false{% endif %},
+                                        user_code: '{{ u.user_code|default:'-'|escapejs }}',
+                                        created_date: '{{ u.created_date|date:'d M Y, h:i A'|default:'-'|escapejs }}'
+                                    };
+                                    showViewUserModal = true;
+                                " class="w-7 h-7 rounded flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition" title="View Details">
+                                    <i class="fa-solid fa-eye text-xs"></i>
+                                </button>
+
+                                <!-- Edit User -->
+                                {% if menu_access.edit %}
+                                <button type="button" @click="
+                                    selectedUser = {
+                                        id: '{{ u.user_id }}',
+                                        first_name: '{{ u.first_name|escapejs }}',
+                                        last_name: '{{ u.last_name|default:''|escapejs }}',
+                                        display_name: '{{ u.display_name|default:u.first_name|escapejs }}',
+                                        email: '{{ u.email|default:''|escapejs }}',
+                                        phone: '{{ u.phone|default:''|escapejs }}',
+                                        role_id: '{{ u.role.role_id|default:'' }}',
+                                        role_name: '{{ u.role.role_name|default:'Unassigned'|escapejs }}',
+                                        is_active: {% if u.is_active %}true{% else %}false{% endif %},
+                                        user_code: '{{ u.user_code|default:'-'|escapejs }}'
+                                    };
+                                    showEditUserModal = true;
+                                " class="w-7 h-7 rounded flex items-center justify-center text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 transition" title="Edit User">
+                                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                                </button>
+                                {% endif %}
+
+                                <!-- Delete User -->
+                                {% if menu_access.delete %}
+                                <form method="POST" action="" class="inline" onsubmit="return confirm('Are you sure you want to delete user \'{{ u.display_name|default:u.first_name|escapejs }}\'?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_user">
+                                    <input type="hidden" name="user_id" value="{{ u.user_id }}">
+                                    <button type="submit" class="w-7 h-7 rounded flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 transition" title="Delete User">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -197,8 +307,12 @@
                             <th class="py-1.5 px-4 font-medium">{{ col.display_name }}</th>
                             {% elif col.column_key == 'url_page' %}
                             <th class="py-1.5 px-4 font-medium">{{ col.display_name }}</th>
-                            {% elif col.column_key == 'order_list' %}
+                            {% elif col.column_key == 'order_list' or col.column_key == 'display_order' %}
                             <th class="py-1.5 px-4 font-medium w-24 text-center">{{ col.display_name }}</th>
+                            {% elif col.column_key == 'is_active' or col.column_key == 'status' %}
+                            <th class="py-1.5 px-4 font-medium text-center">{{ col.display_name }}</th>
+                            {% else %}
+                            <th class="py-1.5 px-4 font-medium">{{ col.display_name }}</th>
                             {% endif %}
                         {% endfor %}
                         <th class="py-1.5 px-4 font-medium text-center">Actions</th>
@@ -221,10 +335,18 @@
                             </td>
                             {% elif col.column_key == 'url_page' %}
                             <td class="py-1.5 px-4 text-gray-500 font-mono text-xs">{{ m.url_page }}</td>
-                            {% elif col.column_key == 'order_list' %}
+                            {% elif col.column_key == 'order_list' or col.column_key == 'display_order' %}
                             <td class="py-1.5 px-4 text-center">
                                 <input type="number" name="order_{{ m.menu_id }}" value="{{ m.display_order }}" class="menu-order-input w-16 border border-gray-300 rounded px-1.5 py-1 text-xs text-center focus:ring-indigo-500 focus:border-indigo-500">
                             </td>
+                            {% elif col.column_key == 'is_active' or col.column_key == 'status' %}
+                            <td class="py-1.5 px-4 text-center">
+                                <span class="px-2 py-0.5 rounded text-xs font-semibold {% if m.is_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                    {% if m.is_active %}Active{% else %}Inactive{% endif %}
+                                </span>
+                            </td>
+                            {% else %}
+                            <td class="py-1.5 px-4 text-gray-600">-</td>
                             {% endif %}
                         {% endfor %}
                         <td class="py-1.5 px-4 text-center space-x-2">
@@ -292,8 +414,9 @@
                 
                 <div class="flex items-center gap-3">
                     <label class="text-xs font-semibold text-gray-700 whitespace-nowrap">Select Menu:</label>
-                    <div class="w-72">
+                    <div class="w-80">
                         <select onchange="window.location.href='?tab=column_list&menu_id=' + this.value" class="w-full border border-gray-300 rounded px-3 py-2 text-sm outline-none focus:border-indigo-500 bg-white shadow-sm font-medium text-gray-800">
+                            <option value="all" {% if selected_col_menu_id == 'all' %}selected{% endif %}>★ All Menus (Show All Columns)</option>
                             {% for m in menus %}
                             <option value="{{ m.menu_id }}" {% if selected_col_menu and selected_col_menu.menu_id == m.menu_id %}selected{% endif %}>
                                 {% if m.level == 2 %}&nbsp;&nbsp;&nbsp;&nbsp;↳ {{ m.menu_name }}{% elif m.level == 1 %}&nbsp;&nbsp;↳ {{ m.menu_name }}{% else %}{{ m.menu_name }}{% endif %}
@@ -304,12 +427,15 @@
                 </div>
             </div>
 
-            {% if selected_col_menu %}
             <div class="px-6 py-3 bg-indigo-50/60 border-b border-indigo-100 flex flex-wrap items-center justify-between text-xs text-indigo-900 gap-2">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-circle-info text-indigo-500"></i>
+                    {% if selected_col_menu %}
                     <span>Configuring columns for: <strong class="text-indigo-800 font-bold">{{ selected_col_menu.menu_name }}</strong></span>
                     {% if selected_col_menu.url_page %}<span class="text-gray-400 font-mono text-[11px]">({{ selected_col_menu.url_page }})</span>{% endif %}
+                    {% else %}
+                    <span>Configuring columns for: <strong class="text-indigo-800 font-bold">All Menus</strong> (Listing all main & sub menus)</span>
+                    {% endif %}
                 </div>
                 <div>
                     {% if is_superadmin %}
@@ -323,31 +449,48 @@
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
 
             <!-- Table of Columns -->
             <form method="POST" action="">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="save_menu_columns">
-                <input type="hidden" name="menu_id" value="{{ selected_col_menu.menu_id|default:'' }}">
+                <input type="hidden" name="menu_id" value="{{ selected_col_menu_id|default:'all' }}">
 
                 <div class="overflow-x-auto w-full">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
                             <tr class="border-b border-gray-200 text-gray-600 bg-gray-50/95">
-                                <th class="py-3 px-6 font-semibold w-64">Columnnames</th>
-                                <th class="py-3 px-6 font-semibold">DisplayName</th>
-                                <th class="py-3 px-6 font-semibold w-36 text-center">Active</th>
-                                <th class="py-3 px-6 font-semibold w-36 text-center">Mandatory</th>
-                                <th class="py-3 px-6 font-semibold w-32 text-center">Orderby</th>
+                                <th class="py-3 px-4 font-semibold w-40">Main Menu</th>
+                                <th class="py-3 px-4 font-semibold w-48">Sub Menu</th>
+                                <th class="py-3 px-4 font-semibold w-52">Columnnames</th>
+                                <th class="py-3 px-4 font-semibold">DisplayName</th>
+                                <th class="py-3 px-4 font-semibold w-32 text-center">Active</th>
+                                <th class="py-3 px-4 font-semibold w-32 text-center">Mandatory</th>
+                                <th class="py-3 px-4 font-semibold w-28 text-center">Orderby</th>
                             </tr>
                         </thead>
                         <tbody class="text-gray-700 divide-y divide-gray-100">
                             {% for col in column_list_cols %}
                             <tr class="hover:bg-gray-50 transition-colors">
+                                <!-- Main Menu -->
+                                <td class="py-3 px-4 font-semibold text-gray-900 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold">
+                                        <i class="fa-solid fa-folder mr-1.5 text-indigo-500 text-[10px]"></i>
+                                        {{ col.main_menu_name }}
+                                    </span>
+                                </td>
+
+                                <!-- Sub Menu -->
+                                <td class="py-3 px-4 text-gray-700 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200 text-xs font-medium">
+                                        <i class="fa-solid fa-folder-open mr-1.5 text-gray-400 text-[10px]"></i>
+                                        {{ col.sub_menu_name }}
+                                    </span>
+                                </td>
+
                                 <!-- Columnnames (freeze) -->
-                                <td class="py-3 px-6 font-medium text-gray-800">
-                                    <div class="inline-flex items-center px-2.5 py-1 rounded bg-gray-100 text-gray-800 border border-gray-200 font-mono text-xs font-semibold">
+                                <td class="py-3 px-4 font-medium text-gray-800">
+                                    <div class="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-800 border border-gray-200 font-mono text-xs font-semibold">
                                         <i class="fa-solid fa-columns mr-1.5 text-gray-400 text-[10px]"></i>
                                         {{ col.column_name }}
                                     </div>
@@ -355,7 +498,7 @@
                                 </td>
 
                                 <!-- DisplayName (editable) -->
-                                <td class="py-3 px-6">
+                                <td class="py-3 px-4">
                                     {% if is_superadmin %}
                                     <input type="text" name="display_name_{{ col.column_id }}" value="{{ col.display_name }}" required class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm font-medium text-gray-800">
                                     {% else %}
@@ -364,7 +507,7 @@
                                 </td>
 
                                 <!-- Status (yes/No dropdown) -->
-                                <td class="py-3 px-6 text-center">
+                                <td class="py-3 px-4 text-center">
                                     {% if is_superadmin %}
                                     <select name="status_{{ col.column_id }}" class="border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:border-indigo-500 bg-white shadow-sm font-semibold text-gray-800 cursor-pointer">
                                         <option value="1" {% if col.status %}selected{% endif %}>Yes</option>
@@ -378,7 +521,7 @@
                                 </td>
 
                                 <!-- Mandatory (yes/No dropdown) -->
-                                <td class="py-3 px-6 text-center">
+                                <td class="py-3 px-4 text-center">
                                     {% if is_superadmin %}
                                     <select name="is_mandatory_{{ col.column_id }}" class="border border-gray-300 rounded px-3 py-1.5 text-sm outline-none focus:border-indigo-500 bg-white shadow-sm font-semibold text-gray-800 cursor-pointer">
                                         <option value="1" {% if col.is_mandatory %}selected{% endif %}>Yes</option>
@@ -392,7 +535,7 @@
                                 </td>
 
                                 <!-- Orderby -->
-                                <td class="py-3 px-6 text-center">
+                                <td class="py-3 px-4 text-center">
                                     {% if is_superadmin %}
                                     <input type="number" name="order_by_{{ col.column_id }}" value="{{ col.order_by }}" min="1" max="99" required class="w-20 border border-gray-300 rounded px-2 py-1.5 text-sm text-center outline-none focus:border-indigo-500 bg-white shadow-sm font-semibold text-gray-800">
                                     {% else %}
@@ -402,7 +545,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="py-10 text-center text-gray-400">
+                                <td colspan="7" class="py-10 text-center text-gray-400">
                                     <i class="fa-solid fa-table-list text-3xl mb-2 block text-gray-300"></i>
                                     <span>No configurable columns found for this menu.</span>
                                 </td>
@@ -468,6 +611,7 @@
             
             <h3 class="font-medium text-gray-800 mt-8 mb-6 pb-2 border-b border-gray-100"><i class="fa-solid fa-shield-halved text-indigo-500 mr-2"></i> Security Configuration</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% if active_map.system_settings.password_expire %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">User password expire date in days</label>
                     <div class="relative">
@@ -478,6 +622,8 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Force users to reset their password after this period. Set to 0 to disable.</p>
                 </div>
+                {% endif %}
+                {% if active_map.system_settings.phone_length %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number Length (Country Format)</label>
                     <div class="relative">
@@ -488,6 +634,8 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Maximum allowed length for user phone numbers.</p>
                 </div>
+                {% endif %}
+                {% if active_map.system_settings.email_length %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Email Maximum Length</label>
                     <div class="relative">
@@ -498,6 +646,8 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Maximum allowed length for user email addresses.</p>
                 </div>
+                {% endif %}
+                {% if active_map.system_settings.attendance_from_date or active_map.system_settings.attendance_to_date %}
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Attendance Allowed Date (From Date to To Date)</label>
                     <div class="flex items-center border border-gray-300 rounded bg-white overflow-hidden focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
@@ -511,6 +661,7 @@
                     </div>
                     <p class="text-xs text-gray-500 mt-1">Allowed date range to apply student and staff attendance (e.g. 05-09-2026 to 05-10-2026).</p>
                 </div>
+                {% endif %}
             </div>
             <div class="mt-8 flex justify-end">
                 <button type="submit" class="bg-[#4f46e5] text-white px-6 py-2 rounded text-sm font-medium hover:bg-indigo-700 shadow-sm transition">
@@ -588,6 +739,141 @@
                             Create User
                         </button>
                         <button type="button" @click="showAddUserModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:gap-0 sm:ml-3 sm:w-auto sm:text-sm transition">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View User Modal -->
+    <div x-show="showViewUserModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="showViewUserModal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showViewUserModal = false"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div x-show="showViewUserModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+                <div class="bg-indigo-600 px-6 py-4 flex items-center justify-between text-white">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-user-circle text-xl"></i>
+                        <h3 class="text-base font-semibold">User Details</h3>
+                    </div>
+                    <button type="button" @click="showViewUserModal = false" class="text-white hover:text-gray-200 focus:outline-none">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <div class="bg-white p-6 space-y-4">
+                    <div class="flex items-center gap-4 pb-4 border-b border-gray-100">
+                        <div class="w-14 h-14 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xl uppercase">
+                            <span x-text="(selectedUser.first_name || 'U').charAt(0)"></span>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-800" x-text="selectedUser.display_name || selectedUser.first_name"></h4>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-semibold" x-text="selectedUser.role_name"></span>
+                                <span class="px-2 py-0.5 rounded text-xs font-semibold" :class="selectedUser.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" x-text="selectedUser.is_active ? 'Active' : 'Inactive'"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="bg-gray-50 p-2.5 rounded border border-gray-100">
+                            <span class="text-xs text-gray-500 font-medium block">First Name</span>
+                            <span class="text-gray-800 font-semibold" x-text="selectedUser.first_name || '-'"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded border border-gray-100">
+                            <span class="text-xs text-gray-500 font-medium block">Last Name</span>
+                            <span class="text-gray-800 font-semibold" x-text="selectedUser.last_name || '-'"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded border border-gray-100 col-span-2">
+                            <span class="text-xs text-gray-500 font-medium block">Email Address</span>
+                            <span class="text-gray-800 font-semibold break-all" x-text="selectedUser.email || '-'"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded border border-gray-100">
+                            <span class="text-xs text-gray-500 font-medium block">Phone</span>
+                            <span class="text-gray-800 font-semibold" x-text="selectedUser.phone || '-'"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded border border-gray-100">
+                            <span class="text-xs text-gray-500 font-medium block">User Code</span>
+                            <span class="font-mono text-gray-800 font-semibold" x-text="selectedUser.user_code || '-'"></span>
+                        </div>
+                        <div class="bg-gray-50 p-2.5 rounded border border-gray-100 col-span-2">
+                            <span class="text-xs text-gray-500 font-medium block">Created Date</span>
+                            <span class="text-gray-700 text-xs font-mono" x-text="selectedUser.created_date || '-'"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-6 py-3 flex justify-end border-t border-gray-200">
+                    <button type="button" @click="showViewUserModal = false" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div x-show="showEditUserModal" style="display: none;" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div x-show="showEditUserModal" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showEditUserModal = false"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div x-show="showEditUserModal" x-transition class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <form method="POST" action="" autocomplete="off">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="edit_user">
+                    <input type="hidden" name="user_id" :value="selectedUser.id">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-user-pen text-indigo-600"></i>
+                            <span>Edit User</span>
+                        </h3>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name <span class="text-red-500">*</span></label>
+                                    <input type="text" name="first_name" x-model="selectedUser.first_name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                    <input type="text" name="last_name" x-model="selectedUser.last_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+                                <input type="email" name="email" x-model="selectedUser.email" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                <input type="text" name="phone" x-model="selectedUser.phone" pattern="[0-9]{10}" maxlength="10" minlength="10" title="Phone number must be exactly 10 digits" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Role <span class="text-red-500">*</span></label>
+                                    <select name="role_id" x-model="selectedUser.role_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                        <option value="">Select a role...</option>
+                                        {% for role in roles %}
+                                            <option value="{{ role.role_id }}">{{ role.role_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select name="is_active" :value="selectedUser.is_active ? '1' : '0'" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                        <option value="1">Active</option>
+                                        <option value="0">Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-xs text-gray-400 font-normal">(Leave blank to keep existing)</span></label>
+                                <input type="password" name="password" autocomplete="new-password" placeholder="••••••••" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200">
+                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:gap-0 sm:ml-3 sm:w-auto sm:text-sm transition">
+                            Save Changes
+                        </button>
+                        <button type="button" @click="showEditUserModal = false" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:gap-0 sm:ml-3 sm:w-auto sm:text-sm transition">
                             Cancel
                         </button>
                     </div>

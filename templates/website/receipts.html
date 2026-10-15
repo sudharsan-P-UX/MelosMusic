@@ -18,29 +18,30 @@
 
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <!-- Filters -->
-        <form method="GET" class="p-4 md:p-6 border-b border-gray-100 flex-col md:flex-row flex-wrap md:items-end gap-4"
-              :class="showFilter ? 'flex' : 'hidden md:flex'">
-            <div class="w-full md:w-40">
-                <label class="block text-xs font-medium text-gray-500 mb-1">From Date</label>
-                <input type="date" name="from_date" value="{{ from_date }}" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-            </div>
-            <div class="w-full md:w-40">
-                <label class="block text-xs font-medium text-gray-500 mb-1">To Date</label>
-                <input type="date" name="to_date" value="{{ to_date }}" class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-            </div>
-            <div class="w-full md:w-48">
-                <label class="block text-xs font-medium text-gray-500 mb-1">Receipt No.</label>
-                <input type="text" name="receipt_no" value="{{ receipt_no }}" placeholder="Enter receipt no..." class="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
-            </div>
-            <div class="flex items-center gap-2 w-full md:w-auto">
-                <button type="submit" class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium transition text-sm">
-                    Search
-                </button>
-                <a href="{% url 'receipts' %}" class="flex-1 md:flex-initial border border-red-400 text-red-500 hover:bg-red-50 px-6 py-2 rounded-md font-medium transition text-sm text-center">
-                    Reset
-                </a>
-            </div>
-        </form>
+        <div :class="showFilter ? 'block' : 'hidden md:block'" class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <form method="GET" action="{% url 'receipts' %}" class="flex flex-wrap gap-3 items-end">
+                <div class="w-full sm:w-44">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">From Date</label>
+                    <input type="date" name="from_date" value="{{ from_date }}" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                </div>
+                <div class="w-full sm:w-44">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">To Date</label>
+                    <input type="date" name="to_date" value="{{ to_date }}" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                </div>
+                <div class="w-full sm:w-52">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Receipt No.</label>
+                    <input type="text" name="receipt_no" value="{{ receipt_no }}" placeholder="Enter receipt no..." class="w-full border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                </div>
+                <div class="flex space-x-2">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded text-sm font-medium transition shadow-sm h-[36px] flex items-center">
+                        <i class="fa-solid fa-filter mr-1.5 text-xs"></i> Apply
+                    </button>
+                    <a href="{% url 'receipts' %}" class="bg-white hover:bg-gray-50 border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm font-medium transition shadow-sm h-[36px] flex items-center">
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
 
     <!-- Table -->
     <div class="overflow-x-auto">

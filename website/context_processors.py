@@ -424,6 +424,22 @@ def menu_columns_processor(request):
                 keys_to_set.extend(['fee_collection', 'fees_collection', 'collection'])
             if 'pending_fee' in norm_key:
                 keys_to_set.extend(['pending_fees', 'fee_pending', 'pending'])
+            if norm_key in ['dashboard', 'home', 'index']:
+                keys_to_set.extend(['dashboard', 'home', 'index'])
+            if 'role' in norm_key:
+                keys_to_set.extend(['roles', 'role_management', 'role'])
+            if 'setting' in norm_key:
+                keys_to_set.extend(['settings', 'system_settings', 'setting'])
+            if 'column' in norm_key:
+                keys_to_set.extend(['column_list', 'menu_column_list', 'columns'])
+            if 'report' in norm_key and 'fee' in norm_key:
+                keys_to_set.extend(['fee_reports', 'reports', 'fee_report'])
+            if 'report' in norm_key and 'event' in norm_key:
+                keys_to_set.extend(['event_reports', 'event_report'])
+            if 'attendance' in norm_key and 'event' in norm_key:
+                keys_to_set.extend(['event_attendance', 'event_attendances'])
+            if 'notification' in norm_key:
+                keys_to_set.extend(['notifications', 'notification'])
 
             for k in set(keys_to_set):
                 mandatory_map.setdefault(k, {})[col.column_key] = bool(col.is_mandatory)

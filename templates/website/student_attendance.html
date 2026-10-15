@@ -31,47 +31,55 @@
     </div>
 
     <!-- Filters -->
-    <form method="GET" action="{% url 'student_attendance' %}" :class="showFilter ? 'flex' : 'hidden md:flex'" class="p-4 md:p-6 pb-3 border-b border-gray-100 flex-col md:flex-row md:items-center gap-3">
-        <div class="w-full md:w-56">
-            <select name="batch_id" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
-                <option value="">All Batches</option>
-                {% for batch in batches %}
-                <option value="{{ batch.batch_id }}" {% if selected_batch == batch.batch_id|stringformat:"s" %}selected{% endif %}>{{ batch.batch_name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="w-full md:w-56">
-            <select name="student_id" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
-                <option value="">All Students</option>
-                {% for student in students %}
-                <option value="{{ student.user_id }}" {% if selected_student == student.user_id|stringformat:"s" %}selected{% endif %}>{{ student.display_name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="w-full md:w-44 relative">
-            <input type="text" inputmode="numeric" name="date" id="s_filter_date" value="{{ selected_date }}" placeholder="YYYY-MM-DD" oninput="formatDateTimeInput(this, 'date')" onblur="formatDateTimeInput(this, 'date', true)" class="w-full border border-gray-300 text-gray-700 rounded-md pl-3 pr-8 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
-            <button type="button" onclick="triggerPicker('s_filter_date_picker')" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition" title="Calendar picker">
-                <i class="fa-regular fa-calendar-days text-xs"></i>
-            </button>
-            <input type="date" id="s_filter_date_picker" onchange="document.getElementById('s_filter_date').value = this.value" class="sr-only">
-        </div>
-        <div class="w-full md:w-40">
-            <select name="approval_status" class="w-full border border-gray-300 text-gray-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
-                <option value="">All Approvals</option>
-                <option value="Approved" {% if selected_approval_status == 'Approved' %}selected{% endif %}>Approved</option>
-                <option value="Pending" {% if selected_approval_status == 'Pending' %}selected{% endif %}>Pending</option>
-                <option value="Rejected" {% if selected_approval_status == 'Rejected' %}selected{% endif %}>Rejected</option>
-            </select>
-        </div>
-        <div class="flex items-center gap-2">
-            <button type="submit" class="flex-1 md:flex-none justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-md font-medium text-sm transition flex items-center shadow-sm">
-                <i class="fa-solid fa-filter mr-1.5 text-xs"></i> Filter
-            </button>
-            <a href="{% url 'student_attendance' %}" class="flex-1 md:flex-none justify-center border border-gray-300 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-md font-medium text-sm transition flex items-center">
-                <i class="fa-solid fa-arrow-rotate-right mr-1.5 text-xs"></i> Reset
-            </a>
-        </div>
-    </form>
+    <div :class="showFilter ? 'block' : 'hidden md:block'" class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <form method="GET" action="{% url 'student_attendance' %}" class="flex flex-wrap gap-3 items-end">
+            <div class="w-full sm:w-52">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Batch</label>
+                <select name="batch_id" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Batches</option>
+                    {% for batch in batches %}
+                    <option value="{{ batch.batch_id }}" {% if selected_batch == batch.batch_id|stringformat:"s" %}selected{% endif %}>{{ batch.batch_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="w-full sm:w-52">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Student</label>
+                <select name="student_id" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Students</option>
+                    {% for student in students %}
+                    <option value="{{ student.user_id }}" {% if selected_student == student.user_id|stringformat:"s" %}selected{% endif %}>{{ student.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="w-full sm:w-44">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Date</label>
+                <div class="relative">
+                    <input type="text" inputmode="numeric" name="date" id="s_filter_date" value="{{ selected_date }}" placeholder="YYYY-MM-DD" oninput="formatDateTimeInput(this, 'date')" onblur="formatDateTimeInput(this, 'date', true)" class="w-full border border-gray-300 rounded pl-3 pr-8 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <button type="button" onclick="triggerPicker('s_filter_date_picker')" class="absolute right-2 top-2.5 text-gray-400 hover:text-indigo-600 transition" title="Calendar picker">
+                        <i class="fa-regular fa-calendar-days text-xs"></i>
+                    </button>
+                    <input type="date" id="s_filter_date_picker" onchange="document.getElementById('s_filter_date').value = this.value" class="sr-only">
+                </div>
+            </div>
+            <div class="w-full sm:w-44">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Approval Status</label>
+                <select name="approval_status" class="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-700 outline-none h-[36px] bg-white focus:border-indigo-500">
+                    <option value="">All Approvals</option>
+                    <option value="Approved" {% if selected_approval_status == 'Approved' %}selected{% endif %}>Approved</option>
+                    <option value="Pending" {% if selected_approval_status == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Rejected" {% if selected_approval_status == 'Rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+            <div class="flex space-x-2">
+                <button type="submit" class="bg-indigo-600 text-white px-4 py-1.5 rounded text-sm hover:bg-indigo-700 h-[36px] flex items-center shadow-sm font-medium">
+                    <i class="fa-solid fa-filter mr-1.5 text-xs"></i> Apply
+                </button>
+                <a href="{% url 'student_attendance' %}" class="bg-white border border-gray-300 text-gray-600 px-4 py-1.5 rounded text-sm hover:bg-gray-50 h-[36px] flex items-center shadow-sm font-medium">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
 
     <!-- Daily Records Table -->
     <div class="overflow-x-auto w-full">

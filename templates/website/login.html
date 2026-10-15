@@ -106,7 +106,7 @@
             
             <div class="relative w-full">
                 <i class="fa-solid fa-user input-icon"></i>
-                <input type="text" name="username" placeholder="Username" class="neumorphic-input">
+                <input type="text" name="username" value="{{ username|default:'' }}" placeholder="Username / Email / Phone" required autocomplete="username" class="neumorphic-input">
             </div>
 
             <div class="relative w-full">
